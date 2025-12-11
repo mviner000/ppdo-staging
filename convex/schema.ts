@@ -418,6 +418,57 @@ export default defineSchema({
     .index("statusAndOffice", ["status", "implementingOffice"])
     .index("officeAndStatus", ["implementingOffice", "status"]),
 
+
+  /**
+   * Media files.
+   * Stores uploaded images and other media with user ownership.
+   */
+  media: defineTable({
+    /**
+     * Reference to the file in Convex storage.
+     */
+    storageId: v.id("_storage"),
+    
+    /**
+     * Original filename.
+     */
+    name: v.string(),
+    
+    /**
+     * MIME type (e.g., "image/jpeg", "image/png").
+     */
+    type: v.string(),
+    
+    /**
+     * File size in bytes.
+     */
+    size: v.number(),
+    
+    /**
+     * User who uploaded this media.
+     */
+    userId: v.id("users"),
+    
+    /**
+     * Timestamp when the media was uploaded (milliseconds since epoch).
+     */
+    uploadedAt: v.number(),
+    
+    /**
+     * Timestamp when the media record was created (milliseconds since epoch).
+     */
+    createdAt: v.number(),
+    
+    /**
+     * Timestamp when the media record was last updated (milliseconds since epoch).
+     */
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("uploadedAt", ["uploadedAt"])
+    .index("type", ["type"])
+    .index("userIdAndUploadedAt", ["userId", "uploadedAt"]),
+
   numbers: defineTable({
     value: v.number(),
   }),
