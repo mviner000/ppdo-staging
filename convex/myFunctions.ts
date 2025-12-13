@@ -28,6 +28,8 @@ export const listNumbers = query({
     const user = userId === null ? null : await ctx.db.get(userId);
     return {
       viewer: user?.email ?? null,
+      role: user?.role ?? "user", // Added role to the return object
+      userName: user?.name ?? "Tarlac Administrator", // Added userName for display with fallback
       numbers: numbers.reverse().map((number) => number.value),
     };
   },

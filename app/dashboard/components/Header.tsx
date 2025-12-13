@@ -1,3 +1,8 @@
+// ============================================================================
+// UPDATED Header Component using your existing useCurrentUser hook
+// File: app/dashboard/components/Header.tsx
+// ============================================================================
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,9 +11,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useSidebar } from "../contexts/SidebarContext";
 import { useAccentColor } from "../contexts/AccentColorContext";
 import SignOutButton from "@/app/components/SignOutButton";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-
+import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 
 interface HeaderProps {
   onSearchChange?: (query: string) => void;
@@ -26,15 +29,74 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
   const { isMinimized, toggleMinimize } = useSidebar();
   const { accentColorValue, setAccentColor } = useAccentColor();
 
-  // Get user data from Convex
-  const { viewer } = useQuery(api.myFunctions.listNumbers, { count: 10 }) ?? {};
-  const userEmail = viewer || "";
-  const userName = "Tarlac Administrator";
+  // ✅ Use your existing useCurrentUser hook - FULLY DYNAMIC!
+  const { user, isLoading } = useCurrentUser();
+  
+  // Extract user data
+  const userEmail = user?.email || "";
+  const userName = user?.name || "User";
+  const userRole = user?.role || "user";
+
+  // Helper function to format role for display
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return "Super Administrator";
+      case "admin":
+        return "Administrator";
+      case "user":
+        return "User";
+      default:
+        return "User";
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (name: string, email: string) => {
+    if (name && name !== "User") {
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
 
   // Sync hex input with accent color value
   useEffect(() => {
     setHexInputValue(accentColorValue.toUpperCase());
   }, [accentColorValue]);
+
+  // Show loading state while fetching user data
+  if (isLoading) {
+    return (
+      <header className="sticky top-0 z-30 bg-[#f8f8f8]/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 py-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="hidden md:flex p-2 rounded-lg">
+                <div className="w-5 h-5 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+                <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+              <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />
+              <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-30 bg-[#f8f8f8]/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
@@ -80,7 +142,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
                 style={{ fontFamily: "var(--font-cinzel), serif" }}
               >
-                {userName || "User"}
+                {userName}
               </span>
             </div>
           </div>
@@ -131,7 +193,6 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                     onClick={() => setShowEmails(false)}
                   />
                   <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-20 max-h-[600px] overflow-hidden flex flex-col">
-                    {/* Email Header */}
                     <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                         Email
@@ -147,18 +208,15 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                       )}
                     </div>
 
-                    {/* Email List */}
                     <div className="flex-1 overflow-y-auto">
                       {emailCount > 0 ? (
                         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                          {/* Sample Emails */}
                           {[
                             {
                               id: 1,
                               from: "provincial.office@tarlac.gov.ph",
                               subject: "Monthly Report Submission",
-                              preview:
-                                "Please submit the monthly report by end of week...",
+                              preview: "Please submit the monthly report by end of week...",
                               time: "2 hours ago",
                               isRead: false,
                             },
@@ -166,8 +224,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               id: 2,
                               from: "hr@tarlac.gov.ph",
                               subject: "Staff Meeting Reminder",
-                              preview:
-                                "Reminder: Staff meeting scheduled for tomorrow...",
+                              preview: "Reminder: Staff meeting scheduled for tomorrow...",
                               time: "5 hours ago",
                               isRead: false,
                             },
@@ -175,8 +232,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               id: 3,
                               from: "finance@tarlac.gov.ph",
                               subject: "Budget Approval Required",
-                              preview:
-                                "Your department budget request needs approval...",
+                              preview: "Your department budget request needs approval...",
                               time: "1 day ago",
                               isRead: false,
                             },
@@ -184,8 +240,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               id: 4,
                               from: "it@tarlac.gov.ph",
                               subject: "System Maintenance Notice",
-                              preview:
-                                "Scheduled maintenance this weekend from 10 PM...",
+                              preview: "Scheduled maintenance this weekend from 10 PM...",
                               time: "2 days ago",
                               isRead: true,
                             },
@@ -193,8 +248,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               id: 5,
                               from: "admin@tarlac.gov.ph",
                               subject: "Policy Update",
-                              preview:
-                                "New office policies have been updated...",
+                              preview: "New office policies have been updated...",
                               time: "3 days ago",
                               isRead: true,
                             },
@@ -202,10 +256,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                             <div
                               key={email.id}
                               className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors"
-                              onClick={() => {
-                                // Handle email click
-                                setShowEmails(false);
-                              }}
+                              onClick={() => setShowEmails(false)}
                             >
                               <div className="flex items-start gap-3">
                                 <div
@@ -256,7 +307,6 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                       )}
                     </div>
 
-                    {/* View All Emails Button */}
                     <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
                       <button
                         className="w-full py-2 px-4 rounded-lg font-medium transition-all hover:shadow-md text-center"
@@ -321,7 +371,6 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                     onClick={() => setShowNotifications(false)}
                   />
                   <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-2xl z-20 max-h-[500px] overflow-hidden flex flex-col">
-                    {/* Notifications Header */}
                     <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                         Notifications
@@ -337,33 +386,28 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                       )}
                     </div>
 
-                    {/* Notifications List */}
                     <div className="flex-1 overflow-y-auto">
                       {notificationCount > 0 ? (
                         <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                          {/* Sample Notifications */}
                           {[
                             {
                               id: 1,
                               title: "New document received",
-                              message:
-                                "A new incoming document requires your review",
+                              message: "A new incoming document requires your review",
                               time: "5 minutes ago",
                               isRead: false,
                             },
                             {
                               id: 2,
                               title: "Approval pending",
-                              message:
-                                "3 documents are waiting for your approval",
+                              message: "3 documents are waiting for your approval",
                               time: "1 hour ago",
                               isRead: false,
                             },
                             {
                               id: 3,
                               title: "System update",
-                              message:
-                                "System maintenance scheduled for tonight",
+                              message: "System maintenance scheduled for tonight",
                               time: "2 hours ago",
                               isRead: false,
                             },
@@ -371,10 +415,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                             <div
                               key={notification.id}
                               className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors"
-                              onClick={() => {
-                                // Handle notification click
-                                setShowNotifications(false);
-                              }}
+                              onClick={() => setShowNotifications(false)}
                             >
                               <div className="flex items-start gap-3">
                                 <div
@@ -437,11 +478,11 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                   style={{ backgroundColor: accentColorValue }}
                 >
                   <span className="text-white font-medium text-sm">
-                    {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+                    {getUserInitials(userName, userEmail)}
                   </span>
                 </div>
                 <span className="hidden sm:block text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {userEmail || "User"}
+                  {userEmail || userName}
                 </span>
                 <svg
                   className={`w-4 h-4 text-zinc-600 dark:text-zinc-400 transition-transform ${
@@ -470,10 +511,10 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                   <div className="absolute right-0 mt-2 w-56 bg-[#f8f8f8] dark:bg-zinc-800 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 py-2 z-50">
                     <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
                       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {userEmail || "User"}
+                        {userEmail || userName}
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        Administrator
+                        {getRoleDisplay(userRole)}
                       </p>
                     </div>
 
@@ -508,10 +549,8 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               value={hexInputValue}
                               onChange={(e) => {
                                 const value = e.target.value.toUpperCase();
-                                // Allow typing partial hex codes for better UX
                                 if (/^#[0-9A-F]{0,6}$/i.test(value)) {
                                   setHexInputValue(value);
-                                  // Only update context if it's a complete 6-digit hex code
                                   if (
                                     value.length === 7 &&
                                     /^#[0-9A-F]{6}$/i.test(value)
@@ -522,11 +561,9 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                               }}
                               onBlur={(e) => {
                                 const value = e.currentTarget.value;
-                                // On blur, validate and fix if needed
                                 if (/^#[0-9A-F]{6}$/i.test(value)) {
                                   setAccentColor(value);
                                 } else {
-                                  // Restore to current valid color
                                   setHexInputValue(
                                     accentColorValue.toUpperCase()
                                   );

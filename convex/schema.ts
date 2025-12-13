@@ -179,6 +179,13 @@ export default defineSchema({
   users: defineTable({
     // Basic user information
     name: v.optional(v.string()),
+    
+    /**
+     * Username for login or display (optional, separate from full name)
+     * Can be used for @mentions, unique identifiers, etc.
+     */
+    user_name: v.optional(v.string()),
+    
     image: v.optional(v.string()),
     email: v.optional(v.string()),
     emailVerificationTime: v.optional(v.number()),
@@ -273,6 +280,7 @@ export default defineSchema({
     .index("status", ["status"])
     .index("departmentId", ["departmentId"])
     .index("employeeId", ["employeeId"])
+    .index("user_name", ["user_name"])
     .index("roleAndStatus", ["role", "status"])
     .index("departmentAndRole", ["departmentId", "role"])
     .index("lastLogin", ["lastLogin"])

@@ -1,3 +1,5 @@
+// app/mail/layout.tsx
+
 "use client";
 
 import { Sidebar } from "../dashboard/components/Sidebar";
