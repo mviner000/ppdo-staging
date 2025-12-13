@@ -23,7 +23,19 @@ export const getProjectsByBudgetItem = query({
       .order("desc")
       .collect();
 
-    return projects;
+    // Enrich with department information
+    const projectsWithDepartments = await Promise.all(
+      projects.map(async (project) => {
+        const department = await ctx.db.get(project.departmentId);
+        return {
+          ...project,
+          departmentName: department?.name,
+          departmentCode: department?.code,
+        };
+      })
+    );
+
+    return projectsWithDepartments;
   },
 });
 

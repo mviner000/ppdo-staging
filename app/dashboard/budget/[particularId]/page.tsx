@@ -40,6 +40,9 @@ export default function ParticularProjectsPage() {
   const budgetItems = useQuery(api.budgetItems.list);
   const budgetItem = budgetItems?.find(item => item.particulars === particular);
   
+  // Get all departments for the dropdown
+  const departments = useQuery(api.departments.list, { includeInactive: false });
+  
   // Get projects for this budget item
   const projects = useQuery(
     api.projects.getProjectsByBudgetItem,
@@ -55,20 +58,34 @@ export default function ParticularProjectsPage() {
 
   const handleAddProject = async (projectData: any) => {
     try {
+      // Find the department by name (implementing office)
+      const department = departments?.find(
+        d => d.name === projectData.implementingOffice || d.code === projectData.implementingOffice
+      );
+      
+      if (!department) {
+        alert("Please select a valid department/implementing office.");
+        return;
+      }
+
       // Convert date strings to timestamps
       const dateStarted = new Date(projectData.dateStarted).getTime();
       const completionDate = projectData.completionDate 
         ? new Date(projectData.completionDate).getTime() 
         : undefined;
+      const expectedCompletionDate = projectData.expectedCompletionDate
+        ? new Date(projectData.expectedCompletionDate).getTime()
+        : undefined;
 
       await createProject({
         projectName: projectData.projectName,
-        implementingOffice: projectData.implementingOffice,
+        departmentId: department._id as Id<"departments">,
         allocatedBudget: projectData.allocatedBudget,
         revisedBudget: projectData.revisedBudget || undefined,
         totalBudgetUtilized: projectData.totalBudgetUtilized || 0,
         dateStarted,
         completionDate,
+        expectedCompletionDate,
         projectAccomplishment: projectData.projectAccomplishment || 0,
         status: projectData.status || "on_track",
         remarks: projectData.remarks || undefined,
@@ -82,21 +99,35 @@ export default function ParticularProjectsPage() {
 
   const handleEditProject = async (id: string, projectData: any) => {
     try {
+      // Find the department by name (implementing office)
+      const department = departments?.find(
+        d => d.name === projectData.implementingOffice || d.code === projectData.implementingOffice
+      );
+      
+      if (!department) {
+        alert("Please select a valid department/implementing office.");
+        return;
+      }
+
       // Convert date strings to timestamps
       const dateStarted = new Date(projectData.dateStarted).getTime();
       const completionDate = projectData.completionDate 
         ? new Date(projectData.completionDate).getTime() 
         : undefined;
+      const expectedCompletionDate = projectData.expectedCompletionDate
+        ? new Date(projectData.expectedCompletionDate).getTime()
+        : undefined;
 
       await updateProject({
         id: id as Id<"projects">,
         projectName: projectData.projectName,
-        implementingOffice: projectData.implementingOffice,
+        departmentId: department._id as Id<"departments">,
         allocatedBudget: projectData.allocatedBudget,
         revisedBudget: projectData.revisedBudget || undefined,
         totalBudgetUtilized: projectData.totalBudgetUtilized || 0,
         dateStarted,
         completionDate,
+        expectedCompletionDate,
         projectAccomplishment: projectData.projectAccomplishment || 0,
         status: projectData.status || "on_track",
         remarks: projectData.remarks || undefined,
@@ -121,7 +152,7 @@ export default function ParticularProjectsPage() {
   const transformedProjects = projects?.map(project => ({
     id: project._id,
     projectName: project.projectName,
-    implementingOffice: project.implementingOffice,
+    implementingOffice: project.departmentName || project.departmentCode || "Unknown",
     allocatedBudget: project.allocatedBudget,
     revisedBudget: project.revisedBudget ?? project.allocatedBudget,
     totalBudgetUtilized: project.totalBudgetUtilized,
@@ -130,6 +161,9 @@ export default function ParticularProjectsPage() {
     dateStarted: new Date(project.dateStarted).toISOString().split('T')[0],
     completionDate: project.completionDate 
       ? new Date(project.completionDate).toISOString().split('T')[0] 
+      : "",
+    expectedCompletionDate: project.expectedCompletionDate
+      ? new Date(project.expectedCompletionDate).toISOString().split('T')[0]
       : "",
     projectAccomplishment: project.projectAccomplishment,
     status: project.status,
@@ -235,7 +269,7 @@ export default function ParticularProjectsPage() {
 
       {/* Projects Table */}
       <div className="mb-6">
-        {projects === undefined ? (
+        {projects === undefined || departments === undefined ? (
           <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-zinc-300 border-t-transparent dark:border-zinc-700 dark:border-t-transparent"></div>
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">Loading projects...</p>

@@ -1,3 +1,5 @@
+git commit command for all changes, follow the reference:
+
 # Conventional Commit Types
 
 A quick reference to the most commonly used commit message prefixes following the **Conventional Commits** standard.
