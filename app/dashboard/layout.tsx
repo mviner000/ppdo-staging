@@ -1,6 +1,8 @@
-// app/dashboard/layout.tsx
-
 "use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useConvexAuth } from "convex/react";
 
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
@@ -14,6 +16,22 @@ import { BreadcrumbProvider } from "./contexts/BreadcrumbContext";
 import { OnboardingModal } from "@/components/modals/OnboardingModal";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace("/signin");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Optional: prevent UI flash while loading / redirecting
+  if (isLoading || !isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-dvh bg-[#f8f8f8] dark:bg-zinc-950 flex">
       {/* Sidebar */}
@@ -37,11 +55,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-      
+
       {/* AI Assistant */}
       <AIAssistant />
-      
-      {/* Global Onboarding Modal - checks status automatically */}
+
+      {/* Global Onboarding Modal */}
       <OnboardingModal />
     </div>
   );
