@@ -1,3 +1,5 @@
+// app/dashboard/components/TimeLocation.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

@@ -357,6 +357,7 @@ export const blockIPAddress = mutation({
   args: {
     ipAddress: v.string(),
     reason: v.string(),
+    notes: v.optional(v.string()),
     attemptId: v.optional(v.id("loginAttempts")),
   },
   handler: async (ctx, args) => {
@@ -374,6 +375,7 @@ export const blockIPAddress = mutation({
     const existing = await ctx.db
       .query("blockedIPs")
       .withIndex("ipAddress", (q) => q.eq("ipAddress", args.ipAddress))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .first();
 
     if (existing) {
@@ -384,10 +386,22 @@ export const blockIPAddress = mutation({
     await ctx.db.insert("blockedIPs", {
       ipAddress: args.ipAddress,
       reason: args.reason,
+      notes: args.notes,
       blockedBy: currentUserId,
       blockedAt: now,
       isActive: true,
       attemptId: args.attemptId,
+    });
+
+    // Create security alert
+    await ctx.db.insert("securityAlerts", {
+      type: "brute_force_attempt",
+      severity: "high",
+      title: "IP Address Blocked",
+      description: `IP address ${args.ipAddress} has been blocked. Reason: ${args.reason}`,
+      metadata: JSON.stringify({ ipAddress: args.ipAddress, blockedBy: currentUserId }),
+      status: "open",
+      createdAt: now,
     });
 
     return { success: true };
@@ -401,6 +415,7 @@ export const blockEmail = mutation({
   args: {
     email: v.string(),
     reason: v.string(),
+    notes: v.optional(v.string()),
     attemptId: v.optional(v.id("loginAttempts")),
   },
   handler: async (ctx, args) => {
@@ -418,6 +433,7 @@ export const blockEmail = mutation({
     const existing = await ctx.db
       .query("blockedEmails")
       .withIndex("email", (q) => q.eq("email", args.email))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .first();
 
     if (existing) {
@@ -428,10 +444,22 @@ export const blockEmail = mutation({
     await ctx.db.insert("blockedEmails", {
       email: args.email,
       reason: args.reason,
+      notes: args.notes,
       blockedBy: currentUserId,
       blockedAt: now,
       isActive: true,
       attemptId: args.attemptId,
+    });
+
+    // Create security alert
+    await ctx.db.insert("securityAlerts", {
+      type: "brute_force_attempt",
+      severity: "high",
+      title: "Email Address Blocked",
+      description: `Email address ${args.email} has been blocked. Reason: ${args.reason}`,
+      metadata: JSON.stringify({ email: args.email, blockedBy: currentUserId }),
+      status: "open",
+      createdAt: now,
     });
 
     return { success: true };

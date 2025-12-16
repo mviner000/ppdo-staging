@@ -387,6 +387,8 @@ export const recordSuccessfulLogin = mutation({
     ipAddress: v.string(),
     userAgent: v.optional(v.string()),
     sessionId: v.optional(v.id("authSessions")),
+    location: v.optional(v.string()), // NEW: Simple location string like "City, Region, Country"
+    geoLocation: v.optional(v.string()), // NEW: Full geo data as JSON string
   },
   handler: async (ctx, args) => {
     let user = null;
@@ -410,7 +412,19 @@ export const recordSuccessfulLogin = mutation({
 
     // Parse user agent to extract device and browser info
     const deviceInfo = parseUserAgent(args.userAgent);
-    const geoLocation = await parseIPAddress(args.ipAddress);
+    
+    // Use provided geoLocation or fall back to IP-based parsing
+    let geoLocation = null;
+    if (args.geoLocation) {
+      try {
+        geoLocation = JSON.parse(args.geoLocation);
+      } catch (e) {
+        // If parsing fails, fall back to IP-based
+        geoLocation = await parseIPAddress(args.ipAddress);
+      }
+    } else {
+      geoLocation = await parseIPAddress(args.ipAddress);
+    }
 
     // Record login attempt
     await ctx.db.insert("loginAttempts", {
@@ -468,7 +482,7 @@ export const recordSuccessfulLogin = mutation({
     }
 
     // Update or create login location
-    if (geoLocation) {
+    if (geoLocation && geoLocation.city && geoLocation.country) {
       const existingLocation = await ctx.db
         .query("loginLocations")
         .withIndex("userAndLocation", (q) => 
@@ -484,12 +498,15 @@ export const recordSuccessfulLogin = mutation({
           loginCount: existingLocation.loginCount + 1,
         });
       } else {
+        // Create new location entry
         await ctx.db.insert("loginLocations", {
           userId: userId,
           city: geoLocation.city,
-          region: geoLocation.region,
+          region: geoLocation.region || "Unknown",
           country: geoLocation.country,
-          coordinates: JSON.stringify({ lat: 0, lng: 0 }),
+          coordinates: geoLocation.coordinates 
+            ? JSON.stringify(geoLocation.coordinates) 
+            : JSON.stringify({ lat: 0, lng: 0 }),
           firstSeen: now,
           lastSeen: now,
           isTrusted: false,
@@ -512,6 +529,8 @@ export const recordFailedLogin = mutation({
     ipAddress: v.string(),
     userAgent: v.optional(v.string()),
     failureReason: v.string(),
+    location: v.optional(v.string()), // NEW: Simple location string
+    geoLocation: v.optional(v.string()), // NEW: Full geo data as JSON string
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -521,7 +540,19 @@ export const recordFailedLogin = mutation({
 
     const now = Date.now();
     const deviceInfo = parseUserAgent(args.userAgent);
-    const geoLocation = await parseIPAddress(args.ipAddress);
+    
+    // Use provided geoLocation or fall back to IP-based parsing
+    let geoLocation = null;
+    if (args.geoLocation) {
+      try {
+        geoLocation = JSON.parse(args.geoLocation);
+      } catch (e) {
+        // If parsing fails, fall back to IP-based
+        geoLocation = await parseIPAddress(args.ipAddress);
+      }
+    } else {
+      geoLocation = await parseIPAddress(args.ipAddress);
+    }
 
     // Calculate risk score
     let riskScore = 20; // Base score for failed login
@@ -547,18 +578,20 @@ export const recordFailedLogin = mutation({
       }
 
       // Check for unusual location
-      const knownLocations = await ctx.db
-        .query("loginLocations")
-        .withIndex("userId", (q) => q.eq("userId", user._id))
-        .collect();
-      
-      const locationKnown = geoLocation && knownLocations.some(
-        loc => loc.city === geoLocation.city && loc.country === geoLocation.country
-      );
+      if (geoLocation && geoLocation.city && geoLocation.country) {
+        const knownLocations = await ctx.db
+          .query("loginLocations")
+          .withIndex("userId", (q) => q.eq("userId", user._id))
+          .collect();
+        
+        const locationKnown = knownLocations.some(
+          loc => loc.city === geoLocation.city && loc.country === geoLocation.country
+        );
 
-      if (geoLocation && !locationKnown) {
-        riskScore += 25;
-        riskFactors.push("unusual_location");
+        if (!locationKnown) {
+          riskScore += 25;
+          riskFactors.push("unusual_location");
+        }
       }
     } else {
       // User does not exist, but we still log it with a high initial risk

@@ -8,52 +8,157 @@ import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
+interface LocationData {
+  city: string;
+  region: string;
+  country: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 export default function SignIn() {
   const { signIn } = useAuthActions();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [clientIP, setClientIP] = useState<string>("Unknown");
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
   const router = useRouter();
   
   // Mutations for login trail tracking
   const recordSuccessfulLogin = useMutation(api.auth.recordSuccessfulLogin);
   const recordFailedLogin = useMutation(api.auth.recordFailedLogin);
 
-  // Fetch client IP on mount
+  // Fetch location data on mount
   useEffect(() => {
-    async function fetchIP() {
+    async function fetchLocationData() {
+      setLocationLoading(true);
+      
+      // First, try to get IP address
+      let ipAddress = "Unknown";
       try {
-        // Try primary IP detection service
-        const response = await fetch('https://api.ipify.org?format=json', {
+        const ipResponse = await fetch('https://api.ipify.org?format=json', {
           signal: AbortSignal.timeout(3000),
         });
+        if (ipResponse.ok) {
+          const ipData = await ipResponse.json();
+          ipAddress = ipData.ip || 'Unknown';
+          setClientIP(ipAddress);
+        }
+      } catch (error) {
+        // Try fallback
+        try {
+          const ipResponse = await fetch('https://api.my-ip.io/ip', {
+            signal: AbortSignal.timeout(3000),
+          });
+          if (ipResponse.ok) {
+            const ip = await ipResponse.text();
+            ipAddress = ip.trim() || 'Unknown';
+            setClientIP(ipAddress);
+          }
+        } catch (error) {
+          setClientIP('Unknown');
+        }
+      }
+
+      // Try browser geolocation first
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            // Got coordinates, now reverse geocode
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            try {
+              // Use a reverse geocoding service
+              const geocodeResponse = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+                {
+                  headers: {
+                    'User-Agent': 'YourAppName/1.0',
+                  },
+                  signal: AbortSignal.timeout(5000),
+                }
+              );
+              
+              if (geocodeResponse.ok) {
+                const geocodeData = await geocodeResponse.json();
+                const address = geocodeData.address || {};
+                
+                setLocationData({
+                  city: address.city || address.town || address.village || address.municipality || 'Unknown',
+                  region: address.state || address.province || address.region || 'Unknown',
+                  country: address.country || 'Unknown',
+                  coordinates: { lat, lng }
+                });
+                setLocationLoading(false);
+                return;
+              }
+            } catch (error) {
+              console.log('Reverse geocoding failed, falling back to IP location');
+            }
+            
+            // If reverse geocoding fails, fall back to IP-based location
+            await fetchIPBasedLocation(ipAddress);
+          },
+          async (error) => {
+            // Geolocation denied or failed, use IP-based location
+            console.log('Geolocation denied or failed, using IP-based location');
+            await fetchIPBasedLocation(ipAddress);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 5000,
+            maximumAge: 300000, // Cache for 5 minutes
+          }
+        );
+      } else {
+        // Browser doesn't support geolocation
+        await fetchIPBasedLocation(ipAddress);
+      }
+    }
+
+    async function fetchIPBasedLocation(ipAddress: string) {
+      try {
+        // Use IP-based geolocation service
+        const response = await fetch(`https://ipapi.co/${ipAddress}/json/`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        
         if (response.ok) {
           const data = await response.json();
-          setClientIP(data.ip || 'Unknown');
-          return;
+          setLocationData({
+            city: data.city || 'Unknown',
+            region: data.region || 'Unknown',
+            country: data.country_name || 'Unknown',
+            coordinates: data.latitude && data.longitude ? {
+              lat: data.latitude,
+              lng: data.longitude
+            } : undefined
+          });
+        } else {
+          // Final fallback
+          setLocationData({
+            city: 'Unknown',
+            region: 'Unknown',
+            country: 'Unknown'
+          });
         }
       } catch (error) {
-        // Ignore errors
-      }
-
-      // Fallback to alternative service
-      try {
-        const response = await fetch('https://api.my-ip.io/ip', {
-          signal: AbortSignal.timeout(3000),
+        // Final fallback
+        setLocationData({
+          city: 'Unknown',
+          region: 'Unknown',
+          country: 'Unknown'
         });
-        if (response.ok) {
-          const ip = await response.text();
-          setClientIP(ip.trim() || 'Unknown');
-          return;
-        }
-      } catch (error) {
-        // Ignore errors
       }
-
-      // Final fallback
-      setClientIP('Unknown');
+      
+      setLocationLoading(false);
     }
-    fetchIP();
+
+    fetchLocationData();
   }, []);
 
   // Helper function to get user agent
@@ -240,6 +345,12 @@ export default function SignIn() {
                 const ipAddress = clientIP;
                 const userAgent = getUserAgent();
                 
+                // Prepare location string
+                let locationString = "Unknown";
+                if (locationData) {
+                  locationString = `${locationData.city}, ${locationData.region}, ${locationData.country}`;
+                }
+                
                 try {
                   // Sign in with Convex Auth
                   formData.set("flow", "signIn");
@@ -252,6 +363,13 @@ export default function SignIn() {
                       email: email,
                       ipAddress: ipAddress,
                       userAgent: userAgent,
+                      location: locationString,
+                      geoLocation: locationData ? JSON.stringify({
+                        city: locationData.city,
+                        region: locationData.region,
+                        country: locationData.country,
+                        coordinates: locationData.coordinates
+                      }) : undefined
                     });
                   } catch (trackingError) {
                     // Continue to dashboard anyway, don't block user entry for logging failure
@@ -270,6 +388,13 @@ export default function SignIn() {
                       ipAddress,
                       userAgent,
                       failureReason: failureReasonForLog,
+                      location: locationString,
+                      geoLocation: locationData ? JSON.stringify({
+                        city: locationData.city,
+                        region: locationData.region,
+                        country: locationData.country,
+                        coordinates: locationData.coordinates
+                      }) : undefined
                     });
                   } catch (trackingError) {
                     // Don't block error display if tracking fails
@@ -348,11 +473,11 @@ export default function SignIn() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || locationLoading}
                 className="w-full py-3 rounded-xl bg-[#15803d] hover:bg-[#16a34a] text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
               >
                 <span className="relative z-10">
-                  {loading ? "Authenticating..." : "Sign In"}
+                  {loading ? "Authenticating..." : locationLoading ? "Detecting location..." : "Sign In"}
                 </span>
               </button>
             </form>
