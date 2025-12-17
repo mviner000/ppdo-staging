@@ -5,52 +5,70 @@ import { v } from "convex/values";
 
 export const govtProjectBreakdownTables = {
   govtProjectBreakdowns: defineTable({
-    // --- LINK TO MAIN PROJECT ---
-    projectId: v.id("projects"),
+    // ============================================================================
+    // MANDATORY FIELDS (Only these two are required)
+    // ============================================================================
+    projectName: v.string(), // e.g., "Construction of"
+    implementingOffice: v.string(), // e.g., "TPH", "PEO", "CDH"
 
-    // --- NEW: PROJECT TITLE (e.g., "Construction of Multi-Purpose Building") ---
-    projectTitle: v.string(),
+    // ============================================================================
+    // OPTIONAL FIELDS (Everything else from your Excel)
+    // ============================================================================
 
-    // --- REPORT METADATA (keeping for backend, hidden from UI) ---
-    reportDate: v.number(),
-    batchId: v.optional(v.string()),
+    // --- PROJECT TITLE ---
+    projectTitle: v.optional(v.string()),
 
-    // --- LOCATION BREAKDOWN ---
-    district: v.string(),
-    municipality: v.string(),
-    barangay: v.optional(v.string()),
-    
-    // --- CLASSIFICATION ---
-    fundSource: v.optional(v.string()),
-    programType: v.optional(v.string()),
-    implementingAgency: v.optional(v.string()),
-
-    // --- FINANCIAL SNAPSHOT ---
-    appropriation: v.number(),
-    obligation: v.optional(v.number()),
+    // --- FINANCIAL DATA ---
+    allocatedBudget: v.optional(v.number()),
+    obligatedBudget: v.optional(v.number()),
+    budgetUtilized: v.optional(v.number()),
+    utilizationRate: v.optional(v.number()),
     balance: v.optional(v.number()),
 
-    // --- PHYSICAL STATUS SNAPSHOT ---
-    accomplishmentRate: v.number(),
-    
-    // --- STATUS DETAILS ---
-    remarksRaw: v.string(),
-    statusCategory: v.union(
-      v.literal("pre_procurement"),
-      v.literal("procurement"),
-      v.literal("implementation"),
-      v.literal("completed"),
-      v.literal("suspended"),
-      v.literal("cancelled")
+    // --- DATE FIELDS ---
+    dateStarted: v.optional(v.number()),
+    targetDate: v.optional(v.number()),
+    completionDate: v.optional(v.number()),
+
+    // --- PROGRESS ---
+    projectAccomplishment: v.optional(v.number()),
+
+    // --- STATUS ---
+    status: v.optional(
+      v.union(
+        v.literal("Completed"),
+        v.literal("On-Going"),
+        v.literal("On-Hold"),
+        v.literal("Cancelled"),
+        v.literal("Delayed")
+      )
     ),
 
-    // --- SYSTEM METADATA ---
+    // --- REMARKS ---
+    remarks: v.optional(v.string()),
+
+    // --- LOCATION DATA ---
+    district: v.optional(v.string()),
+    municipality: v.optional(v.string()),
+    barangay: v.optional(v.string()),
+
+    // --- METADATA ---
+    reportDate: v.optional(v.number()),
+    batchId: v.optional(v.string()),
+    fundSource: v.optional(v.string()),
+
+    // ============================================================================
+    // SYSTEM FIELDS
+    // ============================================================================
     createdBy: v.id("users"),
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id("users")),
   })
-    .index("projectId", ["projectId"])
+    .index("projectName", ["projectName"])
+    .index("implementingOffice", ["implementingOffice"])
+    .index("status", ["status"])
+    .index("projectNameAndOffice", ["projectName", "implementingOffice"])
     .index("reportDate", ["reportDate"])
-    .index("municipality", ["municipality"])
-    .index("statusCategory", ["statusCategory"])
-    .index("projectIdAndDate", ["projectId", "reportDate"]),
+    .index("municipality", ["municipality"]),
 };

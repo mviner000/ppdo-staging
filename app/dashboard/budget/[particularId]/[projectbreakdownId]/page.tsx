@@ -22,18 +22,26 @@ import {
 
 interface Breakdown {
   _id: string;
-  projectTitle: string; // Added projectTitle
-  reportDate: number;
-  district: string;
-  municipality: string;
+  projectName: string;
+  implementingOffice: string;
+  projectTitle?: string;
+  allocatedBudget?: number;
+  obligatedBudget?: number;
+  budgetUtilized?: number;
+  utilizationRate?: number;
+  balance?: number;
+  dateStarted?: number;
+  targetDate?: number;
+  completionDate?: number;
+  projectAccomplishment?: number;
+  status?: "Completed" | "On-Going" | "On-Hold" | "Cancelled" | "Delayed";
+  remarks?: string;
+  district?: string;
+  municipality?: string;
   barangay?: string;
-  fundSource?: string;
-  implementingAgency?: string;
-  appropriation: number;
-  accomplishmentRate: number;
-  remarksRaw: string;
-  statusCategory: string;
+  reportDate?: number;
   batchId?: string;
+  fundSource?: string;
 }
 
 // Helper function to get full name from particular ID
@@ -57,21 +65,14 @@ const getParticularFullName = (particular: string): string => {
 };
 
 // Helper function to extract project ID from slug
-// Format: "department-name-slug-projectId"
 const extractProjectId = (slugWithId: string): string => {
-  // The project ID is the last segment after the last hyphen
-  // We need to find where the actual ID starts (Convex IDs are long alphanumeric)
   const parts = slugWithId.split('-');
-  // Convex IDs are typically long strings without hyphens
-  // Find the last part that looks like a Convex ID (long alphanumeric string)
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i];
-    // Convex IDs are usually 20+ characters and alphanumeric
     if (part.length > 15 && /^[a-z0-9]+$/i.test(part)) {
       return part;
     }
   }
-  // If we can't find it in the expected format, return the last part
   return parts[parts.length - 1];
 };
 
@@ -83,9 +84,8 @@ export default function ProjectBreakdownPage() {
   
   const particularId = decodeURIComponent(params.particularId as string);
   const slugWithId = params.projectbreakdownId as string;
-  
-  // Extract the actual project ID from the slug
   const projectId = extractProjectId(slugWithId);
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -97,11 +97,16 @@ export default function ProjectBreakdownPage() {
     api.projects.get,
     projectId ? { id: projectId as Id<"projects"> } : "skip"
   );
-  // Get the breakdown history for this project
+
+  // Get all breakdowns for this project using the new backend
   const breakdownHistory = useQuery(
-    api.govtProjects.getProjectHistory,
-    projectId ? { projectId: projectId as Id<"projects"> } : "skip"
+    api.govtProjects.getProjectBreakdowns,
+    project ? { projectName: project.projectName } : "skip"
   );
+
+  // Fetch departments for the form
+  const departments = useQuery(api.departments.list, { includeInactive: false });
+
   const particularFullName = getParticularFullName(particularId);
 
   // Set custom breadcrumbs when project data is loaded
@@ -115,13 +120,15 @@ export default function ProjectBreakdownPage() {
       ]);
     }
 
-    // Cleanup: reset breadcrumbs when component unmounts
     return () => {
       setCustomBreadcrumbs(null);
     };
   }, [project, particularFullName, particularId, setCustomBreadcrumbs]);
-  // Mutations
-  const logProjectReport = useMutation(api.govtProjects.logProjectReport);
+
+  // Mutations - using new backend functions
+  const createBreakdown = useMutation(api.govtProjects.createProjectBreakdown);
+  const updateBreakdown = useMutation(api.govtProjects.updateProjectBreakdown);
+  const deleteBreakdown = useMutation(api.govtProjects.deleteProjectBreakdown);
 
   // Calculate statistics from breakdown history
   const stats = breakdownHistory
@@ -129,20 +136,30 @@ export default function ProjectBreakdownPage() {
         totalReports: breakdownHistory.length,
         latestReport: breakdownHistory[breakdownHistory.length - 1],
         earliestReport: breakdownHistory[0],
-        totalAppropriations: breakdownHistory.reduce(
-          (sum, record) => sum + record.appropriation,
+        totalAllocated: breakdownHistory.reduce(
+          (sum, record) => sum + (record.allocatedBudget || 0),
+          0
+        ),
+        totalUtilized: breakdownHistory.reduce(
+          (sum, record) => sum + (record.budgetUtilized || 0),
           0
         ),
         avgAccomplishment:
           breakdownHistory.reduce(
-            (sum, record) => sum + record.accomplishmentRate,
+            (sum, record) => sum + (record.projectAccomplishment || 0),
             0
           ) / (breakdownHistory.length || 1),
         locations: new Set(
-          breakdownHistory.map((record) => record.municipality)
+          breakdownHistory
+            .map((record) => record.municipality)
+            .filter(Boolean)
+        ).size,
+        offices: new Set(
+          breakdownHistory.map((record) => record.implementingOffice)
         ).size,
       }
     : null;
+
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
@@ -152,7 +169,8 @@ export default function ProjectBreakdownPage() {
     }).format(amount);
   };
 
-  const formatDate = (timestamp: number): string => {
+  const formatDate = (timestamp?: number): string => {
+    if (!timestamp) return "N/A";
     return new Intl.DateTimeFormat("en-PH", {
       year: "numeric",
       month: "long",
@@ -163,30 +181,37 @@ export default function ProjectBreakdownPage() {
   const handlePrint = () => {
     window.print();
   };
-  
-  // Updated handleAdd to include projectTitle and generate reportDate
-  const handleAdd = async (breakdownData: Omit<Breakdown, "_id" | "reportDate"> & { reportDate?: number }) => {
+
+  const handleAdd = async (breakdownData: Omit<Breakdown, "_id">) => {
     try {
       if (!project) {
         toast.error("Project not found");
         return;
       }
 
-      await logProjectReport({
-        projectName: project.projectName,
-        departmentId: project.departmentId,
-        projectTitle: breakdownData.projectTitle, // Pass projectTitle
-        reportDate: breakdownData.reportDate || Date.now(), // Use provided date or current time
+      await createBreakdown({
+        projectName: breakdownData.projectName,
+        implementingOffice: breakdownData.implementingOffice,
+        projectTitle: breakdownData.projectTitle,
+        allocatedBudget: breakdownData.allocatedBudget,
+        obligatedBudget: breakdownData.obligatedBudget,
+        budgetUtilized: breakdownData.budgetUtilized,
+        utilizationRate: breakdownData.utilizationRate,
+        balance: breakdownData.balance,
+        dateStarted: breakdownData.dateStarted,
+        targetDate: breakdownData.targetDate,
+        completionDate: breakdownData.completionDate,
+        projectAccomplishment: breakdownData.projectAccomplishment,
+        status: breakdownData.status,
+        remarks: breakdownData.remarks,
         district: breakdownData.district,
         municipality: breakdownData.municipality,
         barangay: breakdownData.barangay,
-        fundSource: breakdownData.fundSource,
-        appropriation: breakdownData.appropriation,
-        accomplishmentRate: breakdownData.accomplishmentRate,
-        remarksRaw: breakdownData.remarksRaw,
-        statusCategory: breakdownData.statusCategory as any,
+        reportDate: breakdownData.reportDate || Date.now(),
         batchId: breakdownData.batchId,
+        fundSource: breakdownData.fundSource,
       });
+
       toast.success("Breakdown record created successfully!");
       setShowAddModal(false);
     } catch (error) {
@@ -201,16 +226,43 @@ export default function ProjectBreakdownPage() {
     setSelectedBreakdown(breakdown);
     setShowEditModal(true);
   };
-  
-  const handleUpdate = async (breakdownData: Omit<Breakdown, "_id" | "reportDate">) => {
+
+  const handleUpdate = async (breakdownData: Omit<Breakdown, "_id">) => {
     try {
-      // TODO: Implement update mutation in backend
-      toast.info("Update functionality coming soon!");
+      if (!selectedBreakdown) {
+        toast.error("No breakdown selected");
+        return;
+      }
+
+      await updateBreakdown({
+        breakdownId: selectedBreakdown._id as Id<"govtProjectBreakdowns">,
+        projectName: breakdownData.projectName,
+        implementingOffice: breakdownData.implementingOffice,
+        projectTitle: breakdownData.projectTitle,
+        allocatedBudget: breakdownData.allocatedBudget,
+        obligatedBudget: breakdownData.obligatedBudget,
+        budgetUtilized: breakdownData.budgetUtilized,
+        utilizationRate: breakdownData.utilizationRate,
+        balance: breakdownData.balance,
+        dateStarted: breakdownData.dateStarted,
+        targetDate: breakdownData.targetDate,
+        completionDate: breakdownData.completionDate,
+        projectAccomplishment: breakdownData.projectAccomplishment,
+        status: breakdownData.status,
+        remarks: breakdownData.remarks,
+        district: breakdownData.district,
+        municipality: breakdownData.municipality,
+        barangay: breakdownData.barangay,
+      });
+
+      toast.success("Breakdown record updated successfully!");
       setShowEditModal(false);
       setSelectedBreakdown(null);
     } catch (error) {
       console.error("Error updating breakdown:", error);
-      toast.error("Failed to update breakdown record");
+      toast.error("Failed to update breakdown record", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
     }
   };
 
@@ -221,15 +273,26 @@ export default function ProjectBreakdownPage() {
       setShowDeleteModal(true);
     }
   };
+
   const handleConfirmDelete = async () => {
     try {
-      // TODO: Implement delete mutation in backend
-      toast.info("Delete functionality coming soon!");
+      if (!selectedBreakdown) {
+        toast.error("No breakdown selected");
+        return;
+      }
+
+      await deleteBreakdown({
+        breakdownId: selectedBreakdown._id as Id<"govtProjectBreakdowns">,
+      });
+
+      toast.success("Breakdown record deleted successfully!");
       setShowDeleteModal(false);
       setSelectedBreakdown(null);
     } catch (error) {
       console.error("Error deleting breakdown:", error);
-      toast.error("Failed to delete breakdown record");
+      toast.error("Failed to delete breakdown record", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
     }
   };
 
@@ -343,7 +406,7 @@ export default function ProjectBreakdownPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
                     <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-                      Total Reports
+                      Total Breakdown Records
                     </p>
                     <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                       {stats.totalReports}
@@ -352,19 +415,19 @@ export default function ProjectBreakdownPage() {
 
                   <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
                     <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-                      Locations Covered
+                      Implementing Offices
                     </p>
                     <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                      {stats.locations}
+                      {stats.offices}
                     </p>
                   </div>
 
                   <div className="bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
                     <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-                      Total Appropriations
+                      Total Allocated
                     </p>
                     <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                      {formatCurrency(stats.totalAppropriations)}
+                      {formatCurrency(stats.totalAllocated)}
                     </p>
                   </div>
 
@@ -382,15 +445,15 @@ export default function ProjectBreakdownPage() {
                 {stats.latestReport && (
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                      Latest Report
+                      Latest Record
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          Report Date
+                          Implementing Office
                         </p>
                         <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatDate(stats.latestReport.reportDate)}
+                          {stats.latestReport.implementingOffice}
                         </p>
                       </div>
                       <div>
@@ -398,15 +461,13 @@ export default function ProjectBreakdownPage() {
                           Location
                         </p>
                         <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-                          {stats.latestReport.municipality}
-                          {stats.latestReport.barangay &&
-                            `, ${stats.latestReport.barangay}`}
+                          {stats.latestReport.municipality || "N/A"}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">Status</p>
                         <p className="text-base font-medium text-zinc-900 dark:text-zinc-100 capitalize">
-                          {stats.latestReport.statusCategory.replace("_", " ")}
+                          {stats.latestReport.status || "N/A"}
                         </p>
                       </div>
                       <div>
@@ -414,7 +475,7 @@ export default function ProjectBreakdownPage() {
                           Accomplishment
                         </p>
                         <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-                          {stats.latestReport.accomplishmentRate.toFixed(1)}%
+                          {stats.latestReport.projectAccomplishment?.toFixed(1) || "0.0"}%
                         </p>
                       </div>
                     </div>
@@ -435,35 +496,6 @@ export default function ProjectBreakdownPage() {
               Loading breakdown history...
             </p>
           </div>
-        ) : breakdownHistory.length === 0 ? (
-          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center">
-            <svg
-              className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-              No breakdown records found
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-4">
-              Historical breakdown data will appear here once reports are added
-            </p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md text-white"
-              style={{ backgroundColor: accentColorValue }}
-            >
-              Add First Breakdown
-            </button>
-          </div>
         ) : (
           <BreakdownHistoryTable
             breakdowns={breakdownHistory as any}
@@ -476,7 +508,7 @@ export default function ProjectBreakdownPage() {
       </div>
 
       {/* Add Modal */}
-      {showAddModal && (
+      {showAddModal && project && departments && (
         <Modal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
@@ -484,6 +516,11 @@ export default function ProjectBreakdownPage() {
           size="xl"
         >
           <BreakdownForm
+            defaultProjectName={project.projectName}
+            defaultImplementingOffice={
+              departments.find(d => d._id === project.departmentId)?.name || 
+              project.departmentName
+            }
             onSave={handleAdd}
             onCancel={() => setShowAddModal(false)}
           />
@@ -522,7 +559,7 @@ export default function ProjectBreakdownPage() {
           }}
           onConfirm={handleConfirmDelete}
           title="Delete Breakdown Record"
-          message={`Are you sure you want to delete this breakdown record from ${selectedBreakdown.municipality}? This action cannot be undone.`}
+          message={`Are you sure you want to delete this breakdown record for ${selectedBreakdown.implementingOffice}? This action cannot be undone.`}
           confirmText="Delete"
           variant="danger"
         />
