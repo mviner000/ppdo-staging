@@ -65,7 +65,7 @@ const getParticularFullName = (particular: string): string => {
     PID: "Provincial Information Department",
     ACDP: "Agricultural Competitiveness Development Program",
     LYDP: "Local Youth Development Program",
-    "20% DF": "20% Development Fund",
+    "20%_DF": "20% Development Fund",
   };
   return mapping[particular] || particular;
 };
@@ -413,7 +413,7 @@ export default function ProjectBreakdownPage() {
         </div>
       </div>
 
-      {/* Project Overview Cards - Conditionally Rendered */}
+      {/* Project Overview Cards - Conditionally Rendered - UPDATED to use new fields */}
       {showHeader && project && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6 no-print">
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
@@ -430,16 +430,16 @@ export default function ProjectBreakdownPage() {
               Current Budget
             </p>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              {formatCurrency(project.allocatedBudget)}
+              {formatCurrency(project.totalBudgetAllocated)}
             </p>
           </div>
 
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-              Current Accomplishment
+              Current Completion
             </p>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              {project.projectAccomplishment.toFixed(1)}%
+              {project.projectCompleted.toFixed(1)}%
             </p>
           </div>
 
@@ -452,22 +452,24 @@ export default function ProjectBreakdownPage() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-              Date Started
-            </p>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              {formatDate(project.dateStarted)}
-            </p>
-          </div>
-
-          {project.remarks && (
+          {project.year && (
             <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
               <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                Remarks
+                Year
               </p>
               <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {project.remarks}
+                {project.year}
+              </p>
+            </div>
+          )}
+
+          {project.notes && (
+            <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
+                Notes
+              </p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {project.notes}
               </p>
             </div>
           )}

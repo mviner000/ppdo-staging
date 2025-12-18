@@ -5,11 +5,12 @@ import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 /**
- * Get all projects for a specific budget item (by budgetItemId)
+ * Get all projects ordered by creation date (newest first)
+ * Pinned items will appear first
  */
-export const getProjectsByBudgetItem = query({
+export const list = query({
   args: {
-    budgetItemId: v.id("budgetItems"),
+    departmentId: v.optional(v.id("departments")),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -17,11 +18,21 @@ export const getProjectsByBudgetItem = query({
       throw new Error("Not authenticated");
     }
 
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("budgetItemId", (q) => q.eq("budgetItemId", args.budgetItemId))
-      .order("desc")
-      .collect();
+    let projects;
+
+    if (args.departmentId !== undefined) {
+      projects = await ctx.db
+        .query("projects")
+        .withIndex("departmentId", (q) => q.eq("departmentId", args.departmentId!))
+        .order("desc")
+        .collect();
+    } else {
+      projects = await ctx.db
+        .query("projects")
+        .withIndex("createdAt")
+        .order("desc")
+        .collect();
+    }
 
     // Sort: pinned items first (by pinnedAt desc), then unpinned items
     const sortedProjects = projects.sort((a, b) => {
@@ -40,52 +51,6 @@ export const getProjectsByBudgetItem = query({
     // Enrich with department information
     const projectsWithDepartments = await Promise.all(
       sortedProjects.map(async (project) => {
-        const department = await ctx.db.get(project.departmentId);
-        return {
-          ...project,
-          departmentName: department?.name,
-          departmentCode: department?.code,
-        };
-      })
-    );
-
-    return projectsWithDepartments;
-  },
-});
-
-/**
- * Get all projects (optionally filtered by department)
- */
-export const list = query({
-  args: {
-    departmentId: v.optional(v.id("departments")),
-  },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new Error("Not authenticated");
-    }
-
-    let projects;
-    
-    if (args.departmentId !== undefined) {
-      projects = await ctx.db
-        .query("projects")
-        .withIndex("departmentId", (q) => 
-          q.eq("departmentId", args.departmentId!)
-        )
-        .order("desc")
-        .collect();
-    } else {
-      projects = await ctx.db
-        .query("projects")
-        .order("desc")
-        .collect();
-    }
-
-    // Enrich with department information
-    const projectsWithDepartments = await Promise.all(
-      projects.map(async (project) => {
         const department = await ctx.db.get(project.departmentId);
         return {
           ...project,
@@ -130,30 +95,61 @@ export const get = query({
 });
 
 /**
+ * Get project by name
+ */
+export const getByProjectName = query({
+  args: {
+    projectName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("projectName", (q) => q.eq("projectName", args.projectName))
+      .first();
+
+    if (!project) {
+      return null;
+    }
+
+    // Enrich with department information
+    const department = await ctx.db.get(project.departmentId);
+    
+    return {
+      ...project,
+      departmentName: department?.name,
+      departmentCode: department?.code,
+    };
+  },
+});
+
+/**
  * Create a new project
  */
 export const create = mutation({
   args: {
     projectName: v.string(),
     departmentId: v.id("departments"),
-    allocatedBudget: v.number(),
-    revisedBudget: v.optional(v.number()),
+    totalBudgetAllocated: v.number(),
+    obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
-    dateStarted: v.number(),
-    completionDate: v.optional(v.number()),
-    expectedCompletionDate: v.optional(v.number()),
-    projectAccomplishment: v.number(),
+    projectCompleted: v.number(),
+    projectDelayed: v.number(),
+    projectsOnTrack: v.number(),
+    notes: v.optional(v.string()),
+    year: v.optional(v.number()),
     status: v.optional(
       v.union(
-        v.literal("on_track"),
-        v.literal("delayed"),
-        v.literal("completed"),
-        v.literal("cancelled"),
-        v.literal("on_hold")
+        v.literal("done"),
+        v.literal("pending"),
+        v.literal("ongoing")
       )
     ),
-    remarks: v.optional(v.string()),
-    budgetItemId: v.optional(v.id("budgetItems")),
+    targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -168,36 +164,49 @@ export const create = mutation({
       throw new Error("Department not found");
     }
 
-    const now = Date.now();
-    
-    // Calculate utilization rate and balance
-    const effectiveBudget = args.revisedBudget ?? args.allocatedBudget;
-    const utilizationRate = effectiveBudget > 0 
-      ? (args.totalBudgetUtilized / effectiveBudget) * 100 
-      : 0;
-    const balance = effectiveBudget - args.totalBudgetUtilized;
+    // Check if project name already exists
+    const existing = await ctx.db
+      .query("projects")
+      .withIndex("projectName", (q) => q.eq("projectName", args.projectName))
+      .first();
 
-    const projectId = await ctx.db.insert("projects", {
+    if (existing) {
+      throw new Error("Project with this name already exists");
+    }
+
+    // Calculate utilization rate
+    const utilizationRate =
+      args.totalBudgetAllocated > 0
+        ? (args.totalBudgetUtilized / args.totalBudgetAllocated) * 100
+        : 0;
+
+    const now = Date.now();
+
+    const projectData: any = {
       projectName: args.projectName,
       departmentId: args.departmentId,
-      allocatedBudget: args.allocatedBudget,
-      revisedBudget: args.revisedBudget,
+      totalBudgetAllocated: args.totalBudgetAllocated,
       totalBudgetUtilized: args.totalBudgetUtilized,
-      utilizationRate,
-      balance,
-      dateStarted: args.dateStarted,
-      completionDate: args.completionDate,
-      expectedCompletionDate: args.expectedCompletionDate,
-      projectAccomplishment: args.projectAccomplishment,
-      status: args.status ?? "on_track",
-      remarks: args.remarks,
-      budgetItemId: args.budgetItemId,
-      projectManagerId: args.projectManagerId,
-      isPinned: false,
+      utilizationRate: utilizationRate,
+      projectCompleted: args.projectCompleted,
+      projectDelayed: args.projectDelayed,
+      projectsOnTrack: args.projectsOnTrack,
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
-    });
+      updatedBy: userId,
+      isPinned: false,
+    };
+
+    // Only add optional fields if they have values
+    if (args.obligatedBudget !== undefined) projectData.obligatedBudget = args.obligatedBudget;
+    if (args.notes !== undefined) projectData.notes = args.notes;
+    if (args.year !== undefined) projectData.year = args.year;
+    if (args.status !== undefined) projectData.status = args.status;
+    if (args.targetDateCompletion !== undefined) projectData.targetDateCompletion = args.targetDateCompletion;
+    if (args.projectManagerId !== undefined) projectData.projectManagerId = args.projectManagerId;
+
+    const projectId = await ctx.db.insert("projects", projectData);
 
     return projectId;
   },
@@ -211,24 +220,22 @@ export const update = mutation({
     id: v.id("projects"),
     projectName: v.string(),
     departmentId: v.id("departments"),
-    allocatedBudget: v.number(),
-    revisedBudget: v.optional(v.number()),
+    totalBudgetAllocated: v.number(),
+    obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
-    dateStarted: v.number(),
-    completionDate: v.optional(v.number()),
-    expectedCompletionDate: v.optional(v.number()),
-    projectAccomplishment: v.number(),
+    projectCompleted: v.number(),
+    projectDelayed: v.number(),
+    projectsOnTrack: v.number(),
+    notes: v.optional(v.string()),
+    year: v.optional(v.number()),
     status: v.optional(
       v.union(
-        v.literal("on_track"),
-        v.literal("delayed"),
-        v.literal("completed"),
-        v.literal("cancelled"),
-        v.literal("on_hold")
+        v.literal("done"),
+        v.literal("pending"),
+        v.literal("ongoing")
       )
     ),
-    remarks: v.optional(v.string()),
-    budgetItemId: v.optional(v.id("budgetItems")),
+    targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -237,8 +244,8 @@ export const update = mutation({
       throw new Error("Not authenticated");
     }
 
-    const existingProject = await ctx.db.get(args.id);
-    if (!existingProject) {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) {
       throw new Error("Project not found");
     }
 
@@ -248,34 +255,48 @@ export const update = mutation({
       throw new Error("Department not found");
     }
 
-    const now = Date.now();
-    
-    // Calculate utilization rate and balance
-    const effectiveBudget = args.revisedBudget ?? args.allocatedBudget;
-    const utilizationRate = effectiveBudget > 0 
-      ? (args.totalBudgetUtilized / effectiveBudget) * 100 
-      : 0;
-    const balance = effectiveBudget - args.totalBudgetUtilized;
+    // Check if project name is being changed and if it conflicts
+    if (args.projectName !== existing.projectName) {
+      const conflictingProject = await ctx.db
+        .query("projects")
+        .withIndex("projectName", (q) => q.eq("projectName", args.projectName))
+        .first();
+      
+      if (conflictingProject && conflictingProject._id !== args.id) {
+        throw new Error("Project with this name already exists");
+      }
+    }
 
-    await ctx.db.patch(args.id, {
+    // Calculate utilization rate
+    const utilizationRate =
+      args.totalBudgetAllocated > 0
+        ? (args.totalBudgetUtilized / args.totalBudgetAllocated) * 100
+        : 0;
+
+    const now = Date.now();
+
+    const updateData: any = {
       projectName: args.projectName,
       departmentId: args.departmentId,
-      allocatedBudget: args.allocatedBudget,
-      revisedBudget: args.revisedBudget,
+      totalBudgetAllocated: args.totalBudgetAllocated,
       totalBudgetUtilized: args.totalBudgetUtilized,
-      utilizationRate,
-      balance,
-      dateStarted: args.dateStarted,
-      completionDate: args.completionDate,
-      expectedCompletionDate: args.expectedCompletionDate,
-      projectAccomplishment: args.projectAccomplishment,
-      status: args.status ?? "on_track",
-      remarks: args.remarks,
-      budgetItemId: args.budgetItemId,
-      projectManagerId: args.projectManagerId,
+      utilizationRate: utilizationRate,
+      projectCompleted: args.projectCompleted,
+      projectDelayed: args.projectDelayed,
+      projectsOnTrack: args.projectsOnTrack,
       updatedBy: userId,
       updatedAt: now,
-    });
+    };
+
+    // Only add optional fields if they have values
+    if (args.obligatedBudget !== undefined) updateData.obligatedBudget = args.obligatedBudget;
+    if (args.notes !== undefined) updateData.notes = args.notes;
+    if (args.year !== undefined) updateData.year = args.year;
+    if (args.status !== undefined) updateData.status = args.status;
+    if (args.targetDateCompletion !== undefined) updateData.targetDateCompletion = args.targetDateCompletion;
+    if (args.projectManagerId !== undefined) updateData.projectManagerId = args.projectManagerId;
+
+    await ctx.db.patch(args.id, updateData);
 
     return args.id;
   },
@@ -294,8 +315,8 @@ export const remove = mutation({
       throw new Error("Not authenticated");
     }
 
-    const existingProject = await ctx.db.get(args.id);
-    if (!existingProject) {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) {
       throw new Error("Project not found");
     }
 
@@ -317,11 +338,24 @@ export const pin = mutation({
       throw new Error("Not authenticated");
     }
 
+    // Get the user to check role
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user has access (admin or super_admin)
+    if (user.role !== "admin" && user.role !== "super_admin") {
+      throw new Error("Unauthorized: Only admins can pin items");
+    }
+
+    // Get the project
     const project = await ctx.db.get(args.id);
     if (!project) {
       throw new Error("Project not found");
     }
 
+    // Update the project
     await ctx.db.patch(args.id, {
       isPinned: true,
       pinnedAt: Date.now(),
@@ -347,11 +381,24 @@ export const unpin = mutation({
       throw new Error("Not authenticated");
     }
 
+    // Get the user to check role
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user has access (admin or super_admin)
+    if (user.role !== "admin" && user.role !== "super_admin") {
+      throw new Error("Unauthorized: Only admins can unpin items");
+    }
+
+    // Get the project
     const project = await ctx.db.get(args.id);
     if (!project) {
       throw new Error("Project not found");
     }
 
+    // Update the project
     await ctx.db.patch(args.id, {
       isPinned: false,
       pinnedAt: undefined,
@@ -370,11 +417,9 @@ export const unpin = mutation({
 export const getProjectsByStatus = query({
   args: {
     status: v.union(
-      v.literal("on_track"),
-      v.literal("delayed"),
-      v.literal("completed"),
-      v.literal("cancelled"),
-      v.literal("on_hold")
+      v.literal("done"),
+      v.literal("pending"),
+      v.literal("ongoing")
     ),
     departmentId: v.optional(v.id("departments")),
   },
@@ -389,8 +434,8 @@ export const getProjectsByStatus = query({
     if (args.departmentId !== undefined) {
       projects = await ctx.db
         .query("projects")
-        .withIndex("statusAndDepartment", (q) => 
-          q.eq("status", args.status).eq("departmentId", args.departmentId!)
+        .withIndex("departmentAndStatus", (q) => 
+          q.eq("departmentId", args.departmentId!).eq("status", args.status)
         )
         .collect();
     } else {
@@ -400,7 +445,19 @@ export const getProjectsByStatus = query({
         .collect();
     }
 
-    return projects;
+    // Enrich with department information
+    const projectsWithDepartments = await Promise.all(
+      projects.map(async (project) => {
+        const department = await ctx.db.get(project.departmentId);
+        return {
+          ...project,
+          departmentName: department?.name,
+          departmentCode: department?.code,
+        };
+      })
+    );
+
+    return projectsWithDepartments;
   },
 });
 
@@ -409,7 +466,6 @@ export const getProjectsByStatus = query({
  */
 export const getStatistics = query({
   args: {
-    budgetItemId: v.optional(v.id("budgetItems")),
     departmentId: v.optional(v.id("departments")),
   },
   handler: async (ctx, args) => {
@@ -420,12 +476,7 @@ export const getStatistics = query({
 
     let projects;
     
-    if (args.budgetItemId !== undefined) {
-      projects = await ctx.db
-        .query("projects")
-        .withIndex("budgetItemId", (q) => q.eq("budgetItemId", args.budgetItemId!))
-        .collect();
-    } else if (args.departmentId !== undefined) {
+    if (args.departmentId !== undefined) {
       projects = await ctx.db
         .query("projects")
         .withIndex("departmentId", (q) => q.eq("departmentId", args.departmentId!))
@@ -437,33 +488,48 @@ export const getStatistics = query({
     }
 
     const totalProjects = projects.length;
-    const totalAllocatedBudget = projects.reduce((sum, p) => sum + p.allocatedBudget, 0);
-    const totalRevisedBudget = projects.reduce((sum, p) => sum + (p.revisedBudget ?? p.allocatedBudget), 0);
+    const totalAllocated = projects.reduce((sum, p) => sum + p.totalBudgetAllocated, 0);
+    const totalObligated = projects.reduce((sum, p) => sum + (p.obligatedBudget || 0), 0);
     const totalUtilized = projects.reduce((sum, p) => sum + p.totalBudgetUtilized, 0);
-    const totalBalance = projects.reduce((sum, p) => sum + p.balance, 0);
-    const avgUtilizationRate = totalProjects > 0 
+    
+    const averageUtilizationRate = totalProjects > 0 
       ? projects.reduce((sum, p) => sum + p.utilizationRate, 0) / totalProjects 
       : 0;
-    const avgAccomplishment = totalProjects > 0 
-      ? projects.reduce((sum, p) => sum + p.projectAccomplishment, 0) / totalProjects 
+    
+    const totalCompleted = projects.reduce((sum, p) => sum + p.projectCompleted, 0);
+    const totalDelayed = projects.reduce((sum, p) => sum + p.projectDelayed, 0);
+    const totalOnTrack = projects.reduce((sum, p) => sum + p.projectsOnTrack, 0);
+    
+    const averageProjectCompleted = totalProjects > 0 
+      ? totalCompleted / totalProjects 
+      : 0;
+    
+    const averageProjectDelayed = totalProjects > 0 
+      ? totalDelayed / totalProjects 
+      : 0;
+    
+    const averageProjectsOnTrack = totalProjects > 0 
+      ? totalOnTrack / totalProjects 
       : 0;
 
     const statusCounts = {
-      on_track: projects.filter(p => p.status === "on_track").length,
-      delayed: projects.filter(p => p.status === "delayed").length,
-      completed: projects.filter(p => p.status === "completed").length,
-      cancelled: projects.filter(p => p.status === "cancelled").length,
-      on_hold: projects.filter(p => p.status === "on_hold").length,
+      done: projects.filter(p => p.status === "done").length,
+      pending: projects.filter(p => p.status === "pending").length,
+      ongoing: projects.filter(p => p.status === "ongoing").length,
     };
 
     return {
       totalProjects,
-      totalAllocatedBudget,
-      totalRevisedBudget,
+      totalAllocated,
+      totalObligated,
       totalUtilized,
-      totalBalance,
-      avgUtilizationRate,
-      avgAccomplishment,
+      averageUtilizationRate,
+      totalCompleted,
+      totalDelayed,
+      totalOnTrack,
+      averageProjectCompleted,
+      averageProjectDelayed,
+      averageProjectsOnTrack,
       statusCounts,
     };
   },

@@ -37,6 +37,7 @@ interface BudgetItem {
   id: string;
   particular: string;
   totalBudgetAllocated: number;
+  obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
   projectCompleted: number;
@@ -59,7 +60,7 @@ const BUDGET_PARTICULARS = [
   "PID",
   "ACDP",
   "LYDP",
-  "20% DF",
+  "20%_DF",
 ] as const;
 
 const FORM_STORAGE_KEY = "budget_item_form_draft";
@@ -85,6 +86,9 @@ const budgetItemSchema = z
     totalBudgetAllocated: z.number().min(0, {
       message: "Must be 0 or greater.",
     }),
+    obligatedBudget: z.number().min(0, {
+      message: "Must be 0 or greater.",
+    }).optional().or(z.literal(0)),
     totalBudgetUtilized: z.number().min(0, {
       message: "Must be 0 or greater.",
     }),
@@ -110,6 +114,13 @@ const budgetItemSchema = z
     {
       message: "Budget utilized cannot exceed budget allocated.",
       path: ["totalBudgetUtilized"],
+    }
+  )
+  .refine(
+    (data) => !data.obligatedBudget || data.obligatedBudget <= data.totalBudgetAllocated,
+    {
+      message: "Obligated budget cannot exceed budget allocated.",
+      path: ["obligatedBudget"],
     }
   );
 
@@ -151,6 +162,7 @@ export function BudgetItemForm({
     defaultValues: savedDraft || {
       particular: item?.particular || "",
       totalBudgetAllocated: item?.totalBudgetAllocated || 0,
+      obligatedBudget: item?.obligatedBudget || undefined,
       totalBudgetUtilized: item?.totalBudgetUtilized || 0,
       projectCompleted: item?.projectCompleted || 0,
       projectDelayed: item?.projectDelayed || 0,
@@ -181,6 +193,7 @@ export function BudgetItemForm({
 
   // Watch values for utilization rate calculation
   const totalBudgetAllocated = form.watch("totalBudgetAllocated");
+  const obligatedBudget = form.watch("obligatedBudget");
   const totalBudgetUtilized = form.watch("totalBudgetUtilized");
 
   // Calculate utilization rate for preview
@@ -191,6 +204,7 @@ export function BudgetItemForm({
 
   // Check if budget is exceeded
   const isBudgetExceeded = totalBudgetUtilized > totalBudgetAllocated;
+  const isObligatedExceeded = obligatedBudget && obligatedBudget > totalBudgetAllocated;
 
   // Get color based on utilization rate
   const getUtilizationColor = () => {
@@ -205,6 +219,7 @@ export function BudgetItemForm({
     // Clean up optional fields - convert 0 to undefined
     const cleanedValues = {
       ...values,
+      obligatedBudget: values.obligatedBudget && values.obligatedBudget > 0 ? values.obligatedBudget : undefined,
       year: values.year && values.year > 0 ? values.year : undefined,
       targetDateCompletion: values.targetDateCompletion && values.targetDateCompletion > 0 ? values.targetDateCompletion : undefined,
     };
@@ -359,7 +374,7 @@ export function BudgetItemForm({
         </div>
 
         {/* Budget Fields Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Total Budget Allocated */}
           <FormField
             name="totalBudgetAllocated"
@@ -378,6 +393,37 @@ export function BudgetItemForm({
                     onChange={(e) => {
                       const value = e.target.value.trim();
                       field.onChange(parseFloat(value) || 0);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Obligated Budget (Optional) */}
+          <FormField
+            name="obligatedBudget"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                  Obligated Budget <span className="text-xs text-zinc-500">(Optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                    className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
+                      isObligatedExceeded
+                        ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                        : "border-zinc-300 dark:border-zinc-700"
+                    }`}
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      const value = e.target.value.trim();
+                      field.onChange(value ? parseFloat(value) : undefined);
                     }}
                   />
                 </FormControl>
@@ -416,6 +462,21 @@ export function BudgetItemForm({
             )}
           />
         </div>
+
+        {/* Obligated Budget Exceeded Warning */}
+        {isObligatedExceeded && totalBudgetAllocated > 0 && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                Obligated Budget Exceeded
+              </p>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
+                Obligated budget ({obligatedBudget?.toFixed(2)}) cannot exceed allocated amount ({totalBudgetAllocated.toFixed(2)})
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Budget Exceeded Warning */}
         {isBudgetExceeded && totalBudgetAllocated > 0 && (

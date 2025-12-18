@@ -26,7 +26,7 @@ const getParticularFullName = (particular: string): string => {
     PID: "Provincial Information Department",
     ACDP: "Agricultural Competitiveness Development Program",
     LYDP: "Local Youth Development Program",
-    "20% DF": "20% Development Fund",
+    "20%_DF": "20% Development Fund",
   };
   return mapping[particular] || particular;
 };
@@ -37,18 +37,15 @@ export default function ParticularProjectsPage() {
   const { accentColorValue } = useAccentColor();
   const particular = decodeURIComponent(params.particularId as string);
   
-  // Get budget item by particular name using the existing function name
+  // Get budget item by particular name
   const budgetItems = useQuery(api.budgetItems.list);
   const budgetItem = budgetItems?.find(item => item.particulars === particular);
   
   // Get all departments for the dropdown
   const departments = useQuery(api.departments.list, { includeInactive: false });
   
-  // Get projects for this budget item
-  const projects = useQuery(
-    api.projects.getProjectsByBudgetItem,
-    budgetItem ? { budgetItemId: budgetItem._id } : "skip"
-  );
+  // Get projects using the list query (no budgetItemId in new schema)
+  const allProjects = useQuery(api.projects.list, {});
 
   // Mutations
   const createProject = useMutation(api.projects.create);
@@ -69,28 +66,20 @@ export default function ParticularProjectsPage() {
         return;
       }
 
-      // Convert date strings to timestamps
-      const dateStarted = new Date(projectData.dateStarted).getTime();
-      const completionDate = projectData.completionDate 
-        ? new Date(projectData.completionDate).getTime() 
-        : undefined;
-      const expectedCompletionDate = projectData.expectedCompletionDate
-        ? new Date(projectData.expectedCompletionDate).getTime()
-        : undefined;
-
       await createProject({
         projectName: projectData.projectName,
         departmentId: department._id as Id<"departments">,
-        allocatedBudget: projectData.allocatedBudget,
-        revisedBudget: projectData.revisedBudget || undefined,
+        totalBudgetAllocated: projectData.totalBudgetAllocated,
+        obligatedBudget: projectData.obligatedBudget || undefined,
         totalBudgetUtilized: projectData.totalBudgetUtilized || 0,
-        dateStarted,
-        completionDate,
-        expectedCompletionDate,
-        projectAccomplishment: projectData.projectAccomplishment || 0,
-        status: projectData.status || "on_track",
-        remarks: projectData.remarks || undefined,
-        budgetItemId: budgetItem?._id,
+        projectCompleted: projectData.projectCompleted || 0,
+        projectDelayed: projectData.projectDelayed || 0,
+        projectsOnTrack: projectData.projectsOnTrack || 0,
+        notes: projectData.notes || undefined,
+        year: projectData.year || undefined,
+        status: projectData.status || undefined,
+        targetDateCompletion: projectData.targetDateCompletion || undefined,
+        projectManagerId: projectData.projectManagerId || undefined,
       });
 
       toast.success("Project created successfully!", {
@@ -116,29 +105,21 @@ export default function ParticularProjectsPage() {
         return;
       }
 
-      // Convert date strings to timestamps
-      const dateStarted = new Date(projectData.dateStarted).getTime();
-      const completionDate = projectData.completionDate 
-        ? new Date(projectData.completionDate).getTime() 
-        : undefined;
-      const expectedCompletionDate = projectData.expectedCompletionDate
-        ? new Date(projectData.expectedCompletionDate).getTime()
-        : undefined;
-
       await updateProject({
         id: id as Id<"projects">,
         projectName: projectData.projectName,
         departmentId: department._id as Id<"departments">,
-        allocatedBudget: projectData.allocatedBudget,
-        revisedBudget: projectData.revisedBudget || undefined,
+        totalBudgetAllocated: projectData.totalBudgetAllocated,
+        obligatedBudget: projectData.obligatedBudget || undefined,
         totalBudgetUtilized: projectData.totalBudgetUtilized || 0,
-        dateStarted,
-        completionDate,
-        expectedCompletionDate,
-        projectAccomplishment: projectData.projectAccomplishment || 0,
-        status: projectData.status || "on_track",
-        remarks: projectData.remarks || undefined,
-        budgetItemId: budgetItem?._id,
+        projectCompleted: projectData.projectCompleted || 0,
+        projectDelayed: projectData.projectDelayed || 0,
+        projectsOnTrack: projectData.projectsOnTrack || 0,
+        notes: projectData.notes || undefined,
+        year: projectData.year || undefined,
+        status: projectData.status || undefined,
+        targetDateCompletion: projectData.targetDateCompletion || undefined,
+        projectManagerId: projectData.projectManagerId || undefined,
       });
 
       toast.success("Project updated successfully!", {
@@ -165,25 +146,21 @@ export default function ParticularProjectsPage() {
   };
 
   // Transform Convex projects to match component interface
-  const transformedProjects = projects?.map(project => ({
+  const transformedProjects = allProjects?.map(project => ({
     id: project._id,
     projectName: project.projectName,
     implementingOffice: project.departmentName || project.departmentCode || "Unknown",
-    allocatedBudget: project.allocatedBudget,
-    revisedBudget: project.revisedBudget ?? project.allocatedBudget,
+    totalBudgetAllocated: project.totalBudgetAllocated,
+    obligatedBudget: project.obligatedBudget,
     totalBudgetUtilized: project.totalBudgetUtilized,
     utilizationRate: project.utilizationRate,
-    balance: project.balance,
-    dateStarted: new Date(project.dateStarted).toISOString().split('T')[0],
-    completionDate: project.completionDate 
-      ? new Date(project.completionDate).toISOString().split('T')[0] 
-      : "",
-    expectedCompletionDate: project.expectedCompletionDate
-      ? new Date(project.expectedCompletionDate).toISOString().split('T')[0]
-      : "",
-    projectAccomplishment: project.projectAccomplishment,
+    projectCompleted: project.projectCompleted,
+    projectDelayed: project.projectDelayed,
+    projectsOnTrack: project.projectsOnTrack,
+    notes: project.notes ?? "",
+    year: project.year,
     status: project.status,
-    remarks: project.remarks ?? "",
+    targetDateCompletion: project.targetDateCompletion,
     // Add pin fields
     isPinned: project.isPinned,
     pinnedAt: project.pinnedAt,
@@ -192,11 +169,11 @@ export default function ParticularProjectsPage() {
 
   // Calculate summary statistics
   const totalAllocatedBudget = transformedProjects.reduce(
-    (sum, project) => sum + project.allocatedBudget,
+    (sum, project) => sum + project.totalBudgetAllocated,
     0
   );
-  const totalRevisedBudget = transformedProjects.reduce(
-    (sum, project) => sum + project.revisedBudget,
+  const totalUtilizedBudget = transformedProjects.reduce(
+    (sum, project) => sum + project.totalBudgetUtilized,
     0
   );
   const avgUtilizationRate = transformedProjects.length > 0
@@ -256,7 +233,7 @@ export default function ParticularProjectsPage() {
 
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
           <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
-            Total Revised Budget
+            Total Utilized Budget
           </p>
           <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {new Intl.NumberFormat("en-PH", {
@@ -264,7 +241,7 @@ export default function ParticularProjectsPage() {
               currency: "PHP",
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
-            }).format(totalRevisedBudget)}
+            }).format(totalUtilizedBudget)}
           </p>
         </div>
 
@@ -289,7 +266,7 @@ export default function ParticularProjectsPage() {
 
       {/* Projects Table */}
       <div className="mb-6">
-        {projects === undefined || departments === undefined ? (
+        {allProjects === undefined || departments === undefined ? (
           <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-zinc-300 border-t-transparent dark:border-zinc-700 dark:border-t-transparent"></div>
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">Loading projects...</p>

@@ -4,6 +4,7 @@ export interface BudgetItem {
   id: string;
   particular: string;
   totalBudgetAllocated: number;
+  obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
   projectCompleted: number;
@@ -30,6 +31,7 @@ export interface BudgetItemFromDB {
   _creationTime: number;
   particulars: string;
   totalBudgetAllocated: number;
+  obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
   projectCompleted: number;
@@ -48,21 +50,23 @@ export interface BudgetItemFromDB {
   updatedBy?: string;
 }
 
+// Updated Project interface to match new schema
 export interface Project {
   id: string;
   projectName: string;
-  implementingOffice: string;
-  allocatedBudget: number;
-  revisedBudget: number;
+  implementingOffice: string; // Department name for display
+  totalBudgetAllocated: number;
+  obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
-  balance: number;
-  dateStarted: string; // ISO date string for frontend
-  completionDate: string; // ISO date string for frontend
-  expectedCompletionDate?: string; // ISO date string for frontend
-  projectAccomplishment: number;
-  status?: "on_track" | "delayed" | "completed" | "cancelled" | "on_hold";
-  remarks: string;
+  projectCompleted: number;
+  projectDelayed: number;
+  projectsOnTrack: number;
+  notes?: string;
+  year?: number;
+  status?: "done" | "pending" | "ongoing";
+  targetDateCompletion?: number;
+  projectManagerId?: string;
   // Pin fields
   isPinned?: boolean;
   pinnedAt?: number;
@@ -81,7 +85,7 @@ export const BUDGET_PARTICULARS = [
   "PID",
   "ACDP",
   "LYDP",
-  "20% DF",
+  "20%_DF",
 ] as const;
 
 export type BudgetParticular = (typeof BUDGET_PARTICULARS)[number];
@@ -98,17 +102,17 @@ export const PARTICULAR_FULL_NAMES: Record<BudgetParticular, string> = {
   PID: "PROVINCIAL INTEGRATED DEVELOPMENT",
   ACDP: "AGRICULTURAL AND COMMUNITY DEVELOPMENT PROGRAM",
   LYDP: "LOCAL YOUTH DEVELOPMENT PROGRAM",
-  "20% DF": "20% DEVELOPMENT FUND",
+  "20%_DF": "20% DEVELOPMENT FUND",
 };
 
 export interface FinancialBreakdownItem {
   id: string;
-  code?: string; // e.g., "A", "A.1", "A.1.1"
+  code?: string;
   description: string;
   appropriation: number;
   obligation: number;
   balance: number;
-  level: number; // 0 = main section, 1 = sub-item, 2 = sub-sub-item, etc.
+  level: number;
   children?: FinancialBreakdownItem[];
 }
 

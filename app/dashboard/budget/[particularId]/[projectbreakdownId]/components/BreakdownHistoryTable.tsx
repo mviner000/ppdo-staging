@@ -64,16 +64,33 @@ interface Props {
 ======================= */
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: "projectTitle", label: "Project Title", width: 260, type: "text", align: "left" },
-  { key: "implementingOffice", label: "Office", width: 180, type: "text", align: "left" },
-  { key: "municipality", label: "Location", width: 200, type: "text", align: "left" },
-  { key: "allocatedBudget", label: "Allocated", width: 140, type: "currency", align: "right" },
-  { key: "budgetUtilized", label: "Utilized", width: 140, type: "currency", align: "right" },
-  { key: "projectAccomplishment", label: "%", width: 90, type: "number", align: "right" },
+  { key: "projectTitle", label: "Project Name", width: 260, type: "text", align: "left" },
+  { key: "implementingOffice", label: "Implementing Office", width: 180, type: "text", align: "left" },
+  { key: "allocatedBudget", label: "Allocated Budget", width: 140, type: "currency", align: "right" },
+  { key: "obligatedBudget", label: "Obligated Budget", width: 140, type: "currency", align: "right" },
+  { key: "budgetUtilized", label: "Budget Utilized", width: 140, type: "currency", align: "right" },
+  { key: "utilizationRate", label: "Utilization Rate", width: 140, type: "currency", align: "right" },
+  { key: "balance", label: "Balance", width: 140, type: "currency", align: "right" },
+  { key: "dateStarted", label: "Date Started", width: 130, type: "date", align: "left" },
+  { key: "targetDate", label: "Target Date", width: 130, type: "date", align: "left" },
+  { key: "completionDate", label: "Completion Date", width: 130, type: "date", align: "left" },
+  { key: "projectAccomplishment", label: "Project Accomplishment%", width: 90, type: "number", align: "right" },
   { key: "status", label: "Status", width: 130, type: "status", align: "center" },
-  { key: "dateStarted", label: "Start Date", width: 130, type: "date", align: "left" },
   { key: "remarks", label: "Remarks", width: 220, type: "text", align: "left" },
 ];
+
+// backup
+// const DEFAULT_COLUMNS: ColumnConfig[] = [
+//   { key: "projectTitle", label: "Project Name", width: 260, type: "text", align: "left" },
+//   { key: "implementingOffice", label: "Implementing Office", width: 180, type: "text", align: "left" },
+//   { key: "municipality", label: "Location", width: 200, type: "text", align: "left" },
+//   { key: "allocatedBudget", label: "Allocated", width: 140, type: "currency", align: "right" },
+//   { key: "budgetUtilized", label: "Utilized", width: 140, type: "currency", align: "right" },
+//   { key: "projectAccomplishment", label: "%", width: 90, type: "number", align: "right" },
+//   { key: "status", label: "Status", width: 130, type: "status", align: "center" },
+//   { key: "dateStarted", label: "Start Date", width: 130, type: "date", align: "left" },
+//   { key: "remarks", label: "Remarks", width: 220, type: "text", align: "left" },
+// ];
 
 /* =======================
    COMPONENT
@@ -350,10 +367,10 @@ export function BreakdownHistoryTable({
       </div>
 
       {/* SCROLL CONTAINER */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto w-[1920px] md:w-auto">
         {/* HEADER */}
         <div
-          className="sticky top-0 z-10 grid border-b bg-zinc-100 dark:bg-zinc-800"
+          className="sticky top-0 z-10 grid outline-1 outline-gray-500/30 border  dark:bg-zinc-800"
           style={{ gridTemplateColumns }}
         >
           <div className="text-center py-3 border-r text-xs text-zinc-600 dark:text-zinc-300">#</div>
@@ -372,7 +389,7 @@ export function BreakdownHistoryTable({
               <span className="flex-1 truncate text-sm font-medium">{c.label}</span>
               {canEditLayout && (
                 <div
-                  className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-zinc-400"
+                  className="absolute right-0 top-0 h-full w-1 cursor-col-resize "
                   onMouseDown={e => startResizeColumn(e, i)}
                 />
               )}
@@ -394,14 +411,14 @@ export function BreakdownHistoryTable({
               <ContextMenu key={r._id}>
                 <ContextMenuTrigger asChild>
                   <div
-                    className="grid border-b hover:bg-zinc-50 dark:hover:bg-zinc-800 relative bg-white dark:bg-zinc-900 cursor-context-menu"
+                    className="grid border-b dark:hover:bg-zinc-800 relative bg-white dark:bg-zinc-900 cursor-context-menu"
                     style={{ gridTemplateColumns, height }}
                   >
                     <div className="text-center border-r text-xs py-2 text-zinc-600 dark:text-zinc-400 relative">
                       {idx + 1}
                       {canEditLayout && (
                         <div
-                          className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-zinc-400"
+                          className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize "
                           onMouseDown={e => startResizeRow(e, r._id)}
                         />
                       )}
@@ -410,7 +427,7 @@ export function BreakdownHistoryTable({
                     {columns.map(c => (
                       <div 
                         key={c.key} 
-                        className={`px-3 py-2 truncate border-r text-zinc-700 dark:text-zinc-300 ${
+                        className={`bg-gray-200 px-3 py-2 truncate border-r text-zinc-700 dark:text-zinc-300 ${
                           c.align === 'right' ? 'text-right' : 
                           c.align === 'center' ? 'text-center' : 'text-left'
                         }`}
@@ -423,7 +440,7 @@ export function BreakdownHistoryTable({
                       {onEdit && (
                         <button
                           onClick={() => onEdit(r)}
-                          className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded"
+                          className="p-1 dark:hover:bg-zinc-700 rounded"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />

@@ -627,7 +627,7 @@ export function BudgetTrackingTable({
                     )}
                   </div>
                 </th>
-                <th className="px-4 sm:px-6 py-4 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                <th className="hidden *:px-4 sm:px-6 py-4 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
                   <button
                     onClick={() => handleSort("targetDateCompletion")}
                     className="group flex items-center gap-2 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
@@ -699,7 +699,7 @@ export function BudgetTrackingTable({
                     className="group flex items-center gap-2 ml-auto hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
-                      On Track
+                      Ongoing
                     </span>
                     <SortIcon field="projectsOnTrack" />
                   </button>

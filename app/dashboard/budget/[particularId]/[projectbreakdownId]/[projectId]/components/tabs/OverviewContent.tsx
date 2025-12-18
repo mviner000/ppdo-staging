@@ -38,14 +38,18 @@ export const OverviewContent: React.FC<OverviewContentProps> = ({ projectId }) =
     );
   }
 
-  // Calculate effective budget (use revised if available, otherwise allocated)
-  const effectiveBudget = project.revisedBudget ?? project.allocatedBudget;
+  // UPDATED: Use new field names from schema
+  const totalAppropriation = project.totalBudgetAllocated;
+  const totalObligation = project.totalBudgetUtilized;
+  
+  // UPDATED: Calculate remaining balance (allocated - utilized)
+  const remainingBalance = project.totalBudgetAllocated - project.totalBudgetUtilized;
 
   // Prepare stats data
   const stats = [
-    { label: "Total Appropriation", amount: effectiveBudget },
-    { label: "Total Obligation", amount: project.totalBudgetUtilized },
-    { label: "Remaining Balance", amount: project.balance },
+    { label: "Total Appropriation", amount: totalAppropriation },
+    { label: "Total Obligation", amount: totalObligation },
+    { label: "Remaining Balance", amount: remainingBalance },
   ];
 
   return (

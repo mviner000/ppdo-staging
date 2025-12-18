@@ -6,42 +6,57 @@ import { v } from "convex/values";
 export const projectTables = {
   /**
    * Projects.
-   * Enhanced with department relationship and pin functionality.
+   * Enhanced to match budgetItems structure with department relationship.
    */
   projects: defineTable({
+    // ============================================================================
+    // PROJECT IDENTIFICATION
+    // ============================================================================
     projectName: v.string(),
     
     /**
-     * Replaced implementingOffice string with department reference
+     * Implementing Office (Department)
+     * This is the key differentiator from budgetItems
      */
     departmentId: v.id("departments"),
     
-    allocatedBudget: v.number(),
-    revisedBudget: v.optional(v.number()),
+    // ============================================================================
+    // FINANCIAL DATA (matches budgetItems)
+    // ============================================================================
+    totalBudgetAllocated: v.number(),
+    obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
     utilizationRate: v.number(),
-    balance: v.number(),
-    dateStarted: v.number(),
-    completionDate: v.optional(v.number()),
-    expectedCompletionDate: v.optional(v.number()),
-    projectAccomplishment: v.number(),
+    
+    // ============================================================================
+    // PROJECT METRICS (matches budgetItems structure)
+    // ============================================================================
+    projectCompleted: v.number(),
+    projectDelayed: v.number(),
+    projectsOnTrack: v.number(),
+    
+    // ============================================================================
+    // ADDITIONAL PROJECT FIELDS
+    // ============================================================================
+    notes: v.optional(v.string()),
+    year: v.optional(v.number()),
     status: v.optional(
       v.union(
-        v.literal("on_track"),
-        v.literal("delayed"),
-        v.literal("completed"),
-        v.literal("cancelled"),
-        v.literal("on_hold")
+        v.literal("done"),
+        v.literal("pending"),
+        v.literal("ongoing")
       )
     ),
-    remarks: v.optional(v.string()),
-    budgetItemId: v.optional(v.id("budgetItems")),
+    targetDateCompletion: v.optional(v.number()),
     
     /**
      * Project manager/lead
      */
     projectManagerId: v.optional(v.id("users")),
     
+    // ============================================================================
+    // PIN FUNCTIONALITY
+    // ============================================================================
     /**
      * Whether this project is pinned
      */
@@ -57,6 +72,9 @@ export const projectTables = {
      */
     pinnedBy: v.optional(v.id("users")),
     
+    // ============================================================================
+    // SYSTEM FIELDS
+    // ============================================================================
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -65,16 +83,13 @@ export const projectTables = {
     .index("projectName", ["projectName"])
     .index("departmentId", ["departmentId"])
     .index("status", ["status"])
-    .index("dateStarted", ["dateStarted"])
-    .index("completionDate", ["completionDate"])
     .index("createdBy", ["createdBy"])
     .index("createdAt", ["createdAt"])
-    .index("budgetItemId", ["budgetItemId"])
     .index("projectManagerId", ["projectManagerId"])
-    .index("statusAndDepartment", ["status", "departmentId"])
-    .index("departmentAndStatus", ["departmentId", "status"])
     .index("isPinned", ["isPinned"])
-    .index("pinnedAt", ["pinnedAt"]),
+    .index("pinnedAt", ["pinnedAt"])
+    .index("year", ["year"])
+    .index("departmentAndStatus", ["departmentId", "status"]),
 
   /**
    * Remarks.

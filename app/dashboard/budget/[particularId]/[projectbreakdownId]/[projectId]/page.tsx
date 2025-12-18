@@ -22,24 +22,16 @@ export default function ProjectDetailPage() {
   // This is safe because Convex IDs are just strings with a specific format
   const projectId = projectIdParam as Id<"projects">;
 
-  // 1. Fetch project data first
+  // Fetch project data
   const project = useQuery(api.projects.get, { id: projectId });
-
-  // 2. Fetch budget item using the ID found inside the project, NOT the URL.
-  // We use "skip" to wait until the project loads so we don't pass an invalid ID.
-  const budgetItem = useQuery(
-    api.budgetItems.get, 
-    project?.budgetItemId ? { id: project.budgetItemId } : "skip"
-  );
 
   // Helper function to navigate back correctly
   const handleBack = () => {
-    // Use the real ID if loaded, otherwise fallback to the URL param
-    const targetId = budgetItem?._id ?? particularIdParam;
-    router.push(`/dashboard/budget/${targetId}`);
+    // Navigate back to the particular budget page
+    router.push(`/dashboard/budget/${particularIdParam}`);
   };
 
-  if (!project || !budgetItem) {
+  if (!project) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-7xl mx-auto p-6">
@@ -61,13 +53,13 @@ export default function ProjectDetailPage() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
 
         {/* Back Button */}
-        {/* <button
+        <button
           onClick={handleBack}
           className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           <span>Back to Budget Overview</span>
-        </button> */}
+        </button>
 
         {/* Header */}
         <div className="space-y-2">

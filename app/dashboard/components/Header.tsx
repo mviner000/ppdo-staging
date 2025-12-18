@@ -111,7 +111,7 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
               {/* Sidebar Toggle Button */}
               <button
                 onClick={toggleMinimize}
-                className="cursor-pointer hidden md:flex p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+                className="hidden md:flex p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
                 title={isMinimized ? "Expand sidebar" : "Minimize sidebar"}
               >
                 <svg

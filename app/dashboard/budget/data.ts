@@ -114,7 +114,7 @@ export const mockBudgetData: BudgetItem[] = [
   },
   {
     id: "12",
-    particular: "20% DF",
+    particular: "20%_DF",
     totalBudgetAllocated: 10000000,
     totalBudgetUtilized: 7000000,
     utilizationRate: 70.0,

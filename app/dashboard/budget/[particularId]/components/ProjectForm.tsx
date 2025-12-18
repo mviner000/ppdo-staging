@@ -39,7 +39,7 @@ import { Project } from "../../types";
 
 const FORM_STORAGE_KEY = "project_form_draft";
 
-// Define the form schema with Zod
+// Define the form schema with Zod - Updated to match new schema
 const projectSchema = z
   .object({
     projectName: z
@@ -47,28 +47,43 @@ const projectSchema = z
       .min(1, { message: "Project name is required." })
       .max(200, { message: "Project name is too long." }),
     implementingOffice: z.string().min(1, { message: "Implementing office is required." }),
-    allocatedBudget: z.number().min(0, { message: "Must be 0 or greater." }),
-    revisedBudget: z.number().min(0, { message: "Must be 0 or greater." }),
+    totalBudgetAllocated: z.number().min(0, { message: "Must be 0 or greater." }),
+    obligatedBudget: z.number().min(0, { message: "Must be 0 or greater." }).optional(),
     totalBudgetUtilized: z.number().min(0, { message: "Must be 0 or greater." }),
-    dateStarted: z.string().min(1, { message: "Date started is required." }),
-    completionDate: z.string().optional(),
-    projectAccomplishment: z
+    projectCompleted: z
       .number()
       .min(0, { message: "Must be 0 or greater." })
       .max(100, { message: "Must be 100 or less." }),
-    status: z.enum(["on_track", "delayed", "completed", "cancelled", "on_hold"]),
-    remarks: z.string().optional(),
+    projectDelayed: z
+      .number()
+      .min(0, { message: "Must be 0 or greater." })
+      .max(100, { message: "Must be 100 or less." }),
+    projectsOnTrack: z
+      .number()
+      .min(0, { message: "Must be 0 or greater." })
+      .max(100, { message: "Must be 100 or less." }),
+    notes: z.string().optional(),
+    year: z.number().int().min(2000).max(2100).optional(),
+    status: z.enum(["done", "pending", "ongoing"]).optional(),
+    targetDateCompletion: z.number().optional(),
   })
-  .refine((data) => data.totalBudgetUtilized <= (data.revisedBudget || data.allocatedBudget), {
-    message: "Budget utilized cannot exceed revised budget.",
+  .refine((data) => data.totalBudgetUtilized <= data.totalBudgetAllocated, {
+    message: "Budget utilized cannot exceed allocated budget.",
     path: ["totalBudgetUtilized"],
-  });
+  })
+  .refine(
+    (data) => !data.obligatedBudget || data.obligatedBudget <= data.totalBudgetAllocated,
+    {
+      message: "Obligated budget cannot exceed allocated budget.",
+      path: ["obligatedBudget"],
+    }
+  );
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
 
 interface ProjectFormProps {
   project?: Project | null;
-  onSave: (project: Omit<Project, "id">) => void;
+  onSave: (project: Omit<Project, "id" | "utilizationRate">) => void;
   onCancel: () => void;
 }
 
@@ -101,14 +116,16 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
     defaultValues: savedDraft || {
       projectName: project?.projectName || "",
       implementingOffice: project?.implementingOffice || "",
-      allocatedBudget: project?.allocatedBudget || 0,
-      revisedBudget: project?.revisedBudget || 0,
+      totalBudgetAllocated: project?.totalBudgetAllocated || 0,
+      obligatedBudget: project?.obligatedBudget || undefined,
       totalBudgetUtilized: project?.totalBudgetUtilized || 0,
-      dateStarted: project?.dateStarted || "",
-      completionDate: project?.completionDate || "",
-      projectAccomplishment: project?.projectAccomplishment || 0,
-      status: project?.status || "on_track",
-      remarks: project?.remarks || "",
+      projectCompleted: project?.projectCompleted || 0,
+      projectDelayed: project?.projectDelayed || 0,
+      projectsOnTrack: project?.projectsOnTrack || 0,
+      notes: project?.notes || "",
+      year: project?.year || undefined,
+      status: project?.status || undefined,
+      targetDateCompletion: project?.targetDateCompletion || undefined,
     },
   });
 
@@ -131,17 +148,16 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   }, [formValues, project]);
 
   // Watch values for utilization rate calculation
-  const allocatedBudget = form.watch("allocatedBudget");
-  const revisedBudget = form.watch("revisedBudget");
+  const totalBudgetAllocated = form.watch("totalBudgetAllocated");
+  const obligatedBudget = form.watch("obligatedBudget");
   const totalBudgetUtilized = form.watch("totalBudgetUtilized");
 
-  // Calculate utilization rate and balance for preview
-  const effectiveBudget = revisedBudget || allocatedBudget;
-  const utilizationRate = effectiveBudget > 0 ? (totalBudgetUtilized / effectiveBudget) * 100 : 0;
-  const balance = effectiveBudget - totalBudgetUtilized;
+  // Calculate utilization rate for preview
+  const utilizationRate = totalBudgetAllocated > 0 ? (totalBudgetUtilized / totalBudgetAllocated) * 100 : 0;
 
   // Check if budget is exceeded
-  const isBudgetExceeded = totalBudgetUtilized > effectiveBudget;
+  const isBudgetExceeded = totalBudgetUtilized > totalBudgetAllocated;
+  const isObligatedExceeded = obligatedBudget && obligatedBudget > totalBudgetAllocated;
 
   // Get color based on utilization rate
   const getUtilizationColor = () => {
@@ -153,17 +169,9 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
 
   // Define submit handler
   function onSubmit(values: ProjectFormValues) {
-    // Calculate final values
-    const effectiveBudget = values.revisedBudget || values.allocatedBudget;
-    const utilizationRate = effectiveBudget > 0 ? (values.totalBudgetUtilized / effectiveBudget) * 100 : 0;
-    const balance = effectiveBudget - values.totalBudgetUtilized;
-
     const projectData = {
       ...values,
-      utilizationRate,
-      balance,
-      completionDate: values.completionDate || "",
-      remarks: values.remarks || "",
+      notes: values.notes || "",
     };
 
     // Clear draft on successful submit
@@ -253,15 +261,102 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           )}
         />
 
-        {/* Budget Fields Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Allocated Budget */}
+        {/* Optional Fields Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Year (Optional) */}
           <FormField
-            name="allocatedBudget"
+            name="year"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Allocated Budget
+                  Year <span className="text-xs text-zinc-500">(Optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. 2024"
+                    min="2000"
+                    max="2100"
+                    className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      const value = e.target.value.trim();
+                      field.onChange(value ? parseInt(value) : undefined);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Status (Optional) */}
+          <FormField
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                  Status <span className="text-xs text-zinc-500">(Optional)</span>
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value || ""}
+                >
+                  <FormControl>
+                    <SelectTrigger className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="ongoing">Ongoing</SelectItem>
+                    <SelectItem value="done">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Target Date Completion (Optional) */}
+          <FormField
+            name="targetDateCompletion"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                  Target Date <span className="text-xs text-zinc-500">(Optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                    {...field}
+                    value={
+                      field.value
+                        ? new Date(field.value).toISOString().split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value ? new Date(value).getTime() : undefined);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Budget Fields Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total Budget Allocated */}
+          <FormField
+            name="totalBudgetAllocated"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                  Total Budget Allocated
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -281,30 +376,32 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
             )}
           />
 
-          {/* Revised Budget */}
+          {/* Obligated Budget (Optional) */}
           <FormField
-            name="revisedBudget"
+            name="obligatedBudget"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Revised Budget
+                  Obligated Budget <span className="text-xs text-zinc-500">(Optional)</span>
                 </FormLabel>
                 <FormControl>
                   <Input
                     placeholder="0"
                     min="0"
                     step="0.01"
-                    className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                    className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
+                      isObligatedExceeded
+                        ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                        : "border-zinc-300 dark:border-zinc-700"
+                    }`}
                     {...field}
+                    value={field.value || ""}
                     onChange={(e) => {
                       const value = e.target.value.trim();
-                      field.onChange(parseFloat(value) || 0);
+                      field.onChange(value ? parseFloat(value) : undefined);
                     }}
                   />
                 </FormControl>
-                <FormDescription className="text-zinc-500 dark:text-zinc-400 text-xs">
-                  Leave as 0 to use allocated budget
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -339,78 +436,25 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
               </FormItem>
             )}
           />
-
-          {/* Date Started */}
-          <FormField
-            name="dateStarted"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Date Started
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Completion Date */}
-          <FormField
-            name="completionDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Completion Date <span className="text-xs text-zinc-500">(Optional)</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Project Status */}
-          <FormField
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Project Status
-                </FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="on_track">On Track</SelectItem>
-                    <SelectItem value="delayed">Delayed</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="on_hold">On Hold</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
+        {/* Obligated Budget Exceeded Warning */}
+        {isObligatedExceeded && totalBudgetAllocated > 0 && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                Obligated Budget Exceeded
+              </p>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
+                Obligated budget (₱{obligatedBudget?.toFixed(2)}) cannot exceed allocated amount (₱{totalBudgetAllocated.toFixed(2)})
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Budget Exceeded Warning */}
-        {isBudgetExceeded && effectiveBudget > 0 && (
+        {isBudgetExceeded && totalBudgetAllocated > 0 && (
           <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -418,43 +462,22 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
                 Budget Exceeded
               </p>
               <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
-                Budget utilized (₱{totalBudgetUtilized.toFixed(2)}) cannot exceed revised budget (₱
-                {effectiveBudget.toFixed(2)})
+                Budget utilized (₱{totalBudgetUtilized.toFixed(2)}) cannot exceed allocated budget (₱{totalBudgetAllocated.toFixed(2)})
               </p>
             </div>
           </div>
         )}
 
         {/* Utilization Rate Preview */}
-        {effectiveBudget > 0 && (
+        {totalBudgetAllocated > 0 && (
           <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
             <div className="flex items-center justify-between p-4">
               <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Calculated Values:
+                Utilization Rate (calculated):
               </span>
-            </div>
-            <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                  Utilization Rate
-                </label>
-                <div className={`text-sm font-semibold ${getUtilizationColor()}`}>
-                  {utilizationRate.toFixed(2)}%
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                  Balance
-                </label>
-                <div className="text-sm font-semibold" style={{ color: accentColorValue }}>
-                  {new Intl.NumberFormat("en-PH", {
-                    style: "currency",
-                    currency: "PHP",
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(balance)}
-                </div>
-              </div>
+              <span className={`text-sm font-semibold ${getUtilizationColor()}`}>
+                {utilizationRate.toFixed(2)}%
+              </span>
             </div>
 
             <Accordion type="single" collapsible className="w-full">
@@ -472,7 +495,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
                         The utilization rate shows how much of your budget you've used.
                       </p>
                       <div className="bg-white dark:bg-zinc-900 rounded p-2.5 font-mono text-xs border border-zinc-200 dark:border-zinc-700">
-                        (Budget Utilized ÷ Effective Budget) × 100
+                        (Budget Utilized ÷ Budget Allocated) × 100
                       </div>
                     </div>
                     <div>
@@ -480,17 +503,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
                         Your calculation:
                       </p>
                       <div className="bg-white dark:bg-zinc-900 rounded p-2.5 font-mono text-xs border border-zinc-200 dark:border-zinc-700">
-                        (₱{totalBudgetUtilized.toFixed(2)} ÷ ₱{effectiveBudget.toFixed(2)}) × 100 ={" "}
-                        {utilizationRate.toFixed(2)}%
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 dark:text-zinc-400 mb-2 font-medium">
-                        Balance:
-                      </p>
-                      <div className="bg-white dark:bg-zinc-900 rounded p-2.5 font-mono text-xs border border-zinc-200 dark:border-zinc-700">
-                        ₱{effectiveBudget.toFixed(2)} - ₱{totalBudgetUtilized.toFixed(2)} = ₱
-                        {balance.toFixed(2)}
+                        (₱{totalBudgetUtilized.toFixed(2)} ÷ ₱{totalBudgetAllocated.toFixed(2)}) × 100 = {utilizationRate.toFixed(2)}%
                       </div>
                     </div>
                   </div>
@@ -500,58 +513,143 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           </div>
         )}
 
-        {/* Project Accomplishment */}
-        <FormField
-          name="projectAccomplishment"
-          render={({ field }) => {
-            const value = field.value;
-            const isInvalid = value < 0 || value > 100;
+        {/* Project Status Fields */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Project Completion (%) */}
+          <FormField
+            name="projectCompleted"
+            render={({ field }) => {
+              const value = field.value;
+              const isInvalid = value < 0 || value > 100;
 
-            return (
-              <FormItem>
-                <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Project Accomplishment (%)
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="0"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
-                      isInvalid
-                        ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
-                        : "border-zinc-300 dark:border-zinc-700"
-                    }`}
-                    {...field}
-                    onChange={(e) => {
-                      const value = e.target.value.trim();
-                      field.onChange(parseFloat(value) || 0);
-                    }}
-                  />
-                </FormControl>
-                {isInvalid && (
-                  <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                    Must be between 0 and 100
-                  </p>
-                )}
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
+              return (
+                <FormItem>
+                  <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                    Project Completed (%)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
+                        isInvalid
+                          ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                          : "border-zinc-300 dark:border-zinc-700"
+                      }`}
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.trim();
+                        field.onChange(parseFloat(value) || 0);
+                      }}
+                    />
+                  </FormControl>
+                  {isInvalid && (
+                    <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                      Must be between 0 and 100
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
 
-        {/* Remarks */}
+          {/* Project Delayed (%) */}
+          <FormField
+            name="projectDelayed"
+            render={({ field }) => {
+              const value = field.value;
+              const isInvalid = value < 0 || value > 100;
+
+              return (
+                <FormItem>
+                  <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                    Project Delayed (%)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
+                        isInvalid
+                          ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                          : "border-zinc-300 dark:border-zinc-700"
+                      }`}
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.trim();
+                        field.onChange(parseFloat(value) || 0);
+                      }}
+                    />
+                  </FormControl>
+                  {isInvalid && (
+                    <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                      Must be between 0 and 100
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+
+          {/* Projects On Track (%) */}
+          <FormField
+            name="projectsOnTrack"
+            render={({ field }) => {
+              const value = field.value;
+              const isInvalid = value < 0 || value > 100;
+
+              return (
+                <FormItem>
+                  <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                    Projects On Track (%)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 ${
+                        isInvalid
+                          ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                          : "border-zinc-300 dark:border-zinc-700"
+                      }`}
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.trim();
+                        field.onChange(parseFloat(value) || 0);
+                      }}
+                    />
+                  </FormControl>
+                  {isInvalid && (
+                    <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                      Must be between 0 and 100
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+        </div>
+
+        {/* Notes */}
         <FormField
-          name="remarks"
+          name="notes"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                Remarks <span className="text-xs text-zinc-500">(Optional)</span>
+                Notes <span className="text-xs text-zinc-500">(Optional)</span>
               </FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Add any additional notes or remarks..."
+                  placeholder="Add any additional notes..."
                   rows={3}
                   className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 resize-none"
                   {...field}

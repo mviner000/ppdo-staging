@@ -413,6 +413,7 @@ export function BreakdownForm({
             />
 
             {/* Fund Source */}
+            <div className="hidden">
             <FormField
               name="fundSource"
               render={({ field }) => (
@@ -432,6 +433,7 @@ export function BreakdownForm({
                 </FormItem>
               )}
             />
+            </div>
           </div>
         </div>
 

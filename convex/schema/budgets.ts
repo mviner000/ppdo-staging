@@ -11,6 +11,13 @@ export const budgetTables = {
   budgetItems: defineTable({
     particulars: v.string(),
     totalBudgetAllocated: v.number(),
+    
+    /**
+     * Obligated budget amount (optional)
+     * Represents the committed/obligated portion of the allocated budget
+     */
+    obligatedBudget: v.optional(v.number()),
+    
     totalBudgetUtilized: v.number(),
     utilizationRate: v.number(),
     projectCompleted: v.number(),

@@ -87,6 +87,7 @@ export const create = mutation({
   args: {
     particulars: v.string(),
     totalBudgetAllocated: v.number(),
+    obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
     projectCompleted: v.number(),
     projectDelayed: v.number(),
@@ -142,6 +143,7 @@ export const create = mutation({
     };
 
     // Only add optional fields if they have values
+    if (args.obligatedBudget !== undefined) budgetItemData.obligatedBudget = args.obligatedBudget;
     if (args.notes !== undefined) budgetItemData.notes = args.notes;
     if (args.year !== undefined) budgetItemData.year = args.year;
     if (args.status !== undefined) budgetItemData.status = args.status;
@@ -160,6 +162,7 @@ export const update = mutation({
   args: {
     id: v.id("budgetItems"),
     totalBudgetAllocated: v.number(),
+    obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
     projectCompleted: v.number(),
     projectDelayed: v.number(),
@@ -206,6 +209,7 @@ export const update = mutation({
     };
 
     // Only add optional fields if they have values
+    if (args.obligatedBudget !== undefined) updateData.obligatedBudget = args.obligatedBudget;
     if (args.notes !== undefined) updateData.notes = args.notes;
     if (args.year !== undefined) updateData.year = args.year;
     if (args.status !== undefined) updateData.status = args.status;
@@ -344,6 +348,11 @@ export const getStatistics = query({
       0
     );
 
+    const totalObligated = budgetItems.reduce(
+      (sum, item) => sum + (item.obligatedBudget || 0),
+      0
+    );
+
     const totalUtilized = budgetItems.reduce(
       (sum, item) => sum + item.totalBudgetUtilized,
       0
@@ -375,6 +384,7 @@ export const getStatistics = query({
 
     return {
       totalAllocated,
+      totalObligated,
       totalUtilized,
       averageUtilizationRate,
       averageProjectCompleted,

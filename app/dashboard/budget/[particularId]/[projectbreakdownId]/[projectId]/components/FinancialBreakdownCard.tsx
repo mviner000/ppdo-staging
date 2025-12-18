@@ -39,17 +39,19 @@ export function FinancialBreakdownCard({ projectId }: FinancialBreakdownCardProp
     );
   }
 
-  // Calculate effective budget (use revised if available, otherwise allocated)
-  const effectiveBudget = project.revisedBudget ?? project.allocatedBudget;
-  
-  // Get values from project
-  const appropriation = effectiveBudget;
+  // UPDATED: Use new field names from schema
+  const appropriation = project.totalBudgetAllocated;
   const obligation = project.totalBudgetUtilized;
-  const balance = project.balance;
+  
+  // UPDATED: Calculate balance (allocated - utilized)
+  const balance = project.totalBudgetAllocated - project.totalBudgetUtilized;
+  
   const description = project.projectName;
 
-  // Calculate utilization rate
+  // Get utilization rate from project (already calculated)
   const utilizationRate = project.utilizationRate.toFixed(2);
+  
+  // Calculate percentages
   const obligatedPercentage = ((obligation / appropriation) * 100).toFixed(1);
   const remainingPercentage = ((balance / appropriation) * 100).toFixed(1);
 
