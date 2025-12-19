@@ -1,5 +1,3 @@
-// app/dashboard/budget/[particularId]/[projectbreakdownId]/components/BreakdownForm.tsx
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { ChevronDown, MapPin, FileText } from "lucide-react";
 
-// Define the form schema with Zod - matching new backend schema
+// Define the form schema with Zod - matching new backend schema with STRICT 3 statuses
 const breakdownSchema = z.object({
   projectName: z.string().min(1, { message: "Project name is required." }),
   implementingOffice: z.string().min(1, { message: "Implementing office is required." }),
@@ -49,7 +47,8 @@ const breakdownSchema = z.object({
   targetDate: z.number().optional(),
   completionDate: z.number().optional(),
   projectAccomplishment: z.number().min(0).max(100, { message: "Must be between 0 and 100." }).optional(),
-  status: z.enum(["Completed", "On-Going", "On-Hold", "Cancelled", "Delayed"]).optional(),
+  // STRICT 3 OPTIONS
+  status: z.enum(["completed", "ongoing", "delayed"]).optional(),
   remarks: z.string().optional(),
   district: z.string().optional(),
   municipality: z.string().optional(),
@@ -75,7 +74,7 @@ interface Breakdown {
   targetDate?: number;
   completionDate?: number;
   projectAccomplishment?: number;
-  status?: "Completed" | "On-Going" | "On-Hold" | "Cancelled" | "Delayed";
+  status?: "completed" | "ongoing" | "delayed";
   remarks?: string;
   district?: string;
   municipality?: string;
@@ -101,16 +100,13 @@ export function BreakdownForm({
   defaultImplementingOffice,
 }: BreakdownFormProps) {
   const { accentColorValue } = useAccentColor();
-
   // Fetch active departments
   const departments = useQuery(api.departments.list, { includeInactive: false });
-
   // Helper to convert date to timestamp
   const dateToTimestamp = (dateString: string): number | undefined => {
     if (!dateString) return undefined;
     return new Date(dateString).getTime();
   };
-
   // Helper to convert timestamp to date string
   const timestampToDate = (timestamp?: number): string => {
     if (!timestamp) return "";
@@ -143,11 +139,9 @@ export function BreakdownForm({
       fundSource: breakdown?.fundSource || "",
     },
   });
-
   // Watch values for validation
   const accomplishmentRate = form.watch("projectAccomplishment");
   const utilizationRate = form.watch("utilizationRate");
-
   // Define submit handler
   function onSubmit(values: BreakdownFormValues) {
     onSave(values as any);
@@ -433,7 +427,7 @@ export function BreakdownForm({
                 </FormItem>
               )}
             />
-            </div>
+          </div>
           </div>
         </div>
 
@@ -528,7 +522,7 @@ export function BreakdownForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                    Project Accomplishment (%)
+                     Project Accomplishment (%)
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -570,11 +564,10 @@ export function BreakdownForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="On-Going">On-Going</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="On-Hold">On-Hold</SelectItem>
-                      <SelectItem value="Delayed">Delayed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      {/* STRICT 3 OPTIONS */}
+                      <SelectItem value="ongoing">Ongoing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="delayed">Delayed</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -9,8 +9,9 @@ import { Expand, X } from "lucide-react";
 import { useState } from "react";
 import MainSheet from "./components/MainSheet";
 import AccessDeniedPage from "@/components/AccessDeniedPage";
+import { ProjectStatus } from "./types"; // Import the shared status type
 
-// Types matched to schema
+// ✅ FIXED: Use correct status type that matches backend
 interface BudgetItemFromDB {
   _id: Id<"budgetItems">;
   _creationTime: number;
@@ -25,7 +26,7 @@ interface BudgetItemFromDB {
   projectsOnTrack: number;
   notes?: string;
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Now uses strict 3-status
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: Id<"users">;
@@ -49,7 +50,7 @@ interface BudgetItemForUI {
   projectDelayed: number;
   projectsOnTrack: number;
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Now uses strict 3-status
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;

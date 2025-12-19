@@ -40,7 +40,7 @@ interface Breakdown {
   targetDate?: number;
   completionDate?: number;
   projectAccomplishment?: number;
-  status?: "Completed" | "On-Going" | "On-Hold" | "Cancelled" | "Delayed";
+  status?: "completed" | "ongoing" | "delayed";
   remarks?: string;
   district?: string;
   municipality?: string;

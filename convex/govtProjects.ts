@@ -11,11 +11,9 @@ import { Id } from "./_generated/dataModel";
 
 // Reusable status validator to ensure consistency across all mutations
 const statusValidator = v.union(
-  v.literal("Completed"),
-  v.literal("On-Going"),
-  v.literal("On-Hold"),
-  v.literal("Cancelled"),
-  v.literal("Delayed")
+  v.literal("completed"),
+  v.literal("delayed"),
+  v.literal("ongoing")
 );
 
 /**

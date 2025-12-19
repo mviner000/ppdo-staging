@@ -1,5 +1,3 @@
-// convex/schema/govtProjectBreakdowns.ts
-
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -17,7 +15,7 @@ export const govtProjectBreakdownTables = {
     projectId: v.optional(v.id("projects")),
 
     // ============================================================================
-    // OPTIONAL FIELDS (Everything else from your Excel)
+    // OPTIONAL FIELDS
     // ============================================================================
 
     // --- PROJECT TITLE ---
@@ -38,14 +36,12 @@ export const govtProjectBreakdownTables = {
     // --- PROGRESS ---
     projectAccomplishment: v.optional(v.number()),
 
-    // --- STATUS ---
+    // --- STATUS (STRICT 3 OPTIONS) ---
     status: v.optional(
       v.union(
-        v.literal("Completed"),
-        v.literal("On-Going"),
-        v.literal("On-Hold"),
-        v.literal("Cancelled"),
-        v.literal("Delayed")
+        v.literal("completed"),
+        v.literal("delayed"),
+        v.literal("ongoing")
       )
     ),
 

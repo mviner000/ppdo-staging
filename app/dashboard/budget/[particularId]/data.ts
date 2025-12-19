@@ -65,7 +65,7 @@ export function getProjectsByParticular(
       projectCompleted: 20.0,
       projectDelayed: 30.0,
       projectsOngoing: 50.0,
-      status: "pending",
+      status: "ongoing",
       remarks: "Planning phase",
       year: 2024,
     },

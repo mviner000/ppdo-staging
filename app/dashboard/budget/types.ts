@@ -1,5 +1,13 @@
 // app/dashboard/budget/types.ts
 
+// ===== SHARED STATUS TYPE =====
+
+/**
+ * STRICT 3-STATUS SYSTEM used across entire application
+ * MUST match backend schema exactly
+ */
+export type ProjectStatus = "completed" | "ongoing" | "delayed";
+
 // ===== BUDGET ITEM TYPES =====
 
 /**
@@ -21,7 +29,7 @@ export interface BudgetItem {
   projectsOnTrack: number;
   
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
@@ -38,7 +46,7 @@ export interface BudgetItemFormData {
   obligatedBudget?: number;
   totalBudgetUtilized: number;
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   notes?: string;
   departmentId?: string;
   fiscalYear?: number;
@@ -63,7 +71,7 @@ export interface BudgetItemFromDB {
   
   notes?: string;
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
@@ -91,14 +99,14 @@ export interface Project {
   totalBudgetUtilized: number;
   utilizationRate: number;
   
-  // Project-level counts (stored in project record)
+  // 🔒 READ-ONLY: Auto-calculated from govtProjectBreakdowns
   projectCompleted: number;
   projectDelayed: number;
   projectsOngoing: number; // Frontend term for projectsOnTrack
   
   remarks?: string;
   year?: number;
-  status?: "done" | "delayed" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   targetDateCompletion?: number;
   projectManagerId?: string;
   
@@ -110,6 +118,8 @@ export interface Project {
 
 /**
  * Project data when creating/updating
+ * ⚠️ EXCLUDES projectCompleted, projectDelayed, projectsOngoing
+ * These are auto-calculated from govtProjectBreakdowns
  */
 export interface ProjectFormData {
   particulars: string;
@@ -118,12 +128,9 @@ export interface ProjectFormData {
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
-  projectCompleted: number;
-  projectDelayed: number;
-  projectsOngoing: number;
   remarks?: string;
   year?: number;
-  status?: "done" | "delayed" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   targetDateCompletion?: number;
   projectManagerId?: string;
 }
@@ -146,7 +153,7 @@ export interface ProjectFromDB {
   projectsOnTrack: number;
   remarks?: string;
   year?: number;
-  status?: "done" | "delayed" | "pending" | "ongoing";
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
   targetDateCompletion?: number;
   projectManagerId?: string;
   isPinned?: boolean;
@@ -155,6 +162,40 @@ export interface ProjectFromDB {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  updatedBy?: string;
+}
+
+// ===== GOVERNMENT PROJECT BREAKDOWN TYPES =====
+
+/**
+ * Government Project Breakdown interface
+ */
+export interface GovtProjectBreakdown {
+  id: string;
+  projectName: string;
+  implementingOffice: string;
+  projectId?: string; // Parent project link
+  municipality?: string;
+  barangay?: string;
+  district?: string;
+  allocatedBudget?: number;
+  obligatedBudget?: number;
+  budgetUtilized?: number;
+  balance?: number;
+  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  dateStarted?: number;
+  targetDate?: number;
+  completionDate?: number;
+  remarks?: string;
+  projectTitle?: string;
+  utilizationRate?: number;
+  projectAccomplishment?: number;
+  reportDate?: number;
+  batchId?: string;
+  fundSource?: string;
+  createdBy: string;
+  createdAt: number;
+  updatedAt?: number;
   updatedBy?: string;
 }
 
@@ -201,6 +242,32 @@ export const PARTICULAR_FULL_NAMES: Record<BudgetParticular, string> = {
   LYDP: "LOCAL YOUTH DEVELOPMENT PROGRAM",
   "20%_DF": "20% DEVELOPMENT FUND",
 };
+
+// ===== STATUS DISPLAY HELPERS =====
+
+/**
+ * Helper to get display text for status
+ */
+export function getStatusDisplayText(status: ProjectStatus): string {
+  const mapping: Record<ProjectStatus, string> = {
+    completed: "Completed",
+    ongoing: "Ongoing",
+    delayed: "Delayed",
+  };
+  return mapping[status];
+}
+
+/**
+ * Helper to get color class for status
+ */
+export function getStatusColorClass(status: ProjectStatus): string {
+  const mapping: Record<ProjectStatus, string> = {
+    completed: "text-green-600 dark:text-green-400",
+    ongoing: "text-blue-600 dark:text-blue-400",
+    delayed: "text-red-600 dark:text-red-400",
+  };
+  return mapping[status];
+}
 
 // ===== FINANCIAL BREAKDOWN =====
 

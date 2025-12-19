@@ -209,11 +209,14 @@ export function ProjectsTable({
   };
 
   const getStatusColor = (status?: string): string => {
-    if (!status) return "text-zinc-600 dark:text-zinc-400";
-    if (status === "done") return "text-green-600 dark:text-green-400";
-    if (status === "ongoing" || status === "pending") return "text-blue-600 dark:text-blue-400";
-    if (status === "delayed") return "text-red-600 dark:text-red-400";
-    return "text-zinc-600 dark:text-zinc-400";
+      if (!status) return "text-zinc-600 dark:text-zinc-400";
+      
+      // STRICT 3 MAPPING
+      if (status === "completed") return "text-green-600 dark:text-green-400";
+      if (status === "ongoing") return "text-blue-600 dark:text-blue-400";
+      if (status === "delayed") return "text-red-600 dark:text-red-400";
+      
+      return "text-zinc-600 dark:text-zinc-400";
   };
 
   const handleRowClick = (project: Project, e: React.MouseEvent) => {

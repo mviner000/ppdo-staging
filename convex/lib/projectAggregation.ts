@@ -1,4 +1,3 @@
-// convex/lib/projectAggregation.ts
 import { GenericMutationCtx } from "convex/server";
 import { DataModel, Id } from "../_generated/dataModel";
 
@@ -7,12 +6,10 @@ type MutationCtx = GenericMutationCtx<DataModel>;
 /**
  * Calculate and update project metrics based on child govtProjectBreakdown STATUSES
  * This mirrors budgetAggregation.ts but for projects
- * 
- * MAPPING:
- * - "Completed" status → projectCompleted
- * - "Delayed" status → projectDelayed
- * - "On-Going" or "On-Hold" status → projectsOnTrack
- * - "Cancelled" or no status → not counted
+ * * MAPPING (UPDATED FOR STRICT 3 STATUS):
+ * - "completed" status → projectCompleted
+ * - "delayed" status → projectDelayed
+ * - "ongoing" status → projectsOnTrack
  */
 export async function recalculateProjectMetrics(
   ctx: MutationCtx,
@@ -34,6 +31,7 @@ export async function recalculateProjectMetrics(
       updatedAt: Date.now(),
       updatedBy: userId,
     });
+
     return {
       breakdownsCount: 0,
       completed: 0,
@@ -47,14 +45,13 @@ export async function recalculateProjectMetrics(
     (acc, breakdown) => {
       const status = breakdown.status;
       
-      if (status === "Completed") {
+      if (status === "completed") {
         acc.completed++;
-      } else if (status === "Delayed") {
+      } else if (status === "delayed") {
         acc.delayed++;
-      } else if (status === "On-Going" || status === "On-Hold") {
+      } else if (status === "ongoing") {
         acc.onTrack++;
       }
-      // Breakdowns without status or "Cancelled" are not counted
       
       return acc;
     },
@@ -86,7 +83,6 @@ export async function recalculateMultipleProjects(
   userId: Id<"users">
 ) {
   const results = [];
-  
   for (const projectId of projectIds) {
     const result = await recalculateProjectMetrics(ctx, projectId, userId);
     results.push({

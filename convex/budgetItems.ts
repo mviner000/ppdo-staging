@@ -135,7 +135,14 @@ export const create = mutation({
     obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
     year: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("done"), v.literal("pending"), v.literal("ongoing"))),
+    // STRICT 3 STATUS
+    status: v.optional(
+      v.union(
+        v.literal("completed"),
+        v.literal("delayed"),
+        v.literal("ongoing")
+      )
+    ),
     notes: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     fiscalYear: v.optional(v.number()),
@@ -191,7 +198,14 @@ export const update = mutation({
     obligatedBudget: v.optional(v.number()),
     totalBudgetUtilized: v.number(),
     year: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("done"), v.literal("pending"), v.literal("ongoing"))),
+    // STRICT 3 STATUS
+    status: v.optional(
+      v.union(
+        v.literal("completed"),
+        v.literal("delayed"),
+        v.literal("ongoing")
+      )
+    ),
     notes: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     fiscalYear: v.optional(v.number()),

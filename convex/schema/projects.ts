@@ -1,5 +1,3 @@
-// convex/schema/projects.ts
-
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -58,15 +56,12 @@ export const projectTables = {
     
     /**
      * Project status - determines how it's counted in parent budgetItem
-     * - "done": Counts toward projectCompleted
-     * - "delayed": Counts toward projectDelayed
-     * - "pending" or "ongoing": Counts toward projectsOnTrack
+     * STRICT 3 OPTIONS: completed, delayed, ongoing
      */
     status: v.optional(
       v.union(
-        v.literal("done"),
-        v.literal("delayed"),    // ← ADDED for aggregation
-        v.literal("pending"),
+        v.literal("completed"),
+        v.literal("delayed"),
         v.literal("ongoing")
       )
     ),

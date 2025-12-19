@@ -205,11 +205,19 @@ export function BudgetTrackingTable({
     return "text-zinc-600 dark:text-zinc-400";
   };
 
-  const getStatusColor = (status?: "done" | "pending" | "ongoing"): string => {
+  const getStatusColor = (status?: string): string => {
     if (!status) return "text-zinc-600 dark:text-zinc-400";
-    if (status === "done") return "text-green-600 dark:text-green-400";
-    if (status === "ongoing") return "text-blue-600 dark:text-blue-400";
-    return "text-orange-600 dark:text-orange-400";
+    
+    switch (status) {
+      case "completed":
+        return "text-green-600 dark:text-green-400";
+      case "ongoing":
+        return "text-blue-600 dark:text-blue-400";
+      case "delayed":
+        return "text-red-600 dark:text-red-400";
+      default:
+        return "text-zinc-600 dark:text-zinc-400";
+    }
   };
 
   const handleRowClick = (item: BudgetItem, e: React.MouseEvent) => {

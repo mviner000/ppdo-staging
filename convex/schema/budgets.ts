@@ -1,5 +1,3 @@
-// convex/schema/budgets.ts
-
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -31,11 +29,12 @@ export const budgetTables = {
     
     /**
      * Status of the budget item (optional)
+     * STRICT 3 OPTIONS: completed, delayed, ongoing
      */
     status: v.optional(
       v.union(
-        v.literal("done"),
-        v.literal("pending"),
+        v.literal("completed"),
+        v.literal("delayed"),
         v.literal("ongoing")
       )
     ),

@@ -1,5 +1,3 @@
-// app/dashboard/budget/[particularId]/components/ProjectForm.tsx
-
 "use client";
 
 import { useEffect } from "react";
@@ -39,8 +37,6 @@ import { Project } from "../../types";
 
 const FORM_STORAGE_KEY = "project_form_draft";
 
-// ⚠️ UPDATED SCHEMA: Removed projectCompleted, projectDelayed, projectsOngoing
-// These are now auto-calculated from govtProjectBreakdowns
 const projectSchema = z
   .object({
     particulars: z
@@ -53,7 +49,8 @@ const projectSchema = z
     totalBudgetUtilized: z.number().min(0, { message: "Must be 0 or greater." }),
     remarks: z.string().optional(),
     year: z.number().int().min(2000).max(2100).optional(),
-    status: z.enum(["done", "pending", "ongoing"]).optional(),
+    // STRICT 3 OPTIONS
+    status: z.enum(["completed", "ongoing", "delayed"]).optional(),
   })
   .refine((data) => data.totalBudgetUtilized <= data.totalBudgetAllocated, {
     message: "Budget utilized cannot exceed allocated budget.",
@@ -77,14 +74,11 @@ interface ProjectFormProps {
 
 export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const { accentColorValue } = useAccentColor();
-  
   // Fetch departments from backend
   const departments = useQuery(api.departments.list, { includeInactive: false });
-
   // Load saved draft from localStorage (only for new projects)
   const getSavedDraft = () => {
     if (project) return null;
-
     try {
       const saved = localStorage.getItem(FORM_STORAGE_KEY);
       if (saved) {
@@ -97,7 +91,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   };
 
   const savedDraft = getSavedDraft();
-
   // Define the form - removed project count fields
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
@@ -115,7 +108,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
 
   // Watch all form values for auto-save
   const formValues = form.watch();
-
   // Auto-save draft to localStorage (only for new projects)
   useEffect(() => {
     if (!project) {
@@ -150,7 +142,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
     if (utilizationRate >= 60) return "text-orange-600 dark:text-orange-400";
     return "text-green-600 dark:text-green-400";
   };
-
   // Define submit handler
   function onSubmit(values: ProjectFormValues) {
     const projectData = {
@@ -181,7 +172,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
     }
     onCancel();
   };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -292,9 +282,10 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    {/* STRICT 3 OPTIONS */}
                     <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="delayed">Delayed</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -468,7 +459,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           </div>
         )}
 
-        {/* ⚠️ REMOVED PROJECT STATUS FIELDS SECTION */}
         {/* Added info box explaining auto-calculation */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg">
           <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />

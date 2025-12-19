@@ -1,4 +1,3 @@
-// convex/lib/budgetAggregation.ts
 import { GenericMutationCtx } from "convex/server";
 import { DataModel, Id } from "../_generated/dataModel";
 
@@ -7,6 +6,10 @@ type MutationCtx = GenericMutationCtx<DataModel>;
 /**
  * Calculate and update budgetItem metrics based on child project STATUSES
  * This is the SINGLE SOURCE OF TRUTH for budgetItem project counts
+ * * MAPPING (UPDATED FOR STRICT 3 STATUS):
+ * - "completed" status → projectCompleted
+ * - "delayed" status → projectDelayed
+ * - "ongoing" status → projectsOnTrack
  */
 export async function recalculateBudgetItemMetrics(
   ctx: MutationCtx,
@@ -28,6 +31,7 @@ export async function recalculateBudgetItemMetrics(
       updatedAt: Date.now(),
       updatedBy: userId,
     });
+
     return {
       projectsCount: 0,
       completed: 0,
@@ -41,14 +45,13 @@ export async function recalculateBudgetItemMetrics(
     (acc, project) => {
       const status = project.status;
       
-      if (status === "done") {
+      if (status === "completed") {
         acc.completed++;
       } else if (status === "delayed") {
         acc.delayed++;
-      } else if (status === "pending" || status === "ongoing") {
+      } else if (status === "ongoing") {
         acc.onTrack++;
       }
-      // Projects without status are not counted
       
       return acc;
     },
@@ -80,7 +83,6 @@ export async function recalculateMultipleBudgetItems(
   userId: Id<"users">
 ) {
   const results = [];
-  
   for (const budgetItemId of budgetItemIds) {
     const result = await recalculateBudgetItemMetrics(ctx, budgetItemId, userId);
     results.push({

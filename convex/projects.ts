@@ -78,8 +78,13 @@ export const create = mutation({
     totalBudgetUtilized: v.number(),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
+    // STRICT 3 STATUS
     status: v.optional(
-      v.union(v.literal("done"), v.literal("delayed"), v.literal("pending"), v.literal("ongoing"))
+      v.union(
+        v.literal("completed"),
+        v.literal("delayed"),
+        v.literal("ongoing")
+      )
     ),
     targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),
@@ -156,8 +161,13 @@ export const update = mutation({
     totalBudgetUtilized: v.number(),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
+    // STRICT 3 STATUS
     status: v.optional(
-      v.union(v.literal("done"), v.literal("delayed"), v.literal("pending"), v.literal("ongoing"))
+      v.union(
+        v.literal("completed"),
+        v.literal("delayed"),
+        v.literal("ongoing")
+      )
     ),
     targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),

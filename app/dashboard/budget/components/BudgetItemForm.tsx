@@ -45,7 +45,7 @@ interface BudgetItem {
   projectDelayed: number;
   projectsOnTrack: number;
   year?: number;
-  status?: "done" | "pending" | "ongoing";
+  status?: "completed" | "ongoing" | "delayed";
 }
 
 const BUDGET_PARTICULARS = [
@@ -94,7 +94,7 @@ const budgetItemSchema = z
       message: "Must be 0 or greater.",
     }),
     year: z.number().int().min(2000).max(2100).optional().or(z.literal(0)),
-    status: z.enum(["done", "pending", "ongoing"]).optional(),
+    status: z.enum(["completed", "ongoing", "delayed"]).optional(),
   })
   .refine(
     (data) => data.totalBudgetUtilized <= data.totalBudgetAllocated,
@@ -315,9 +315,10 @@ export function BudgetItemForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    {/* STRICT 3 OPTIONS */}
                     <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="delayed">Delayed</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
