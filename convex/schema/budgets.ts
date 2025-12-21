@@ -6,9 +6,20 @@ export const budgetTables = {
   /**
    * Budget Items.
    * Now linked to departments for better organization.
+   * 
+   * 🆕 IMPORTANT: The `particulars` field now references codes from the `budgetParticulars` table.
+   * This ensures data consistency and allows dynamic management of budget categories.
    */
   budgetItems: defineTable({
+    /**
+     * 🆕 CHANGED: Now references a code from budgetParticulars table
+     * Example: "GAD", "LDRRMP", "LCCAP"
+     * 
+     * MIGRATION NOTE: If you have existing data, ensure all values match
+     * codes in the budgetParticulars table, or they will be rejected on update.
+     */
     particulars: v.string(),
+    
     totalBudgetAllocated: v.number(),
     
     /**
@@ -79,7 +90,7 @@ export const budgetTables = {
     .index("createdBy", ["createdBy"])
     .index("createdAt", ["createdAt"])
     .index("updatedAt", ["updatedAt"])
-    .index("particulars", ["particulars"])
+    .index("particulars", ["particulars"]) // ✅ Index for fast particular lookups
     .index("departmentId", ["departmentId"])
     .index("fiscalYear", ["fiscalYear"])
     .index("departmentAndYear", ["departmentId", "fiscalYear"])

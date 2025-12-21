@@ -21,6 +21,7 @@ import { govtProjectBreakdownActivityTables } from "./schema/govtProjectBreakdow
 import { tableSettingsTables } from "./schema/tableSettings";
 import { projectActivityTables } from "./schema/projectActivities";
 import { budgetItemActivityTables } from "./schema/budgetItemActivities";
+import { budgetParticularTables } from "./schema/budgetParticulars";
 
 export default defineSchema({
   ...authTables,
@@ -42,5 +43,6 @@ export default defineSchema({
   ...govtProjectBreakdownActivityTables,
   ...tableSettingsTables,
   ...projectActivityTables,
-  ...budgetItemActivityTables
+  ...budgetItemActivityTables,
+  ...budgetParticularTables,
 });

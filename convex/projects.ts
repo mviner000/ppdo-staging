@@ -4,6 +4,7 @@ import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { recalculateBudgetItemMetrics } from "./lib/budgetAggregation";
 import { logProjectActivity } from "./lib/projectActivityLogger";
+import { internal } from "./_generated/api";
 
 /**
  * Get ACTIVE projects (Hidden Trash)
@@ -18,9 +19,7 @@ export const list = query({
 
     let projects;
 
-    // [FIX] Use distinct queries instead of trying to mutate a query variable
     if (args.budgetItemId) {
-      // Use index if ID is provided
       projects = await ctx.db
         .query("projects")
         .withIndex("budgetItemId", (q) => q.eq("budgetItemId", args.budgetItemId))
@@ -28,7 +27,6 @@ export const list = query({
         .order("desc")
         .collect();
     } else {
-      // Full table scan if no ID provided
       projects = await ctx.db
         .query("projects")
         .filter((q) => q.neq(q.field("isDeleted"), true))
@@ -96,6 +94,13 @@ export const moveToTrash = mutation({
       });
     }
 
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "project" as const,
+      delta: -1,
+    });
+
     // 3. Recalculate Parent Budget to remove this project from totals
     if (existing.budgetItemId) {
       await recalculateBudgetItemMetrics(ctx, existing.budgetItemId, userId);
@@ -134,15 +139,13 @@ export const restoreFromTrash = mutation({
       updatedAt: Date.now()
     });
 
-    // 2. Restore Breakdowns (Only those that were deleted at the same time?)
-    // Simple robust approach: Restore all children
+    // 2. Restore Breakdowns
     const breakdowns = await ctx.db
       .query("govtProjectBreakdowns")
       .withIndex("projectId", (q) => q.eq("projectId", args.id))
       .collect();
 
     for (const breakdown of breakdowns) {
-      // Only restore if it looks like it was cascade deleted (check timestamp or just restore all)
       if (breakdown.isDeleted) {
         await ctx.db.patch(breakdown._id, {
           isDeleted: false,
@@ -151,6 +154,13 @@ export const restoreFromTrash = mutation({
         });
       }
     }
+
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "project" as const,
+      delta: 1,
+    });
 
     // 3. Recalculate Parent Budget to add this project back to totals
     if (existing.budgetItemId) {
@@ -178,8 +188,7 @@ export const get = query({
 
 /**
  * Create a new project
- * ⚠️ UPDATED: Removed projectCompleted, projectDelayed, projectsOnTrack, and status
- * These are now auto-calculated from govtProjectBreakdowns
+ * 🆕 UPDATED: Now validates particular exists and updates usage count
  */
 export const create = mutation({
     args: {
@@ -198,6 +207,24 @@ export const create = mutation({
         const userId = await getAuthUserId(ctx);
         if (userId === null) throw new Error("Not authenticated");
         
+        // 🆕 Validate particular exists and is active
+        const particular = await ctx.db
+          .query("budgetParticulars")
+          .withIndex("code", (q) => q.eq("code", args.particulars))
+          .first();
+
+        if (!particular) {
+          throw new Error(
+            `Budget particular "${args.particulars}" does not exist. Please add it in Budget Particulars management first.`
+          );
+        }
+
+        if (!particular.isActive) {
+          throw new Error(
+            `Budget particular "${args.particulars}" is inactive and cannot be used. Please activate it first.`
+          );
+        }
+
         if (args.budgetItemId) {
             const budgetItem = await ctx.db.get(args.budgetItemId);
             if (!budgetItem) throw new Error("Budget item not found");
@@ -227,7 +254,14 @@ export const create = mutation({
             createdBy: userId,
             createdAt: now,
             updatedAt: now,
-            isDeleted: false, // Init
+            isDeleted: false,
+        });
+
+        // 🆕 Update usage count for the particular
+        await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+          code: args.particulars,
+          type: "project" as const,
+          delta: 1,
         });
 
         const newProject = await ctx.db.get(projectId);
@@ -247,7 +281,7 @@ export const create = mutation({
 
 /**
  * Update an existing project
- * ⚠️ UPDATED: Removed projectCompleted, projectDelayed, projectsOnTrack, and status
+ * 🆕 UPDATED: Now validates particular exists if changed
  */
 export const update = mutation({
     args: {
@@ -270,6 +304,41 @@ export const update = mutation({
 
         const existing = await ctx.db.get(args.id);
         if (!existing) throw new Error("Project not found");
+
+        // 🆕 If particular is changing, validate new particular
+        if (args.particulars !== existing.particulars) {
+          const particular = await ctx.db
+            .query("budgetParticulars")
+            .withIndex("code", (q) => q.eq("code", args.particulars))
+            .first();
+
+          if (!particular) {
+            throw new Error(
+              `Budget particular "${args.particulars}" does not exist. Please add it in Budget Particulars management first.`
+            );
+          }
+
+          if (!particular.isActive) {
+            throw new Error(
+              `Budget particular "${args.particulars}" is inactive and cannot be used. Please activate it first.`
+            );
+          }
+
+          // Update usage counts
+          // Decrease old particular
+          await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+            code: existing.particulars,
+            type: "project" as const,
+            delta: -1,
+          });
+
+          // Increase new particular
+          await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+            code: args.particulars,
+            type: "project" as const,
+            delta: 1,
+          });
+        }
 
         if (args.budgetItemId) {
             const budgetItem = await ctx.db.get(args.budgetItemId);
@@ -331,14 +400,12 @@ export const remove = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // [FIX] Get current user to check roles properly if needed
     const currentUser = await ctx.db.get(userId);
     if (!currentUser) throw new Error("User not found");
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Project not found");
 
-    // Optional: Add authorization check here if you want consistency
     const isSuperAdmin = currentUser.role === 'super_admin';
     const isCreator = existing.createdBy === userId;
     if (!isCreator && !isSuperAdmin) throw new Error("Not authorized");
@@ -366,6 +433,13 @@ export const remove = mutation({
 
     // 4. Permanent Delete Project
     await ctx.db.delete(args.id);
+
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "project" as const,
+      delta: -1,
+    });
 
     // 5. Update Parent
     if (budgetItemId) {

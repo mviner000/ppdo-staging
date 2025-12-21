@@ -19,8 +19,8 @@ export const list = query({
 
     const budgetItems = await ctx.db
       .query("budgetItems")
-      .withIndex("isDeleted", (q) => q.eq("isDeleted", undefined)) // Or check for false if you set defaults
-      .filter((q) => q.neq(q.field("isDeleted"), true)) // Double check filtering
+      .withIndex("isDeleted", (q) => q.eq("isDeleted", undefined))
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .collect();
 
@@ -78,7 +78,6 @@ export const moveToTrash = mutation({
       .collect();
 
     for (const project of projects) {
-      // Trash Project
       await ctx.db.patch(project._id, {
         isDeleted: true,
         deletedAt: now,
@@ -99,6 +98,13 @@ export const moveToTrash = mutation({
         });
       }
     }
+
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "budget" as const,
+      delta: -1,
+    });
 
     // Log Activity
     await logBudgetActivity(ctx, userId, {
@@ -166,6 +172,13 @@ export const restoreFromTrash = mutation({
       }
     }
 
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "budget" as const,
+      delta: 1,
+    });
+
     // Recalculate metrics immediately to ensure data is fresh
     await recalculateBudgetItemMetrics(ctx, args.id, userId);
 
@@ -182,7 +195,7 @@ export const get = query({
         const userId = await getAuthUserId(ctx);
         if (userId === null) throw new Error("Not authenticated");
         const budgetItem = await ctx.db.get(args.id);
-        if (!budgetItem || budgetItem.isDeleted) throw new Error("Budget item not found"); // Hide deleted items
+        if (!budgetItem || budgetItem.isDeleted) throw new Error("Budget item not found");
         return budgetItem;
     },
 });
@@ -213,7 +226,6 @@ export const getStatistics = query({
     handler: async (ctx) => {
         const userId = await getAuthUserId(ctx);
         if (userId === null) throw new Error("Not authenticated");
-        // Calculate statistics from active items only
         const budgetItems = await ctx.db
             .query("budgetItems")
             .filter(q => q.neq(q.field("isDeleted"), true))
@@ -240,7 +252,7 @@ export const getStatistics = query({
 
 /**
  * Create a new budget item
- * NOTE: Project counts are NOT provided - they will be calculated from child projects
+ * 🆕 UPDATED: Now validates particular exists and updates usage count
  */
 export const create = mutation({
   args: {
@@ -256,6 +268,24 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
+
+    // 🆕 Validate particular exists and is active
+    const particular = await ctx.db
+      .query("budgetParticulars")
+      .withIndex("code", (q) => q.eq("code", args.particulars))
+      .first();
+
+    if (!particular) {
+      throw new Error(
+        `Budget particular "${args.particulars}" does not exist. Please add it in Budget Particulars management first.`
+      );
+    }
+
+    if (!particular.isActive) {
+      throw new Error(
+        `Budget particular "${args.particulars}" is inactive and cannot be used. Please activate it first.`
+      );
+    }
 
     const now = Date.now();
     const utilizationRate = args.totalBudgetAllocated > 0
@@ -281,7 +311,13 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // [NEW] Log Activity
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: args.particulars,
+      type: "budget" as const,
+      delta: 1,
+    });
+
     const newBudget = await ctx.db.get(budgetItemId);
     await logBudgetActivity(ctx, userId, {
       action: "created",
@@ -296,7 +332,7 @@ export const create = mutation({
 
 /**
  * Update an existing budget item
- * ✅ FIXED: Do not update status - it's auto-calculated
+ * 🆕 UPDATED: Now validates particular exists if changed
  */
 export const update = mutation({
     args: {
@@ -317,6 +353,41 @@ export const update = mutation({
 
         const existing = await ctx.db.get(args.id);
         if (!existing) throw new Error("Budget item not found");
+
+        // 🆕 If particular is changing, validate new particular
+        if (args.particulars !== existing.particulars) {
+          const particular = await ctx.db
+            .query("budgetParticulars")
+            .withIndex("code", (q) => q.eq("code", args.particulars))
+            .first();
+
+          if (!particular) {
+            throw new Error(
+              `Budget particular "${args.particulars}" does not exist. Please add it in Budget Particulars management first.`
+            );
+          }
+
+          if (!particular.isActive) {
+            throw new Error(
+              `Budget particular "${args.particulars}" is inactive and cannot be used. Please activate it first.`
+            );
+          }
+
+          // Update usage counts
+          // Decrease old particular
+          await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+            code: existing.particulars,
+            type: "budget" as const,
+            delta: -1,
+          });
+
+          // Increase new particular
+          await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+            code: args.particulars,
+            type: "budget" as const,
+            delta: 1,
+          });
+        }
 
         const now = Date.now();
         const utilizationRate = args.totalBudgetAllocated > 0
@@ -362,13 +433,12 @@ export const remove = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const currentUser = await ctx.db.get(userId); // [FIX] Fetch the user first
+    const currentUser = await ctx.db.get(userId);
     if (!currentUser) throw new Error("User not found");
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Budget item not found");
 
-    // [FIX] Check currentUser.role instead of existing.role
     const isSuperAdmin = currentUser.role === 'super_admin';
     const isCreator = existing.createdBy === userId;
 
@@ -400,6 +470,13 @@ export const remove = mutation({
     // 3. Delete Parent
     await ctx.db.delete(args.id);
 
+    // 🆕 Update usage count for the particular
+    await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+      code: existing.particulars,
+      type: "budget" as const,
+      delta: -1,
+    });
+
     // 4. Log
     await logBudgetActivity(ctx, userId, {
       action: "deleted",
@@ -411,7 +488,6 @@ export const remove = mutation({
     return { success: true };
   },
 });
-
 
 /**
  * Toggle pin status for a budget item
@@ -438,7 +514,6 @@ export const togglePin = mutation({
 
 /**
  * INTERNAL: Recalculate metrics for a specific budget item
- * This is called automatically by project mutations
  */
 export const recalculateMetrics = internalMutation({
     args: { budgetItemId: v.id("budgetItems"), userId: v.id("users") },
@@ -448,7 +523,7 @@ export const recalculateMetrics = internalMutation({
 });
 
 /**
- * 🆕 PUBLIC: Recalculate metrics for a specific budget item (frontend callable)
+ * PUBLIC: Recalculate metrics for a specific budget item
  */
 export const recalculateSingleBudgetItem = mutation({
     args: { budgetItemId: v.id("budgetItems") },
@@ -461,7 +536,6 @@ export const recalculateSingleBudgetItem = mutation({
 
 /**
  * MANUAL: Recalculate all budget item metrics
- * Use this for one-time sync of existing data
  */
 export const recalculateAllMetrics = mutation({
     args: {},
@@ -472,3 +546,6 @@ export const recalculateAllMetrics = mutation({
         return { message: `Recalculated ${results.length} budget items`, results };
     },
 });
+
+// 🆕 Import internal functions
+import { internal } from "./_generated/api";
