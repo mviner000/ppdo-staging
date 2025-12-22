@@ -26,7 +26,11 @@ import {
   Printer,
   MoreHorizontal,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  Settings2,
+  Download,
+  FileSpreadsheet,
+  LayoutTemplate
 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -47,6 +51,18 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+
+// Shadcn Dropdown Imports (for Columns & Export)
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import { cn } from "@/lib/utils";
 
 interface ProjectsTableProps {
@@ -61,6 +77,22 @@ interface ProjectsTableProps {
 
 type SortDirection = "asc" | "desc" | null;
 type SortField = keyof Project | null;
+
+// Definition of toggleable columns
+const AVAILABLE_COLUMNS = [
+  { id: "particulars", label: "Particulars" },
+  { id: "implementingOffice", label: "Implementing Office" },
+  { id: "year", label: "Year" },
+  { id: "status", label: "Status" },
+  { id: "totalBudgetAllocated", label: "Budget Allocated" },
+  { id: "obligatedBudget", label: "Obligated Budget" },
+  { id: "totalBudgetUtilized", label: "Budget Utilized" },
+  { id: "utilizationRate", label: "Utilization Rate" },
+  { id: "projectCompleted", label: "Completed" },
+  { id: "projectDelayed", label: "Delayed" },
+  { id: "projectsOngoing", label: "Ongoing" },
+  { id: "remarks", label: "Remarks" },
+];
 
 export function ProjectsTable({
   projects,
@@ -96,6 +128,14 @@ export function ProjectsTable({
   const [selectedCategoryProject, setSelectedCategoryProject] = useState<Project | null>(null);
   const [singleCategoryId, setSingleCategoryId] = useState<Id<"projectCategories"> | undefined>(undefined);
 
+  // Search Warning State
+  const [showSearchWarningModal, setShowSearchWarningModal] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Column Visibility State
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [showHideAllWarning, setShowHideAllWarning] = useState(false);
+
   // Selection & Data States
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -110,7 +150,6 @@ export function ProjectsTable({
   const [activeFilterColumn, setActiveFilterColumn] = useState<string | null>(null);
   
   // UI States
-  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; project: Project } | null>(null);
   const [logSheetOpen, setLogSheetOpen] = useState(false);
   const [selectedLogProject, setSelectedLogProject] = useState<Project | null>(null);
@@ -247,6 +286,18 @@ export function ProjectsTable({
     setSelectedIds(newSelected);
   };
 
+  const handleSelectCategory = (categoryProjects: Project[], checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    categoryProjects.forEach(p => {
+        if (checked) {
+            newSelected.add(p.id);
+        } else {
+            newSelected.delete(p.id);
+        }
+    });
+    setSelectedIds(newSelected);
+  };
+
   const isAllSelected = filteredAndSortedProjects.length > 0 && selectedIds.size === filteredAndSortedProjects.length;
   const isIndeterminate = selectedIds.size > 0 && selectedIds.size < filteredAndSortedProjects.length;
 
@@ -283,6 +334,95 @@ export function ProjectsTable({
       toast.error("Failed to update categories.");
       setShowBulkCategoryConfirmModal(false);
     }
+  };
+
+  // --- Search Focus Logic ---
+
+  const handleSearchFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (selectedIds.size > 0) {
+        e.target.blur();
+        setShowSearchWarningModal(true);
+    }
+  };
+
+  const handleConfirmSearchClear = () => {
+    setSelectedIds(new Set());
+    setShowSearchWarningModal(false);
+    setTimeout(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, 50);
+  };
+
+  // --- Column Visibility Logic ---
+
+  const handleToggleColumn = (columnId: string, isChecked: boolean) => {
+    const newHidden = new Set(hiddenColumns);
+    if (isChecked) {
+      newHidden.delete(columnId);
+    } else {
+      newHidden.add(columnId);
+    }
+    setHiddenColumns(newHidden);
+  };
+
+  const handleHideAllColumns = () => {
+    setShowHideAllWarning(true);
+  };
+
+  const confirmHideAll = () => {
+    const allColIds = AVAILABLE_COLUMNS.map(c => c.id);
+    setHiddenColumns(new Set(allColIds));
+    setShowHideAllWarning(false);
+  };
+
+  const handleShowAllColumns = () => {
+    setHiddenColumns(new Set());
+  };
+
+  // --- Export Logic ---
+
+  const handleExportCSV = () => {
+    // 1. Get visible columns
+    const visibleCols = AVAILABLE_COLUMNS.filter(col => !hiddenColumns.has(col.id));
+    
+    if (visibleCols.length === 0) {
+      toast.error("No columns are visible to export.");
+      return;
+    }
+
+    // 2. Build Header Row
+    const headers = visibleCols.map(c => c.label).join(",");
+    
+    // 3. Build Data Rows
+    const rows = filteredAndSortedProjects.map(project => {
+      return visibleCols.map(col => {
+        let val = (project as any)[col.id];
+        
+        // Handle specific formatting for CSV
+        if (val === undefined || val === null) return "";
+        if (col.id === "utilizationRate") return (val as number).toFixed(2); // Export raw number or percentage string? Keeping simpler number for CSV
+        if (typeof val === "string") {
+            // Escape quotes for CSV
+            return `"${val.replace(/"/g, '""')}"`;
+        }
+        return val;
+      }).join(",");
+    });
+
+    // 4. Create CSV Content
+    const csvContent = [headers, ...rows].join("\n");
+    
+    // 5. Trigger Download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `projects_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // --- Standard Actions ---
@@ -369,6 +509,14 @@ export function ProjectsTable({
       utilizationRate: 0, projectCompleted: 0, projectDelayed: 0, projectsOngoing: 0 }
   );
 
+  // Helper to count how many "label columns" (Particulars, Office, Year, Status) are visible for the colspan calc
+  const countVisibleLabelColumns = () => {
+    const labels = ["particulars", "implementingOffice", "year", "status"];
+    return labels.filter(id => !hiddenColumns.has(id)).length;
+  };
+
+  const visibleLabelColSpan = countVisibleLabelColumns();
+
   return (
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-visible transition-all duration-300 shadow-sm">
@@ -407,6 +555,8 @@ export function ProjectsTable({
             <div className="relative max-w-xs w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input 
+                ref={searchInputRef}
+                onFocus={handleSearchFocus}
                 type="text" 
                 placeholder="Search projects..." 
                 value={searchQuery}
@@ -423,6 +573,59 @@ export function ProjectsTable({
               )}
             </div>
 
+            <Separator orientation="vertical" className="h-6 mx-1" />
+
+            {/* Column Visibility Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <LayoutTemplate className="w-4 h-4" />
+                  Columns 
+                  {hiddenColumns.size > 0 && (
+                    <span className="ml-0.5 text-xs text-zinc-500">
+                       ({hiddenColumns.size} hidden)
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-[300px] overflow-y-auto">
+                    {AVAILABLE_COLUMNS.map((column) => (
+                    <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={!hiddenColumns.has(column.id)}
+                        onCheckedChange={(checked) => handleToggleColumn(column.id, checked)}
+                    >
+                        {column.label}
+                    </DropdownMenuCheckboxItem>
+                    ))}
+                </div>
+                <DropdownMenuSeparator />
+                <div className="p-2 flex gap-2">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleShowAllColumns}
+                        className="w-full h-7 text-xs"
+                        disabled={hiddenColumns.size === 0}
+                    >
+                        Show All
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleHideAllColumns}
+                        className="w-full h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={hiddenColumns.size === AVAILABLE_COLUMNS.length}
+                    >
+                        Hide All
+                    </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Bulk Category Change - Only shown when items are selected */}
             {selectedIds.size > 0 && canManageBulkActions && (
               <NavigationMenu>
@@ -430,7 +633,7 @@ export function ProjectsTable({
                   <NavigationMenuItem>
                     <NavigationMenuTrigger className="h-9 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 data-[state=open]:bg-blue-100 border border-blue-200 dark:border-blue-800">
                       <Layers className="w-4 h-4 mr-2" />
-                      Move {selectedIds.size} to Category
+                      Category
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="w-[300px] p-4 gap-4 flex flex-col bg-white dark:bg-zinc-950">
@@ -505,19 +708,33 @@ export function ProjectsTable({
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              {selectedIds.size > 0 ? `Move ${selectedIds.size} to Trash` : 'Recycle Bin'}
+              {selectedIds.size > 0 ? `To Trash (${selectedIds.size})` : 'Recycle Bin'}
             </Button>
 
-            {/* Print Button */}
-            <Button 
-              onClick={() => window.print()}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              Print
-            </Button>
+            {/* Print/Export Dropdown */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Download className="w-4 h-4" />
+                        Export / Print
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer">
+                        <Printer className="w-4 h-4 mr-2" /> Print PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                        <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                        <span className="text-[10px] text-zinc-500 leading-tight block">
+                            Note: Exports and prints are based on the currently shown/hidden columns.
+                        </span>
+                    </div>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -558,111 +775,211 @@ export function ProjectsTable({
                     </th>
                 )}
                 
-                <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                    <button onClick={() => handleSort("particulars")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Particulars <SortIcon field="particulars" /></button>
-                </th>
-                <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "office" ? null : "office")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Implementing Office <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                </th>
-                <th className="px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "year" ? null : "year")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Year <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                </th>
-                <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "status" ? null : "status")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Status <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                </th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetAllocated")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Allocated <SortIcon field="totalBudgetAllocated" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("obligatedBudget")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Obligated Budget <SortIcon field="obligatedBudget" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetUtilized")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Utilized <SortIcon field="totalBudgetUtilized" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("utilizationRate")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Utilization Rate (%) <SortIcon field="utilizationRate" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectCompleted")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Completed <SortIcon field="projectCompleted" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectDelayed")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Delayed <SortIcon field="projectDelayed" /></button></th>
-                <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectsOngoing")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Ongoing <SortIcon field="projectsOngoing" /></button></th>
-                <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 text-xs font-semibold uppercase tracking-wide">Remarks</th>
+                {!hiddenColumns.has('particulars') && (
+                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                        <button onClick={() => handleSort("particulars")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Particulars <SortIcon field="particulars" /></button>
+                    </th>
+                )}
+                {!hiddenColumns.has('implementingOffice') && (
+                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "office" ? null : "office")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Implementing Office <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                    </th>
+                )}
+                {!hiddenColumns.has('year') && (
+                    <th className="px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "year" ? null : "year")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Year <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                    </th>
+                )}
+                {!hiddenColumns.has('status') && (
+                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "status" ? null : "status")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Status <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                    </th>
+                )}
+                {!hiddenColumns.has('totalBudgetAllocated') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetAllocated")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Allocated <SortIcon field="totalBudgetAllocated" /></button></th>
+                )}
+                {!hiddenColumns.has('obligatedBudget') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("obligatedBudget")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Obligated Budget <SortIcon field="obligatedBudget" /></button></th>
+                )}
+                {!hiddenColumns.has('totalBudgetUtilized') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetUtilized")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Utilized <SortIcon field="totalBudgetUtilized" /></button></th>
+                )}
+                {!hiddenColumns.has('utilizationRate') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("utilizationRate")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Utilization Rate (%) <SortIcon field="utilizationRate" /></button></th>
+                )}
+                {!hiddenColumns.has('projectCompleted') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectCompleted")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Completed <SortIcon field="projectCompleted" /></button></th>
+                )}
+                {!hiddenColumns.has('projectDelayed') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectDelayed")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Delayed <SortIcon field="projectDelayed" /></button></th>
+                )}
+                {!hiddenColumns.has('projectsOngoing') && (
+                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectsOngoing")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Ongoing <SortIcon field="projectsOngoing" /></button></th>
+                )}
+                {!hiddenColumns.has('remarks') && (
+                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 text-xs font-semibold uppercase tracking-wide">Remarks</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {filteredAndSortedProjects.length === 0 ?
                 (
-                <tr><td colSpan={canManageBulkActions ? 13 : 12} className="px-4 py-12 text-center text-sm text-zinc-500">No projects found matching your criteria.</td></tr>
+                <tr><td colSpan={canManageBulkActions ? (12 + 1 - hiddenColumns.size) : (12 - hiddenColumns.size)} className="px-4 py-12 text-center text-sm text-zinc-500">No projects found matching your criteria.</td></tr>
               ) : (
                 <>
-                   {groupedProjects.map(([key, group]) => (
-                    <React.Fragment key={key}>
-                        {/* Category Header Row */}
-                        <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
-                           <td 
-                             colSpan={canManageBulkActions ? 13 : 12} 
-                             className="px-4 py-2 text-sm font-bold uppercase tracking-wider"
-                             style={getCategoryHeaderStyle(group.category)}
-                           >
-                              {group.category ? group.category.fullName : "Uncategorized"} 
-                               <span className="opacity-80 ml-2 font-normal normal-case">
-                                ({group.projects.length} projects)
-                              </span>
-                           </td>
-                        </tr>
+                   {groupedProjects.map(([key, group]) => {
+                    const categoryIds = group.projects.map(p => p.id);
+                    const selectedCountInCat = categoryIds.filter(id => selectedIds.has(id)).length;
+                    const isCatAllSelected = categoryIds.length > 0 && selectedCountInCat === categoryIds.length;
+                    const isCatIndeterminate = selectedCountInCat > 0 && selectedCountInCat < categoryIds.length;
+                    
+                    // Dynamic ColSpan for category title based on visible columns
+                    const totalVisibleColumns = 12 - hiddenColumns.size;
 
-                        {group.projects.map((project) => (
-                            <tr
-                            key={project.id}
-                            onContextMenu={(e) => { e.preventDefault();
-                            setContextMenu({ x: e.clientX, y: e.clientY, project }); }}
-                            onClick={(e) => handleRowClick(project, e)}
-                            className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors ${
-                                'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
-                            } ${selectedIds.has(project.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
-                            >
-                            {/* Checkbox Cell */}
-                            {canManageBulkActions && (
-                                <td className="px-3 py-3 text-center">
+                    return (
+                        <React.Fragment key={key}>
+                            {/* Category Header Row */}
+                            <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
+                              {/* Category Checkbox Cell */}
+                              {canManageBulkActions && (
+                                <td 
+                                  className="px-3 py-2 text-center"
+                                  style={getCategoryHeaderStyle(group.category)}
+                                >
+                                  <div className="flex justify-center items-center">
                                     <Checkbox 
-                                        checked={selectedIds.has(project.id)}
-                                        onCheckedChange={(checked) => handleSelectRow(project.id, checked as boolean)}
-                                        onClick={(e) => e.stopPropagation()}
+                                      checked={isCatAllSelected}
+                                      onCheckedChange={(checked) => handleSelectCategory(group.projects, checked as boolean)}
+                                      className={cn(
+                                        "border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-black", 
+                                        isCatIndeterminate ? "opacity-70" : ""
+                                      )}
                                     />
+                                  </div>
                                 </td>
-                            )}
-                            <td className="px-3 py-3">
-                                <div className="flex items-center gap-2">
-                                {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
-                                    <span className="text-sm font-medium">{project.particulars}</span>
-                                </div>
-                            </td>
-                            <td className="px-3 py-3 text-sm text-zinc-600">{project.implementingOffice}</td>
-                            <td className="px-3 py-3 text-sm text-center">{project.year || "-"}</td>
-                            <td className="px-3 py-3 text-sm">
-                                <span className={`font-medium ${getStatusColor(project.status)}`}>
-                                {project.status ?
-                                project.status.replace('_', ' ').charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ') : '-'}
-                                </span>
-                            </td>
-                            <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetAllocated)}</td>
-                            <td className="px-3 py-3 text-right text-sm">{project.obligatedBudget ? formatCurrency(project.obligatedBudget) : "-"}</td>
-                            <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetUtilized)}</td>
-                            <td className="px-3 py-3 text-right text-sm font-semibold">
-                                <span className={getUtilizationColor(project.utilizationRate)}>{formatPercentage(project.utilizationRate)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-right text-sm"><span className={project.projectCompleted >= 80 ? "text-green-600" : "text-zinc-600"}>{Math.round(project.projectCompleted)}</span></td>
-                            <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectDelayed)}</td>
-                            <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectsOngoing)}</td>
-                            <td className="px-3 py-3 text-sm text-zinc-500 truncate max-w-[150px]">{project.remarks || "-"}</td>
+                              )}
+                              
+                              {/* Category Title Cell */}
+                              <td 
+                                colSpan={totalVisibleColumns} 
+                                className="px-4 py-2 text-sm font-bold uppercase tracking-wider"
+                                style={getCategoryHeaderStyle(group.category)}
+                              >
+                                  {group.category ? group.category.fullName : "Uncategorized"} 
+                                  <span className="opacity-80 ml-2 font-normal normal-case">
+                                    ({group.projects.length} project)
+                                  </span>
+                              </td>
                             </tr>
-                        ))}
-                    </React.Fragment>
-                  ))}
+
+                            {group.projects.map((project) => (
+                                <tr
+                                key={project.id}
+                                onContextMenu={(e) => { e.preventDefault();
+                                setContextMenu({ x: e.clientX, y: e.clientY, project }); }}
+                                onClick={(e) => handleRowClick(project, e)}
+                                className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors ${
+                                    'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
+                                } ${selectedIds.has(project.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
+                                >
+                                {/* Checkbox Cell */}
+                                {canManageBulkActions && (
+                                    <td className="px-3 py-3 text-center">
+                                        <Checkbox 
+                                            checked={selectedIds.has(project.id)}
+                                            onCheckedChange={(checked) => handleSelectRow(project.id, checked as boolean)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </td>
+                                )}
+                                {!hiddenColumns.has('particulars') && (
+                                    <td className="px-3 py-3">
+                                        <div className="flex items-center gap-2">
+                                        {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
+                                            <span className="text-sm font-medium">{project.particulars}</span>
+                                        </div>
+                                    </td>
+                                )}
+                                {!hiddenColumns.has('implementingOffice') && (
+                                    <td className="px-3 py-3 text-sm text-zinc-600">{project.implementingOffice}</td>
+                                )}
+                                {!hiddenColumns.has('year') && (
+                                    <td className="px-3 py-3 text-sm text-center">{project.year || "-"}</td>
+                                )}
+                                {!hiddenColumns.has('status') && (
+                                    <td className="px-3 py-3 text-sm">
+                                        <span className={`font-medium ${getStatusColor(project.status)}`}>
+                                        {project.status ?
+                                        project.status.replace('_', ' ').charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ') : '-'}
+                                        </span>
+                                    </td>
+                                )}
+                                {!hiddenColumns.has('totalBudgetAllocated') && (
+                                    <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetAllocated)}</td>
+                                )}
+                                {!hiddenColumns.has('obligatedBudget') && (
+                                    <td className="px-3 py-3 text-right text-sm">{project.obligatedBudget ? formatCurrency(project.obligatedBudget) : "-"}</td>
+                                )}
+                                {!hiddenColumns.has('totalBudgetUtilized') && (
+                                    <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetUtilized)}</td>
+                                )}
+                                {!hiddenColumns.has('utilizationRate') && (
+                                    <td className="px-3 py-3 text-right text-sm font-semibold">
+                                        <span className={getUtilizationColor(project.utilizationRate)}>{formatPercentage(project.utilizationRate)}</span>
+                                    </td>
+                                )}
+                                {!hiddenColumns.has('projectCompleted') && (
+                                    <td className="px-3 py-3 text-right text-sm"><span className={project.projectCompleted >= 80 ? "text-green-600" : "text-zinc-600"}>{Math.round(project.projectCompleted)}</span></td>
+                                )}
+                                {!hiddenColumns.has('projectDelayed') && (
+                                    <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectDelayed)}</td>
+                                )}
+                                {!hiddenColumns.has('projectsOngoing') && (
+                                    <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectsOngoing)}</td>
+                                )}
+                                {!hiddenColumns.has('remarks') && (
+                                    <td className="px-3 py-3 text-sm text-zinc-500 truncate max-w-[150px]">{project.remarks || "-"}</td>
+                                )}
+                                </tr>
+                            ))}
+                        </React.Fragment>
+                      );
+                   })}
 
                   {/* Totals Row */}
                   <tr className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/50 font-semibold sticky bottom-0 z-10">
                     {canManageBulkActions && <td></td>}
-                    <td className="px-3 py-3" colSpan={4}><span className="text-sm text-zinc-900">TOTAL</span></td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetAllocated)}</td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.obligatedBudget)}</td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetUtilized)}</td>
-                    <td className="px-3 py-3 text-right text-sm"><span className={getUtilizationColor(totals.utilizationRate)}>{formatPercentage(totals.utilizationRate)}</span></td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectCompleted)}</td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{totals.projectDelayed}</td>
-                    <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectsOngoing)}</td>
-                    <td className="px-3 py-3 text-sm text-zinc-400 text-center">-</td>
+                    {/* The label cell spans the columns before the data values */}
+                    {visibleLabelColSpan > 0 && (
+                        <td className="px-3 py-3" colSpan={visibleLabelColSpan}>
+                            <span className="text-sm text-zinc-900">TOTAL</span>
+                        </td>
+                    )}
+                    
+                    {!hiddenColumns.has('totalBudgetAllocated') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetAllocated)}</td>
+                    )}
+                    {!hiddenColumns.has('obligatedBudget') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.obligatedBudget)}</td>
+                    )}
+                    {!hiddenColumns.has('totalBudgetUtilized') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetUtilized)}</td>
+                    )}
+                    {!hiddenColumns.has('utilizationRate') && (
+                        <td className="px-3 py-3 text-right text-sm"><span className={getUtilizationColor(totals.utilizationRate)}>{formatPercentage(totals.utilizationRate)}</span></td>
+                    )}
+                    {!hiddenColumns.has('projectCompleted') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectCompleted)}</td>
+                    )}
+                    {!hiddenColumns.has('projectDelayed') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{totals.projectDelayed}</td>
+                    )}
+                    {!hiddenColumns.has('projectsOngoing') && (
+                        <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectsOngoing)}</td>
+                    )}
+                    {!hiddenColumns.has('remarks') && (
+                        <td className="px-3 py-3 text-sm text-zinc-400 text-center">-</td>
+                    )}
                   </tr>
                 </>
               )}
@@ -712,6 +1029,28 @@ export function ProjectsTable({
             variant="default"
         />
       )}
+
+      {/* 🆕 Search Warning Modal */}
+      <ConfirmationModal
+        isOpen={showSearchWarningModal}
+        onClose={() => setShowSearchWarningModal(false)}
+        onConfirm={handleConfirmSearchClear}
+        title="Clear Selection?"
+        message={`${selectedIds.size} ${selectedIds.size === 1 ? 'item' : 'items'} will be unselected. Do you want to proceed?`}
+        confirmText="Proceed"
+        variant="default"
+      />
+
+      {/* 🆕 Hide All Columns Warning Modal */}
+      <ConfirmationModal
+        isOpen={showHideAllWarning}
+        onClose={() => setShowHideAllWarning(false)}
+        onConfirm={confirmHideAll}
+        title="Hide All Columns?"
+        message="Are you sure you want to hide all columns? The table will display no data."
+        confirmText="Hide All"
+        variant="default"
+      />
 
       {/* 🆕 Single Category Change Modal */}
       {showSingleCategoryModal && selectedCategoryProject && (
