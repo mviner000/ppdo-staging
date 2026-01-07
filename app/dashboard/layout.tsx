@@ -22,6 +22,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const currentUser = useQuery(api.auth.getCurrentUser);
 
+  // Get environment variable
+  const env = process.env.NEXT_PUBLIC_APP_ENV || "development";
+  const shouldShowOnboarding = env === "development";
+
   useEffect(() => {
     if (isLoading) return;
 
@@ -80,8 +84,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* AI Assistant */}
       {/* <AIAssistant /> */}
 
-      {/* Global Onboarding Modal */}
-      <OnboardingModal />
+      {/* Global Onboarding Modal - Only show in production */}
+      {shouldShowOnboarding && <OnboardingModal />}
     </div>
   );
 }
