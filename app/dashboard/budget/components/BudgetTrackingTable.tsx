@@ -15,8 +15,6 @@ import {
   Share2, 
   Search, 
   ArrowUpDown, 
-  ArrowUpAZ, 
-  ArrowDownAZ,
   ArrowUp,
   ArrowDown,
   Pin,
@@ -31,7 +29,6 @@ import { toast } from "sonner";
 
 interface BudgetTrackingTableProps {
   budgetItems: BudgetItem[];
-  // UPDATE THESE TWO LINES: Remove status from form data
   onAdd?: (item: Omit<BudgetItem, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOnTrack" | "status">) => void;
   onEdit?: (id: string, item: Omit<BudgetItem, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOnTrack" | "status">) => void;
   onDelete?: (id: string) => void;
@@ -165,13 +162,16 @@ export function BudgetTrackingTable({
       filtered = filtered.filter(item => item.year && yearFilter.includes(item.year));
     }
 
+    // ✅ FIXED: SAFE SORTING LOGIC
     if (sortField && sortDirection) {
       filtered.sort((a, b) => {
-        let aVal = a[sortField];
-        let bVal = b[sortField];
+        // Use type assertion to safely index the object
+        const field = sortField as keyof BudgetItem;
+        const aVal = a[field];
+        const bVal = b[field];
 
-        if (aVal === undefined) return 1;
-        if (bVal === undefined) return -1;
+        if (aVal === undefined || aVal === null) return 1;
+        if (bVal === undefined || bVal === null) return -1;
 
         if (typeof aVal === "string" && typeof bVal === "string") {
           return sortDirection === "asc" 
@@ -739,6 +739,7 @@ export function BudgetTrackingTable({
                           {item.year || "-"}
                         </span>
                       </td>
+                      
                       <td className="px-4 sm:px-6 py-4 text-center">
                         <span className={`text-sm font-medium ${getStatusColor(item.status)}`}>
                           {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : "-"}

@@ -22,14 +22,11 @@ import {
   Trash2,
   Filter,
   X,
-  FileText,
   History,
   FolderOpen,
   Printer,
-  MoreHorizontal,
   Layers,
   CheckCircle2,
-  Settings2,
   Download,
   FileSpreadsheet,
   LayoutTemplate
@@ -48,13 +45,11 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 
-// Shadcn Dropdown Imports (for Columns & Export)
+// Shadcn Dropdown Imports
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -80,7 +75,6 @@ interface ProjectsTableProps {
 type SortDirection = "asc" | "desc" | null;
 type SortField = keyof Project | null;
 
-// Definition of toggleable columns
 const AVAILABLE_COLUMNS = [
   { id: "particulars", label: "Particulars" },
   { id: "implementingOffice", label: "Implementing Office" },
@@ -108,7 +102,6 @@ export function ProjectsTable({
   const { accentColorValue } = useAccentColor();
   const router = useRouter();
   
-  // Queries & Mutations
   const currentUser = useQuery(api.users.current);
   const togglePinProject = useMutation(api.projects.togglePin);
   const allCategories = useQuery(api.projectCategories.list, {});
@@ -121,24 +114,17 @@ export function ProjectsTable({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
-  // Bulk & Context Category Modal States
   const [showBulkCategoryConfirmModal, setShowBulkCategoryConfirmModal] = useState(false);
   const [pendingBulkCategoryId, setPendingBulkCategoryId] = useState<Id<"projectCategories"> | undefined>(undefined);
-  
   const [showSingleCategoryModal, setShowSingleCategoryModal] = useState(false);
   const [selectedCategoryProject, setSelectedCategoryProject] = useState<Project | null>(null);
   const [singleCategoryId, setSingleCategoryId] = useState<Id<"projectCategories"> | undefined>(undefined);
-
-  // Search Warning State
   const [showSearchWarningModal, setShowSearchWarningModal] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Column Visibility State
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [showHideAllWarning, setShowHideAllWarning] = useState(false);
 
-  // Selection & Data States
+  // Data States
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -158,8 +144,6 @@ export function ProjectsTable({
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
 
-  // --- Helpers ---
-
   const canManageBulkActions = useMemo(() => {
     return currentUser?.role === "admin" || currentUser?.role === "super_admin";
   }, [currentUser]);
@@ -178,8 +162,6 @@ export function ProjectsTable({
     return { backgroundColor: bg, color: "white" };
   };
 
-  // --- Effects ---
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
@@ -192,8 +174,6 @@ export function ProjectsTable({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // --- Filter & Sort Logic ---
 
   const filteredAndSortedProjects = useMemo(() => {
     let filtered = [...projects];
@@ -238,8 +218,6 @@ export function ProjectsTable({
     });
   }, [projects, searchQuery, statusFilter, officeFilter, yearFilter, sortField, sortDirection]);
 
-  // --- Grouping Logic ---
-
   const groupedProjects = useMemo(() => {
     const groups: Record<string, { category: any, projects: Project[] }> = {};
     groups["uncategorized"] = { category: null, projects: [] };
@@ -266,8 +244,6 @@ export function ProjectsTable({
         return orderA - orderB;
       });
   }, [filteredAndSortedProjects, allCategories]);
-
-  // --- Selection Logic ---
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -303,15 +279,26 @@ export function ProjectsTable({
   const isAllSelected = filteredAndSortedProjects.length > 0 && selectedIds.size === filteredAndSortedProjects.length;
   const isIndeterminate = selectedIds.size > 0 && selectedIds.size < filteredAndSortedProjects.length;
 
-  // --- Bulk Actions ---
-
+  // ✅ UPDATED: Bulk Move to Trash with detailed response handling
   const handleBulkTrash = async () => {
     try {
-      await bulkMoveToTrash({ ids: Array.from(selectedIds) as Id<"projects">[] });
-      toast.success(`${selectedIds.size} projects moved to trash`);
-      setSelectedIds(new Set());
+      const response: any = await bulkMoveToTrash({ ids: Array.from(selectedIds) as Id<"projects">[] });
+      
+      if (response.success) {
+        // Detailed feedback based on new backend response structure
+        const details = response.data?.details || {};
+        const successCount = response.data?.processed || 0;
+        const failedCount = response.data?.failed || 0;
+        
+        toast.success(response.message || "Bulk operation completed", {
+            description: `Successfully moved: ${successCount}. Failed: ${failedCount}.`,
+        });
+        setSelectedIds(new Set());
+      } else {
+        toast.error(response.error?.message || "Failed to move projects to trash");
+      }
     } catch (error) {
-      toast.error("Failed to move projects to trash");
+      toast.error("An unexpected error occurred during bulk delete");
     }
   };
 
@@ -321,24 +308,32 @@ export function ProjectsTable({
     setShowBulkCategoryConfirmModal(true);
   };
 
+  // ✅ UPDATED: Bulk Category Update with detailed response handling
   const confirmBulkCategoryUpdate = async () => {
     if (!pendingBulkCategoryId) return;
     try {
-      await bulkUpdateCategory({
+      const response: any = await bulkUpdateCategory({
         ids: Array.from(selectedIds) as Id<"projects">[],
         categoryId: pendingBulkCategoryId
       });
-      toast.success(`Category updated for ${selectedIds.size} projects`);
-      setSelectedIds(new Set());
-      setPendingBulkCategoryId(undefined);
-      setShowBulkCategoryConfirmModal(false);
+
+      if (response.success) {
+        const successCount = response.data?.processed || 0;
+        toast.success(response.message || "Category updated successfully", {
+            description: `Updated ${successCount} projects.`,
+        });
+        setSelectedIds(new Set());
+        setPendingBulkCategoryId(undefined);
+        setShowBulkCategoryConfirmModal(false);
+      } else {
+        toast.error(response.error?.message || "Failed to update categories.");
+        setShowBulkCategoryConfirmModal(false);
+      }
     } catch (error) {
       toast.error("Failed to update categories.");
       setShowBulkCategoryConfirmModal(false);
     }
   };
-
-  // --- Search Focus Logic ---
 
   const handleSearchFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     if (selectedIds.size > 0) {
@@ -356,8 +351,6 @@ export function ProjectsTable({
         }
     }, 50);
   };
-
-  // --- Column Visibility Logic ---
 
   const handleToggleColumn = (columnId: string, isChecked: boolean) => {
     const newHidden = new Set(hiddenColumns);
@@ -383,40 +376,25 @@ export function ProjectsTable({
     setHiddenColumns(new Set());
   };
 
-  // --- Export Logic ---
-
   const handleExportCSV = () => {
-    // 1. Get visible columns
     const visibleCols = AVAILABLE_COLUMNS.filter(col => !hiddenColumns.has(col.id));
-    
     if (visibleCols.length === 0) {
       toast.error("No columns are visible to export.");
       return;
     }
-
-    // 2. Build Header Row
     const headers = visibleCols.map(c => c.label).join(",");
-    
-    // 3. Build Data Rows
     const rows = filteredAndSortedProjects.map(project => {
       return visibleCols.map(col => {
         let val = (project as any)[col.id];
-        
-        // Handle specific formatting for CSV
         if (val === undefined || val === null) return "";
-        if (col.id === "utilizationRate") return (val as number).toFixed(2); // Export raw number or percentage string? Keeping simpler number for CSV
+        if (col.id === "utilizationRate") return (val as number).toFixed(2);
         if (typeof val === "string") {
-            // Escape quotes for CSV
             return `"${val.replace(/"/g, '""')}"`;
         }
         return val;
       }).join(",");
     });
-
-    // 4. Create CSV Content
     const csvContent = [headers, ...rows].join("\n");
-    
-    // 5. Trigger Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -427,8 +405,6 @@ export function ProjectsTable({
     document.body.removeChild(link);
   };
 
-  // --- Standard Actions ---
-
   const handleContextChangeCategory = (project: Project) => {
     setSelectedCategoryProject(project);
     setSingleCategoryId(project.categoryId as Id<"projectCategories"> | undefined);
@@ -436,10 +412,11 @@ export function ProjectsTable({
     setContextMenu(null);
   };
 
+  // ✅ UPDATED: Single Category Update via Context Menu
   const saveSingleCategoryChange = async () => {
     if (!selectedCategoryProject) return;
     try {
-        await updateProject({
+        const response: any = await updateProject({
             id: selectedCategoryProject.id as Id<"projects">,
             categoryId: singleCategoryId,
             particulars: selectedCategoryProject.particulars,
@@ -452,11 +429,16 @@ export function ProjectsTable({
             projectManagerId: selectedCategoryProject.projectManagerId as Id<"users">,
             reason: "Category updated via context menu"
         });
-        toast.success(`Category updated`);
-        setShowSingleCategoryModal(false);
-        setSelectedCategoryProject(null);
+
+        if (response.success) {
+            toast.success(response.message || "Category updated");
+            setShowSingleCategoryModal(false);
+            setSelectedCategoryProject(null);
+        } else {
+            toast.error(response.error?.message || "Failed to update category");
+        }
     } catch (error) {
-        toast.error("Failed to update project category.");
+        toast.error("An unexpected error occurred");
     }
   };
 
@@ -476,7 +458,6 @@ export function ProjectsTable({
     }
   };
 
-  // --- Formatting Helpers ---
   const formatCurrency = (amount: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 0 }).format(amount);
   const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -496,7 +477,6 @@ export function ProjectsTable({
     return "text-zinc-600 dark:text-zinc-400";
   };
 
-  // Calculate totals
   const totals = filteredAndSortedProjects.reduce(
     (acc, project) => ({
       totalBudgetAllocated: acc.totalBudgetAllocated + project.totalBudgetAllocated,
@@ -511,7 +491,6 @@ export function ProjectsTable({
       utilizationRate: 0, projectCompleted: 0, projectDelayed: 0, projectsOngoing: 0 }
   );
 
-  // Helper to count how many "label columns" (Particulars, Office, Year, Status) are visible for the colspan calc
   const countVisibleLabelColumns = () => {
     const labels = ["particulars", "implementingOffice", "year", "status"];
     return labels.filter(id => !hiddenColumns.has(id)).length;
@@ -523,12 +502,9 @@ export function ProjectsTable({
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-visible transition-all duration-300 shadow-sm">
         
-        {/* ========================================================= */}
-        {/* MODERN TOOLBAR */}
-        {/* ========================================================= */}
+        {/* TOOLBAR */}
         <div className="h-16 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between no-print gap-4">
           
-          {/* Left Side: Title OR Selection Context */}
           <div className="flex items-center gap-3 min-w-[200px]">
             {selectedIds.size > 0 ? (
                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
@@ -550,10 +526,7 @@ export function ProjectsTable({
             )}
           </div>
 
-          {/* Right Side: Action Buttons */}
           <div className="flex items-center gap-2 flex-1 justify-end">
-            
-            {/* Search Input */}
             <div className="relative max-w-xs w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input 
@@ -577,7 +550,6 @@ export function ProjectsTable({
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
-            {/* Column Visibility Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -628,7 +600,6 @@ export function ProjectsTable({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Bulk Category Change - Only shown when items are selected */}
             {selectedIds.size > 0 && canManageBulkActions && (
               <NavigationMenu>
                 <NavigationMenuList>
@@ -643,8 +614,6 @@ export function ProjectsTable({
                           <h4 className="text-sm font-medium leading-none text-zinc-900 dark:text-zinc-100">
                             Selected Projects by Category
                           </h4>
-                          
-                          {/* Category Summary */}
                           <div className="space-y-2 text-xs">
                             {(() => {
                               const categoryCounts = new Map<string, { name: string; color?: string; count: number }>();
@@ -702,7 +671,6 @@ export function ProjectsTable({
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
-            {/* Trash Button - Dynamic text based on selection */}
             <Button 
               onClick={selectedIds.size > 0 ? handleBulkTrash : onOpenTrash}
               variant={selectedIds.size > 0 ? "destructive" : "outline"}
@@ -713,7 +681,6 @@ export function ProjectsTable({
               {selectedIds.size > 0 ? `To Trash (${selectedIds.size})` : 'Recycle Bin'}
             </Button>
 
-            {/* Print/Export Dropdown */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2">
@@ -740,7 +707,6 @@ export function ProjectsTable({
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
-            {/* Add Project Button */}
             {onAdd && (
               <Button 
                 onClick={() => setShowAddModal(true)} 
@@ -755,17 +721,11 @@ export function ProjectsTable({
           </div>
         </div>
         
-        {/* ========================================================= */}
-        {/* END TOOLBAR */}
-        {/* ========================================================= */}
-
-
         {/* TABLE */}
         <div className="overflow-x-auto max-h-[600px] relative">
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-                {/* Checkbox Column */}
                 {canManageBulkActions && (
                     <th className="w-10 px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-20">
                         <Checkbox 
@@ -819,7 +779,7 @@ export function ProjectsTable({
                     <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectsOngoing")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Ongoing <SortIcon field="projectsOngoing" /></button></th>
                 )}
                 {!hiddenColumns.has('remarks') && (
-                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 text-xs font-semibold uppercase tracking-wide">Remarks</th>
+                  <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 text-xs font-semibold uppercase tracking-wide">Remarks</th>
                 )}
               </tr>
             </thead>
@@ -834,15 +794,12 @@ export function ProjectsTable({
                     const selectedCountInCat = categoryIds.filter(id => selectedIds.has(id)).length;
                     const isCatAllSelected = categoryIds.length > 0 && selectedCountInCat === categoryIds.length;
                     const isCatIndeterminate = selectedCountInCat > 0 && selectedCountInCat < categoryIds.length;
-                    
-                    // Dynamic ColSpan for category title based on visible columns
                     const totalVisibleColumns = 12 - hiddenColumns.size;
 
                     return (
                         <React.Fragment key={key}>
                             {/* Category Header Row */}
                             <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
-                              {/* Category Checkbox Cell */}
                               {canManageBulkActions && (
                                 <td 
                                   className="px-3 py-2 text-center"
@@ -861,7 +818,6 @@ export function ProjectsTable({
                                 </td>
                               )}
                               
-                              {/* Category Title Cell */}
                               <td 
                                 colSpan={totalVisibleColumns} 
                                 className="px-4 py-2 text-sm font-bold uppercase tracking-wider"
@@ -881,10 +837,9 @@ export function ProjectsTable({
                                 setContextMenu({ x: e.clientX, y: e.clientY, project }); }}
                                 onClick={(e) => handleRowClick(project, e)}
                                 className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors ${
-                                    'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
+                                  'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
                                 } ${selectedIds.has(project.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
                                 >
-                                {/* Checkbox Cell */}
                                 {canManageBulkActions && (
                                     <td className="px-3 py-3 text-center">
                                         <Checkbox 
@@ -897,7 +852,7 @@ export function ProjectsTable({
                                 {!hiddenColumns.has('particulars') && (
                                     <td className="px-3 py-3">
                                         <div className="flex items-center gap-2">
-                                        {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
+                                            {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
                                             <span className="text-sm font-medium">{project.particulars}</span>
                                         </div>
                                     </td>
@@ -951,7 +906,6 @@ export function ProjectsTable({
                   {/* Totals Row */}
                   <tr className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/50 font-semibold sticky bottom-0 z-10">
                     {canManageBulkActions && <td></td>}
-                    {/* The label cell spans the columns before the data values */}
                     {visibleLabelColSpan > 0 && (
                         <td className="px-3 py-3" colSpan={visibleLabelColSpan}>
                             <span className="text-sm text-zinc-900">TOTAL</span>
@@ -990,7 +944,6 @@ export function ProjectsTable({
         </div>
       </div>
 
-      {/* Context Menu */}
       {contextMenu && (
         <div ref={contextMenuRef} className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 py-1 z-50 min-w-[180px]" style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
           <button onClick={() => { togglePinProject({ id: contextMenu.project.id as Id<"projects"> }); setContextMenu(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-100 flex items-center gap-3">
@@ -1011,7 +964,6 @@ export function ProjectsTable({
         </div>
       )}
 
-      {/* Modals */}
       {selectedLogProject && (
         <ActivityLogSheet type="project" entityId={selectedLogProject.id} title={`Project History: ${selectedLogProject.particulars}`} isOpen={logSheetOpen} onOpenChange={(open) => { setLogSheetOpen(open); if (!open) setSelectedLogProject(null); }} />
       )}
@@ -1019,7 +971,6 @@ export function ProjectsTable({
       {showEditModal && selectedProject && <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelectedProject(null); }} title="Edit Project" size="xl"><ProjectForm project={selectedProject} budgetItemId={budgetItemId} onSave={(d) => { if (onEdit) onEdit(selectedProject.id, d); setShowEditModal(false); setSelectedProject(null); }} onCancel={() => { setShowEditModal(false); setSelectedProject(null); }} /></Modal>}
       {showDeleteModal && selectedProject && <ConfirmationModal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setSelectedProject(null); }} onConfirm={() => { if (onDelete) onDelete(selectedProject.id); setSelectedProject(null); }} title="Move to Trash" message={`Are you sure you want to move "${selectedProject.particulars}" to trash? Associated breakdowns will also be moved.`} confirmText="Move to Trash" variant="danger" />}
       
-      {/* 🆕 Bulk Category Confirmation Modal */}
       {showBulkCategoryConfirmModal && pendingBulkCategoryId && (
         <ConfirmationModal
             isOpen={showBulkCategoryConfirmModal}
@@ -1032,7 +983,6 @@ export function ProjectsTable({
         />
       )}
 
-      {/* 🆕 Search Warning Modal */}
       <ConfirmationModal
         isOpen={showSearchWarningModal}
         onClose={() => setShowSearchWarningModal(false)}
@@ -1043,7 +993,6 @@ export function ProjectsTable({
         variant="default"
       />
 
-      {/* 🆕 Hide All Columns Warning Modal */}
       <ConfirmationModal
         isOpen={showHideAllWarning}
         onClose={() => setShowHideAllWarning(false)}
@@ -1054,7 +1003,6 @@ export function ProjectsTable({
         variant="default"
       />
 
-      {/* 🆕 Single Category Change Modal */}
       {showSingleCategoryModal && selectedCategoryProject && (
          <Modal 
             isOpen={showSingleCategoryModal} 

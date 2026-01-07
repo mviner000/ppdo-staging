@@ -8,16 +8,30 @@
  */
 export type ProjectStatus = "completed" | "ongoing" | "delayed";
 
+// ===== API RESPONSE TYPE (NEW) =====
+/**
+ * Standardized response structure from Backend Mutations
+ */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
 // ===== BUDGET ITEM TYPES =====
 
 /**
  * Frontend BudgetItem interface
  * NOTE: projectCompleted, projectDelayed, projectsOnTrack are READ-ONLY
- * They are calculated automatically from child project statuses
  */
 export interface BudgetItem {
   id: string;
-  particular: string;
+  particular: string; // ✅ Frontend uses 'particular'
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
@@ -29,55 +43,44 @@ export interface BudgetItem {
   projectsOnTrack: number;
   
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
   notes?: string;
 }
 
-/**
- * BudgetItem data when creating/updating
- * EXCLUDES the calculated project count fields
- */
 export interface BudgetItemFormData {
   particular: string;
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   notes?: string;
   departmentId?: string;
   fiscalYear?: number;
 }
 
-/**
- * BudgetItem as stored in Convex database
- */
 export interface BudgetItemFromDB {
   _id: string;
   _creationTime: number;
-  particulars: string;
+  particulars: string; // ✅ Database uses 'particulars'
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
-  
-  // Calculated fields
   projectCompleted: number;
   projectDelayed: number;
   projectsOnTrack: number;
-  
   notes?: string;
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
   departmentId?: string;
   fiscalYear?: number;
-  
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -86,66 +89,50 @@ export interface BudgetItemFromDB {
 
 // ===== PROJECT TYPES =====
 
-/**
- * Frontend Project interface
- */
 export interface Project {
   id: string;
   particulars: string;
   budgetItemId?: string;
-  categoryId?: string; // 🆕 Project category for organization
+  categoryId?: string;
   implementingOffice: string;
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
   utilizationRate: number;
-  
-  // 🔒 READ-ONLY: Auto-calculated from govtProjectBreakdowns
   projectCompleted: number;
   projectDelayed: number;
-  projectsOngoing: number; // Frontend term for projectsOnTrack
-  
+  projectsOngoing: number;
   remarks?: string;
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   targetDateCompletion?: number;
   projectManagerId?: string;
-  
-  // Pin fields
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
 }
 
-/**
- * Project data when creating/updating
- * ⚠️ EXCLUDES projectCompleted, projectDelayed, projectsOngoing
- * These are auto-calculated from govtProjectBreakdowns
- */
 export interface ProjectFormData {
   particulars: string;
   budgetItemId?: string;
-  categoryId?: string; // 🆕 Project category for organization
+  categoryId?: string;
   implementingOffice: string;
   totalBudgetAllocated: number;
   obligatedBudget?: number;
   totalBudgetUtilized: number;
   remarks?: string;
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   targetDateCompletion?: number;
   projectManagerId?: string;
 }
 
-/**
- * Project as stored in Convex database
- */
 export interface ProjectFromDB {
   _id: string;
   _creationTime: number;
   particulars: string;
   budgetItemId?: string;
-  categoryId?: string; // 🆕 Project category for organization
+  categoryId?: string;
   implementingOffice: string;
   totalBudgetAllocated: number;
   obligatedBudget?: number;
@@ -156,7 +143,7 @@ export interface ProjectFromDB {
   projectsOnTrack: number;
   remarks?: string;
   year?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   targetDateCompletion?: number;
   projectManagerId?: string;
   isPinned?: boolean;
@@ -170,14 +157,11 @@ export interface ProjectFromDB {
 
 // ===== GOVERNMENT PROJECT BREAKDOWN TYPES =====
 
-/**
- * Government Project Breakdown interface
- */
 export interface GovtProjectBreakdown {
   id: string;
   projectName: string;
   implementingOffice: string;
-  projectId?: string; // Parent project link
+  projectId?: string;
   municipality?: string;
   barangay?: string;
   district?: string;
@@ -185,7 +169,7 @@ export interface GovtProjectBreakdown {
   obligatedBudget?: number;
   budgetUtilized?: number;
   balance?: number;
-  status?: ProjectStatus; // ✅ FIXED: Uses strict 3-status
+  status?: ProjectStatus;
   dateStarted?: number;
   targetDate?: number;
   completionDate?: number;
@@ -204,11 +188,12 @@ export interface GovtProjectBreakdown {
 
 // ===== UTILITY TYPES =====
 
+// ✅ Allow string to prevent strict typing errors in sorting
 export type SortDirection = "asc" | "desc" | null;
-export type SortField = keyof BudgetItem | null;
+export type SortField = string | null; 
 
 export interface ColumnFilter {
-  field: keyof BudgetItem;
+  field: string;
   value: any;
 }
 
@@ -231,7 +216,7 @@ export const BUDGET_PARTICULARS = [
 
 export type BudgetParticular = (typeof BUDGET_PARTICULARS)[number];
 
-export const PARTICULAR_FULL_NAMES: Record<BudgetParticular, string> = {
+export const PARTICULAR_FULL_NAMES: Record<string, string> = {
   GAD: "GENDER AND DEVELOPMENT",
   LDRRMP: "LOCAL DISASTER RISK REDUCTION AND MANAGEMENT PLAN",
   LCCAP: "LOCAL CLIMATE CHANGE ACTION PLAN",
@@ -248,34 +233,24 @@ export const PARTICULAR_FULL_NAMES: Record<BudgetParticular, string> = {
 
 // ===== STATUS DISPLAY HELPERS =====
 
-/**
- * Helper to get display text for status
- */
 export function getStatusDisplayText(status: ProjectStatus): string {
   const mapping: Record<ProjectStatus, string> = {
     completed: "Completed",
     ongoing: "Ongoing",
     delayed: "Delayed",
   };
-  return mapping[status];
+  return mapping[status] || "Ongoing";
 }
 
-/**
- * Helper to get color class for status
- */
 export function getStatusColorClass(status: ProjectStatus): string {
   const mapping: Record<ProjectStatus, string> = {
     completed: "text-green-600 dark:text-green-400",
     ongoing: "text-blue-600 dark:text-blue-400",
     delayed: "text-red-600 dark:text-red-400",
   };
-  return mapping[status];
+  return mapping[status] || "text-zinc-600 dark:text-zinc-400";
 }
 
-/**
- * 🆕 Calculate aggregate status from items
- * Used to show users how status propagation works
- */
 export function calculateAggregateStatus<T extends { status?: ProjectStatus }>(
   items: T[]
 ): ProjectStatus {
@@ -299,7 +274,7 @@ export function calculateAggregateStatus<T extends { status?: ProjectStatus }>(
   return "ongoing";
 }
 
-// ===== FINANCIAL BREAKDOWN =====
+// ===== FINANCIAL BREAKDOWN (LEGACY) =====
 
 export interface FinancialBreakdownItem {
   id: string;
@@ -312,7 +287,7 @@ export interface FinancialBreakdownItem {
   children?: FinancialBreakdownItem[];
 }
 
-// ===== REMARKS =====
+// ===== REMARKS (LEGACY - RESTORED) =====
 
 export interface Remark {
   id: string;

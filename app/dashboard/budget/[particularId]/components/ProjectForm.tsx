@@ -43,7 +43,7 @@ import { BudgetViolationModal } from "@/app/dashboard/budget/components/BudgetVi
 
 const FORM_STORAGE_KEY = "project_form_draft";
 
-// ✅ UPDATED: Allow alphanumeric, underscores, spaces, and percentage signs
+// ✅ UPDATED: Strict code validation matching backend
 const particularCodeString = z
   .string()
   .min(1, { message: "This field is required." })
@@ -53,7 +53,7 @@ const particularCodeString = z
   .refine((val) => /^[A-Z0-9_%\s]+$/i.test(val), {
     message: "Only letters, numbers, underscores, percentage signs, and spaces are allowed.",
   })
-  .transform((val) => val.trim()); // Trim leading/trailing whitespace but allow internal spaces
+  .transform((val) => val.trim());
 
 const projectSchema = z
   .object({
@@ -83,33 +83,21 @@ interface ProjectFormProps {
   onCancel: () => void;
 }
 
-// ✅ Helper function to format number with commas (real-time)
+// ✅ Helpers
 const formatNumberWithCommas = (value: string): string => {
-  // Remove all non-digit characters except decimal point
   const cleaned = value.replace(/[^\d.]/g, '');
-  
-  // Split by decimal point
   const parts = cleaned.split('.');
-  
-  // Format the integer part with commas
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  
-  // Rejoin with decimal (limit to 2 decimal places)
-  if (parts.length > 1) {
-    return parts[0] + '.' + parts[1].slice(0, 2);
-  }
-  
+  if (parts.length > 1) return parts[0] + '.' + parts[1].slice(0, 2);
   return parts[0];
 };
 
-// ✅ Helper function to parse formatted number
 const parseFormattedNumber = (value: string): number => {
   const cleaned = value.replace(/,/g, '');
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : parsed;
 };
 
-// ✅ Helper function to format number for display (after blur)
 const formatNumberForDisplay = (value: number): string => {
   if (value === 0) return '';
   return new Intl.NumberFormat('en-PH', {
@@ -134,11 +122,8 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
 
   const [showViolationModal, setShowViolationModal] = useState(false);
   const [pendingValues, setPendingValues] = useState<ProjectFormValues | null>(null);
-  
-  // ✅ State to toggle manual input
   const [showManualInput, setShowManualInput] = useState(false);
 
-  // ✅ Display values for formatted inputs
   const [displayAllocated, setDisplayAllocated] = useState("");
   const [displayObligated, setDisplayObligated] = useState("");
   const [displayUtilized, setDisplayUtilized] = useState("");
@@ -171,7 +156,7 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
 
   const formValues = form.watch();
 
-  // ✅ Initialize display values on mount
+  // Initialize display values
   useEffect(() => {
     const allocated = form.getValues("totalBudgetAllocated");
     const obligated = form.getValues("obligatedBudget");
@@ -182,6 +167,7 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
     if (utilized && utilized > 0) setDisplayUtilized(formatNumberForDisplay(utilized));
   }, []);
   
+  // Save draft
   useEffect(() => {
     if (!project) {
       const timer = setTimeout(() => {
@@ -251,7 +237,6 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
   };
 
   function onSubmit(values: ProjectFormValues) {
-    // Check for violations to trigger the Unified Modal
     const isOverParent = budgetAvailability.isOverBudget;
     const isOverSelf = values.totalBudgetUtilized > values.totalBudgetAllocated;
 
@@ -458,7 +443,6 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
             />
           </div>
 
-          {/* ✅ Section: Manual Input Toggle with Warning */}
           <div className="pt-2 space-y-3">
             <div className="flex items-center justify-between">
                 <Button
@@ -487,7 +471,6 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
 
             {showManualInput && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 border border-orange-200 dark:border-orange-800/50 rounded-lg p-4 bg-orange-50/50 dark:bg-orange-950/10">
-                    {/* ⚠️ Development Warning */}
                     <div className="flex items-start gap-2 text-xs text-orange-700 dark:text-orange-300 mb-4">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                         <p>
@@ -614,7 +597,6 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
             )}
           />
 
-          {/* Utilization Rate Preview */}
           {totalBudgetAllocated > 0 && (
             <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
               <div className="flex items-center justify-between p-4">
@@ -663,7 +645,6 @@ export function ProjectForm({ project, budgetItemId, onSave, onCancel }: Project
         </form>
       </Form>
 
-      {/* UNIFIED MODAL */}
       <BudgetViolationModal 
         isOpen={showViolationModal}
         onClose={() => {
