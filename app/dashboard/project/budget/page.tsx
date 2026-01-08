@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Expand } from "lucide-react";
 import AccessDeniedPage from "@/components/AccessDeniedPage";
-import { BudgetPageHeader, BudgetStatistics, ExpandModal, LoadingState, useBudgetAccess, useBudgetData, useBudgetMutations } from "./components";
+import { BudgetPageHeader, ExpandModal, LoadingState, useBudgetAccess, useBudgetData, useBudgetMutations } from "./components";
 import { BudgetTrackingTable } from "./components/BudgetTrackingTable";
 import { TrashBinModal } from "../../components/TrashBinModal";
+import BudgetStatistics from "./components/BudgetStatistics";
 
 
 export default function BudgetTrackingPage() {
