@@ -91,7 +91,7 @@ export default function ProjectDashboardLanding() {
                 className="w-full text-left"
                 aria-label={`Open budget for year ${year}`}
               >
-                <CardContent className="p-5">
+                <CardContent className="cursor-pointer p-5">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                       <Folder className="w-5 h-5" />
