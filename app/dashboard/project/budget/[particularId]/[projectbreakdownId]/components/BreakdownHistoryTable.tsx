@@ -73,7 +73,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "allocatedBudget", label: "Allocated Budget", width: 140, type: "currency", align: "right" },
   { key: "obligatedBudget", label: "Obligated Budget", width: 140, type: "currency", align: "right" },
   { key: "budgetUtilized", label: "Budget Utilized", width: 140, type: "currency", align: "right" },
-  { key: "utilizationRate", label: "Utilization Rate", width: 140, type: "currency", align: "right" },
+  { key: "utilizationRate", label: "Utilization Rate", width: 140, type: "number", align: "right" },
   { key: "balance", label: "Balance", width: 140, type: "currency", align: "right" },
   { key: "dateStarted", label: "Date Started", width: 130, type: "date", align: "left" },
   { key: "targetDate", label: "Target Date", width: 130, type: "date", align: "left" },
@@ -102,7 +102,7 @@ export function BreakdownHistoryTable({
   const tableIdentifier = "govtProjectBreakdowns";
   const settings = useQuery(api.tableSettings.getSettings, { tableIdentifier });
   const saveSettings = useMutation(api.tableSettings.saveSettings);
-  
+
   // Get current user to check permissions
   const currentUser = useQuery(api.users.current);
   const canEditLayout = currentUser?.role === "super_admin" || currentUser?.role === "admin";
@@ -185,7 +185,7 @@ export function BreakdownHistoryTable({
     if (settings.customRowHeights) {
       try {
         setRowHeights(JSON.parse(settings.customRowHeights));
-      } catch {}
+      } catch { }
     }
   }, [settings]);
 
@@ -204,7 +204,7 @@ export function BreakdownHistoryTable({
   const saveLayout = useCallback(
     (cols: ColumnConfig[], heights: Record<string, number>) => {
       if (!canEditLayout) return;
-      
+
       saveSettings({
         tableIdentifier,
         columns: cols.map(c => ({
@@ -224,7 +224,7 @@ export function BreakdownHistoryTable({
 
   const startResizeColumn = (e: React.MouseEvent, index: number) => {
     if (!canEditLayout) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -259,7 +259,7 @@ export function BreakdownHistoryTable({
 
   const startResizeRow = (e: React.MouseEvent, rowId: string) => {
     if (!canEditLayout) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -332,7 +332,7 @@ export function BreakdownHistoryTable({
 
   const format = (val: any, col: ColumnConfig, row: Breakdown) => {
     if (val == null || val === undefined || val === "") return "-";
-    
+
     if (col.type === "currency") {
       return new Intl.NumberFormat("en-PH", {
         style: "currency",
@@ -340,20 +340,20 @@ export function BreakdownHistoryTable({
         minimumFractionDigits: 0,
       }).format(val);
     }
-    
+
     if (col.type === "date") {
       return new Date(val).toLocaleDateString("en-PH");
     }
-    
+
     if (col.type === "number") {
       return `${parseFloat(val).toFixed(1)}%`;
     }
-    
+
     if (col.key === "municipality") {
       const locationParts = [row.barangay, row.municipality, row.district].filter(Boolean);
       return locationParts.length > 0 ? locationParts.join(", ") : "-";
     }
-    
+
     return val;
   };
 
@@ -425,9 +425,8 @@ export function BreakdownHistoryTable({
               onDragStart={() => onDragStart(i)}
               onDragOver={e => canEditLayout && e.preventDefault()}
               onDrop={() => onDrop(i)}
-              className={`relative px-3 py-3 border-r flex items-center gap-2 text-zinc-700 dark:text-zinc-300 ${
-                canEditLayout ? "cursor-move" : ""
-              }`}
+              className={`relative px-3 py-3 border-r flex items-center gap-2 text-zinc-700 dark:text-zinc-300 ${canEditLayout ? "cursor-move" : ""
+                }`}
             >
               {canEditLayout && <GripVertical className="w-3 h-3 text-zinc-400" />}
               <span className="flex-1 truncate text-sm font-medium">{c.label}</span>
@@ -470,12 +469,11 @@ export function BreakdownHistoryTable({
                     </div>
 
                     {columns.map(c => (
-                      <div 
-                        key={c.key} 
-                        className={`px-3 py-2 truncate border-r text-zinc-700 dark:text-zinc-300 ${
-                          c.align === 'right' ? 'text-right' : 
-                          c.align === 'center' ? 'text-center' : 'text-left'
-                        }`}
+                      <div
+                        key={c.key}
+                        className={`px-3 py-2 truncate border-r text-zinc-700 dark:text-zinc-300 ${c.align === 'right' ? 'text-right' :
+                            c.align === 'center' ? 'text-center' : 'text-left'
+                          }`}
                       >
                         {format(r[c.key], c, r)}
                       </div>
@@ -524,7 +522,7 @@ export function BreakdownHistoryTable({
                     </svg>
                     <span>View Details</span>
                   </ContextMenuItem>
-                  
+
                   {onEdit && (
                     <>
                       <ContextMenuSeparator />
@@ -540,7 +538,7 @@ export function BreakdownHistoryTable({
                       </ContextMenuItem>
                     </>
                   )}
-                  
+
                   {onDelete && (
                     <>
                       <ContextMenuSeparator />

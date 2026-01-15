@@ -9,6 +9,7 @@ import {
   Calculator,
   Vault,
   Building2,
+  FileText,
 } from "lucide-react";
 
 export const defaultNavItems: NavItem[] = [
@@ -35,6 +36,13 @@ export const defaultNavItems: NavItem[] = [
     href: "/dashboard/trust-funds",
     category: "Department",
     icon: <Vault size={20} />,
+  },
+  
+  {
+    name: "Particulars",
+    href: "/dashboard/particulars",
+    category: "Department",
+    icon: <FileText size={20} />,
   },
   { name: "Office", 
     href: "/dashboard/office", 
