@@ -3,7 +3,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -75,18 +74,18 @@ interface BudgetItemFormProps {
 const formatNumberWithCommas = (value: string): string => {
   // Remove all non-digit characters except decimal point
   const cleaned = value.replace(/[^\d.]/g, '');
-
+  
   // Split by decimal point
   const parts = cleaned.split('.');
-
+  
   // Format the integer part with commas
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
+  
   // Rejoin with decimal (limit to 2 decimal places)
   if (parts.length > 1) {
     return parts[0] + '.' + parts[1].slice(0, 2);
   }
-
+  
   return parts[0];
 };
 
@@ -112,14 +111,7 @@ export function BudgetItemForm({
   onCancel,
 }: BudgetItemFormProps) {
   const { accentColorValue } = useAccentColor();
-  const searchParams = useSearchParams();
-
-  // 🔧 Get year from URL query params
-  const urlYear = (() => {
-    const yearParam = searchParams.get("year");
-    return yearParam ? parseInt(yearParam) : undefined;
-  })();
-
+  
   // ✅ State to toggle manual input for obligated and utilized budget
   const [showManualInput, setShowManualInput] = useState(false);
 
@@ -142,7 +134,7 @@ export function BudgetItemForm({
   };
 
   const savedDraft = getSavedDraft();
-
+  
   const form = useForm<BudgetItemFormValues>({
     resolver: zodResolver(budgetItemSchema),
     defaultValues: savedDraft || {
@@ -150,7 +142,7 @@ export function BudgetItemForm({
       totalBudgetAllocated: item?.totalBudgetAllocated || 0,
       obligatedBudget: item?.obligatedBudget || undefined,
       totalBudgetUtilized: item?.totalBudgetUtilized || 0,
-      year: item?.year || urlYear || undefined,
+      year: item?.year || undefined,
     },
   });
 
@@ -161,18 +153,11 @@ export function BudgetItemForm({
     const allocated = form.getValues("totalBudgetAllocated");
     const obligated = form.getValues("obligatedBudget");
     const utilized = form.getValues("totalBudgetUtilized");
-
+    
     if (allocated > 0) setDisplayAllocated(formatNumberForDisplay(allocated));
     if (obligated && obligated > 0) setDisplayObligated(formatNumberForDisplay(obligated));
     if (utilized && utilized > 0) setDisplayUtilized(formatNumberForDisplay(utilized));
   }, []);
-
-  // 🔧 CRITICAL: Set year from URL after form mounts (client-side only)
-  useEffect(() => {
-    if (urlYear && !item) {
-      form.setValue("year", urlYear);
-    }
-  }, [urlYear, form, item]);
 
   useEffect(() => {
     if (!item) {
@@ -190,7 +175,7 @@ export function BudgetItemForm({
   const totalBudgetAllocated = form.watch("totalBudgetAllocated");
   const obligatedBudget = form.watch("obligatedBudget");
   const totalBudgetUtilized = form.watch("totalBudgetUtilized") || 0;
-
+  
   const utilizationRate =
     totalBudgetAllocated > 0
       ? (totalBudgetUtilized / totalBudgetAllocated) * 100
@@ -262,11 +247,10 @@ export function BudgetItemForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                Year {urlYear && <span className="text-xs text-blue-500">(Auto-filled)</span>}
+                Year <span className="text-xs text-zinc-500">(Optional)</span>
               </FormLabel>
               <FormControl>
                 <Input
-                  type="number"
                   placeholder="e.g. 2024"
                   min="2000"
                   max="2100"
@@ -327,127 +311,129 @@ export function BudgetItemForm({
         {/* ✅ Section: Manual Input Toggle with Warning */}
         <div className="pt-2 space-y-3">
           <div className="flex items-center justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const nextState = !showManualInput;
-                setShowManualInput(nextState);
-                if (!nextState) {
-                  form.setValue("obligatedBudget", 0);
-                  form.setValue("totalBudgetUtilized", 0);
-                  setDisplayObligated("");
-                  setDisplayUtilized("");
-                }
-              }}
-              className="text-xs flex items-center gap-2 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-orange-700 dark:text-orange-400"
-            >
-              {showManualInput ? (
-                <><MinusCircle className="w-3 h-3" /> Hide Manual Inputs</>
-              ) : (
-                <><PlusCircle className="w-3 h-3" /> Input Utilized and Obligated Budget</>
-              )}
-            </Button>
+             <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                    const nextState = !showManualInput;
+                    setShowManualInput(nextState);
+                    if (!nextState) {
+                        form.setValue("obligatedBudget", 0);
+                        form.setValue("totalBudgetUtilized", 0);
+                        setDisplayObligated("");
+                        setDisplayUtilized("");
+                    }
+                }}
+                className="text-xs flex items-center gap-2 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-orange-700 dark:text-orange-400"
+             >
+                {showManualInput ? (
+                    <><MinusCircle className="w-3 h-3" /> Hide Manual Inputs</>
+                ) : (
+                    <><PlusCircle className="w-3 h-3" /> Input Utilized and Obligated Budget</>
+                )}
+             </Button>
           </div>
 
           {showManualInput && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 border border-orange-200 dark:border-orange-800/50 rounded-lg p-4 bg-orange-50/50 dark:bg-orange-950/10">
-              {/* ⚠️ Development Warning */}
-              <div className="flex items-start gap-2 text-xs text-orange-700 dark:text-orange-300 mb-4">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p>
-                  This feature is under development, the entire system auto calculation may be not true, better use the project breakdown page to input the specific obligated and utilized budget.
-                </p>
-              </div>
+                {/* ⚠️ Development Warning */}
+                <div className="flex items-start gap-2 text-xs text-orange-700 dark:text-orange-300 mb-4">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p>
+                        This feature is under development, the entire system auto calculation may be not true, better use the project breakdown page to input the specific obligated and utilized budget.
+                    </p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  name="obligatedBudget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                        Obligated Budget <span className="text-xs text-zinc-500">(Optional)</span>
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 dark:text-zinc-400">
-                            ₱
-                          </span>
-                          <Input
-                            placeholder="0"
-                            className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 pl-8 ${isObligatedExceeded
-                              ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
-                              : "border-zinc-300 dark:border-zinc-700"
-                              }`}
-                            value={displayObligated}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const formatted = formatNumberWithCommas(value);
-                              setDisplayObligated(formatted);
-                              const numericValue = parseFormattedNumber(formatted);
-                              field.onChange(numericValue > 0 ? numericValue : undefined);
-                            }}
-                            onBlur={() => {
-                              const numericValue = parseFormattedNumber(displayObligated);
-                              if (numericValue > 0) {
-                                setDisplayObligated(formatNumberForDisplay(numericValue));
-                              } else {
-                                setDisplayObligated("");
-                              }
-                              field.onChange(numericValue > 0 ? numericValue : undefined);
-                            }}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                        name="obligatedBudget"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                            Obligated Budget <span className="text-xs text-zinc-500">(Optional)</span>
+                            </FormLabel>
+                            <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 dark:text-zinc-400">
+                                ₱
+                              </span>
+                              <Input
+                                placeholder="0"
+                                className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 pl-8 ${
+                                  isObligatedExceeded
+                                    ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                                    : "border-zinc-300 dark:border-zinc-700"
+                                }`}
+                                value={displayObligated}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const formatted = formatNumberWithCommas(value);
+                                  setDisplayObligated(formatted);
+                                  const numericValue = parseFormattedNumber(formatted);
+                                  field.onChange(numericValue > 0 ? numericValue : undefined);
+                                }}
+                                onBlur={() => {
+                                  const numericValue = parseFormattedNumber(displayObligated);
+                                  if (numericValue > 0) {
+                                    setDisplayObligated(formatNumberForDisplay(numericValue));
+                                  } else {
+                                    setDisplayObligated("");
+                                  }
+                                  field.onChange(numericValue > 0 ? numericValue : undefined);
+                                }}
+                              />
+                            </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
 
-                <FormField
-                  name="totalBudgetUtilized"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                        Total Budget Utilized
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 dark:text-zinc-400">
-                            ₱
-                          </span>
-                          <Input
-                            placeholder="0"
-                            className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 pl-8 ${isBudgetExceeded
-                              ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
-                              : "border-zinc-300 dark:border-zinc-700"
-                              }`}
-                            value={displayUtilized}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const formatted = formatNumberWithCommas(value);
-                              setDisplayUtilized(formatted);
-                              const numericValue = parseFormattedNumber(formatted);
-                              field.onChange(numericValue);
-                            }}
-                            onBlur={() => {
-                              const numericValue = parseFormattedNumber(displayUtilized);
-                              if (numericValue > 0) {
-                                setDisplayUtilized(formatNumberForDisplay(numericValue));
-                              } else {
-                                setDisplayUtilized("");
-                              }
-                              field.onChange(numericValue);
-                            }}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    <FormField
+                        name="totalBudgetUtilized"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                            Total Budget Utilized
+                            </FormLabel>
+                            <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 dark:text-zinc-400">
+                                ₱
+                              </span>
+                              <Input
+                                placeholder="0"
+                                className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 pl-8 ${
+                                  isBudgetExceeded
+                                    ? "border-red-500 dark:border-red-500 focus-visible:ring-red-500"
+                                    : "border-zinc-300 dark:border-zinc-700"
+                                }`}
+                                value={displayUtilized}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const formatted = formatNumberWithCommas(value);
+                                  setDisplayUtilized(formatted);
+                                  const numericValue = parseFormattedNumber(formatted);
+                                  field.onChange(numericValue);
+                                }}
+                                onBlur={() => {
+                                  const numericValue = parseFormattedNumber(displayUtilized);
+                                  if (numericValue > 0) {
+                                    setDisplayUtilized(formatNumberForDisplay(numericValue));
+                                  } else {
+                                    setDisplayUtilized("");
+                                  }
+                                  field.onChange(numericValue);
+                                }}
+                              />
+                            </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
             </div>
           )}
         </div>
@@ -466,19 +452,19 @@ export function BudgetItemForm({
             </div>
           </div>
         )}
-
+        
         {isBudgetExceeded && totalBudgetAllocated > 0 && (
-          <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                Utilized Budget Exceeded
-              </p>
-              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
-                Utilized budget (₱{formatNumberForDisplay(totalBudgetUtilized)}) cannot exceed allocated amount (₱{formatNumberForDisplay(totalBudgetAllocated)})
-              </p>
-            </div>
-          </div>
+             <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-lg">
+             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+             <div className="flex-1">
+               <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                 Utilized Budget Exceeded
+               </p>
+               <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
+                 Utilized budget (₱{formatNumberForDisplay(totalBudgetUtilized)}) cannot exceed allocated amount (₱{formatNumberForDisplay(totalBudgetAllocated)})
+               </p>
+             </div>
+           </div>
         )}
 
         {/* Info Box */}

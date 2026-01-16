@@ -11,7 +11,7 @@ export function SidebarHeader({ isMinimized, onCloseMobile }: { isMinimized: boo
           <img src="/y.png" alt="Y Logo" className="h-16 object-contain shrink-0" />
         </div>
         <div className="flex flex-col items-center leading-tight">
-          <h2 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm leading-tight text-center">Provincial Governor&apos;s Office</h2>
+          <h2 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm leading-tight text-center">Provincial Planning and Development Office</h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">Tarlac</p>
         </div>
       </div>

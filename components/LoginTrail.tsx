@@ -8,6 +8,8 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginTrailTable } from "./LoginTrailTable";
 import { BlockedItemsManagement } from "../app/dashboard/security/components/BlockedItems";
+import { Import } from "lucide-react";
+import { PersonalKPICard } from "./PersonalKPICard";
 
 export function LoginTrail() {
   const currentUser = useQuery(api.auth.getCurrentUser);
