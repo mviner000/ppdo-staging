@@ -491,6 +491,91 @@ export const remove = mutation({
 });
 
 /**
+ * Bulk Move to Trash: Move multiple budget items to trash
+ * Only accessible to admins and super_admins
+ */
+export const bulkMoveToTrash = mutation({
+  args: {
+    ids: v.array(v.id("budgetItems")),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      throw new Error("Unauthorized: Only admins can perform bulk actions.");
+    }
+
+    const now = Date.now();
+    let successCount = 0;
+
+    for (const id of args.ids) {
+      const existing = await ctx.db.get(id);
+      if (!existing || existing.isDeleted) continue;
+
+      // 1. Trash Budget Item
+      await ctx.db.patch(id, {
+        isDeleted: true,
+        deletedAt: now,
+        deletedBy: userId,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+
+      // 2. Trash Linked Projects (Cascade)
+      const projects = await ctx.db
+        .query("projects")
+        .withIndex("budgetItemId", (q) => q.eq("budgetItemId", id))
+        .collect();
+
+      for (const project of projects) {
+        await ctx.db.patch(project._id, {
+          isDeleted: true,
+          deletedAt: now,
+          deletedBy: userId,
+        });
+
+        // 3. Trash Linked Breakdowns (Deep Cascade)
+        const breakdowns = await ctx.db
+          .query("govtProjectBreakdowns")
+          .withIndex("projectId", (q) => q.eq("projectId", project._id))
+          .collect();
+
+        for (const breakdown of breakdowns) {
+          await ctx.db.patch(breakdown._id, {
+            isDeleted: true,
+            deletedAt: now,
+            deletedBy: userId,
+          });
+        }
+      }
+
+      // 🆕 Update usage count for the particular
+      await ctx.runMutation(internal.budgetParticulars.updateUsageCount, {
+        code: existing.particulars,
+        type: "budget" as const,
+        delta: -1,
+      });
+
+      // Log Activity
+      await logBudgetActivity(ctx, userId, {
+        action: "updated",
+        budgetItemId: id,
+        previousValues: existing,
+        newValues: { ...existing, isDeleted: true },
+        reason: args.reason || "Bulk moved to trash (Cascaded to children)"
+      });
+
+      successCount++;
+    }
+
+    return { success: true, message: `Moved ${successCount} item(s) to trash` };
+  },
+});
+
+/**
  * Toggle pin status for a budget item
  */
 export const togglePin = mutation({

@@ -34,7 +34,7 @@ export default function ParticularProjectsPage() {
   const [newlyAddedProjectId, setNewlyAddedProjectId] = useState<string | null>(null);
 
   const { budgetItem, breakdownStats, projects, isLoading } = useParticularData(particular);
-  const { handleAddProject, handleEditProject, handleDeleteProject, handleRecalculate } = 
+  const { handleAddProject, handleEditProject, handleDeleteProject, handleRecalculate } =
     useProjectMutations(budgetItem?._id);
 
   // Wrapper for handleAddProject to track newly added project
@@ -90,6 +90,7 @@ export default function ParticularProjectsPage() {
             projects={projects}
             particularId={particular}
             budgetItemId={budgetItem!._id}
+            budgetItemYear={budgetItem?.year}
             onAdd={handleAddProjectWithTracking}
             onEdit={handleEditProject}
             onDelete={handleDeleteProject}

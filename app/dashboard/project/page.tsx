@@ -24,12 +24,17 @@ export default function ProjectDashboardLanding() {
   }, [budgetItems]);
 
   const handleOpenYear = (year: number) => {
-    try {
-      localStorage.setItem("budget_selected_year", String(year));
-    } catch (_) {
-      // Ignore storage failures; user can still filter manually
+    // Use URL query parameter instead of localStorage
+    router.push(`/dashboard/project/budget/?year=${year}`);
+
+    // Optional: Store in sessionStorage as convenience backup
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("budget_year_preference", String(year));
+      } catch (_) {
+        // Ignore if storage unavailable
+      }
     }
-    router.push("/dashboard/project/budget/");
   };
 
   if (isLoadingAccess || isLoadingData) {
@@ -61,7 +66,7 @@ export default function ProjectDashboardLanding() {
             onClick={() => {
               try {
                 localStorage.setItem("budget_open_add", "true");
-              } catch (_) {}
+              } catch (_) { }
               router.push("/dashboard/project/budget/");
             }}
             className="cursor-pointer px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md text-white"

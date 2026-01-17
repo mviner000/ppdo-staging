@@ -67,6 +67,7 @@ interface ProjectsTableProps {
   projects: Project[];
   particularId: string;
   budgetItemId?: string;
+  budgetItemYear?: number;
   onAdd?: (project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing">) => void | Promise<void>;
   onEdit?: (id: string, project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing">) => void;
   onDelete?: (id: string) => void;
@@ -96,6 +97,7 @@ export function ProjectsTable({
   projects,
   particularId,
   budgetItemId,
+  budgetItemYear,
   onAdd,
   onEdit,
   onDelete,
@@ -105,11 +107,11 @@ export function ProjectsTable({
   const { accentColorValue } = useAccentColor();
   const router = useRouter();
   const newProjectRowRef = useRef<HTMLTableRowElement>(null);
-  
+
   const currentUser = useQuery(api.users.current);
   const togglePinProject = useMutation(api.projects.togglePin);
   const allCategories = useQuery(api.projectCategories.list, {});
-  
+
   const bulkMoveToTrash = useMutation(api.projects.bulkMoveToTrash);
   const bulkUpdateCategory = useMutation(api.projects.bulkUpdateCategory);
   const updateProject = useMutation(api.projects.update);
@@ -134,13 +136,13 @@ export function ProjectsTable({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [officeFilter, setOfficeFilter] = useState<string[]>([]);
   const [yearFilter, setYearFilter] = useState<number[]>([]);
   const [activeFilterColumn, setActiveFilterColumn] = useState<string | null>(null);
-  
+
   // UI States
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; project: Project } | null>(null);
   const [logSheetOpen, setLogSheetOpen] = useState(false);
@@ -165,6 +167,59 @@ export function ProjectsTable({
     const bg = id === "uncategorized" ? "#71717a" : colors[Math.abs(hash) % colors.length];
     return { backgroundColor: bg, color: "white" };
   };
+
+  // Initialize yearFilter from URL params on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const yearParam = urlParams.get("year");
+
+      if (yearParam) {
+        const year = parseInt(yearParam);
+        if (!isNaN(year)) {
+          setYearFilter([year]);
+          return;
+        }
+      }
+
+      // Fallback to sessionStorage
+      const sessionYear = sessionStorage.getItem("budget_year_preference");
+      if (sessionYear) {
+        const year = parseInt(sessionYear);
+        if (!isNaN(year)) {
+          setYearFilter([year]);
+        }
+      }
+    }
+  }, []);
+
+  // Sync yearFilter back to URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (yearFilter.length > 0) {
+        const params = new URLSearchParams();
+        yearFilter.forEach(year => params.append("year", String(year)));
+
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.forEach((value, key) => {
+          if (key !== "year") {
+            params.append(key, value);
+          }
+        });
+
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState(null, "", newUrl);
+      } else {
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.delete("year");
+
+        const newUrl = currentParams.toString()
+          ? `${window.location.pathname}?${currentParams.toString()}`
+          : window.location.pathname;
+        window.history.replaceState(null, "", newUrl);
+      }
+    }
+  }, [yearFilter]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -204,7 +259,7 @@ export function ProjectsTable({
         );
       });
     }
-    
+
     if (statusFilter.length > 0) filtered = filtered.filter(p => p.status && statusFilter.includes(p.status));
     if (officeFilter.length > 0) filtered = filtered.filter(p => officeFilter.includes(p.implementingOffice));
     if (yearFilter.length > 0) filtered = filtered.filter(p => p.year && yearFilter.includes(p.year));
@@ -283,11 +338,11 @@ export function ProjectsTable({
   const handleSelectCategory = (categoryProjects: Project[], checked: boolean) => {
     const newSelected = new Set(selectedIds);
     categoryProjects.forEach(p => {
-        if (checked) {
-            newSelected.add(p.id);
-        } else {
-            newSelected.delete(p.id);
-        }
+      if (checked) {
+        newSelected.add(p.id);
+      } else {
+        newSelected.delete(p.id);
+      }
     });
     setSelectedIds(newSelected);
   };
@@ -299,15 +354,15 @@ export function ProjectsTable({
   const handleBulkTrash = async () => {
     try {
       const response: any = await bulkMoveToTrash({ ids: Array.from(selectedIds) as Id<"projects">[] });
-      
+
       if (response.success) {
         // Detailed feedback based on new backend response structure
         const details = response.data?.details || {};
         const successCount = response.data?.processed || 0;
         const failedCount = response.data?.failed || 0;
-        
+
         toast.success(response.message || "Bulk operation completed", {
-            description: `Successfully moved: ${successCount}. Failed: ${failedCount}.`,
+          description: `Successfully moved: ${successCount}. Failed: ${failedCount}.`,
         });
         setSelectedIds(new Set());
       } else {
@@ -336,7 +391,7 @@ export function ProjectsTable({
       if (response.success) {
         const successCount = response.data?.processed || 0;
         toast.success(response.message || "Category updated successfully", {
-            description: `Updated ${successCount} projects.`,
+          description: `Updated ${successCount} projects.`,
         });
         setSelectedIds(new Set());
         setPendingBulkCategoryId(undefined);
@@ -353,8 +408,8 @@ export function ProjectsTable({
 
   const handleSearchFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     if (selectedIds.size > 0) {
-        e.target.blur();
-        setShowSearchWarningModal(true);
+      e.target.blur();
+      setShowSearchWarningModal(true);
     }
   };
 
@@ -362,9 +417,9 @@ export function ProjectsTable({
     setSelectedIds(new Set());
     setShowSearchWarningModal(false);
     setTimeout(() => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-        }
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }, 50);
   };
 
@@ -405,7 +460,7 @@ export function ProjectsTable({
         if (val === undefined || val === null) return "";
         if (col.id === "utilizationRate") return (val as number).toFixed(2);
         if (typeof val === "string") {
-            return `"${val.replace(/"/g, '""')}"`;
+          return `"${val.replace(/"/g, '""')}"`;
         }
         return val;
       }).join(",");
@@ -432,29 +487,29 @@ export function ProjectsTable({
   const saveSingleCategoryChange = async () => {
     if (!selectedCategoryProject) return;
     try {
-        const response: any = await updateProject({
-            id: selectedCategoryProject.id as Id<"projects">,
-            categoryId: singleCategoryId,
-            particulars: selectedCategoryProject.particulars,
-            implementingOffice: selectedCategoryProject.implementingOffice,
-            totalBudgetAllocated: selectedCategoryProject.totalBudgetAllocated,
-            totalBudgetUtilized: selectedCategoryProject.totalBudgetUtilized,
-            budgetItemId: selectedCategoryProject.budgetItemId as Id<"budgetItems">,
-            remarks: selectedCategoryProject.remarks,
-            year: selectedCategoryProject.year,
-            projectManagerId: selectedCategoryProject.projectManagerId as Id<"users">,
-            reason: "Category updated via context menu"
-        });
+      const response: any = await updateProject({
+        id: selectedCategoryProject.id as Id<"projects">,
+        categoryId: singleCategoryId,
+        particulars: selectedCategoryProject.particulars,
+        implementingOffice: selectedCategoryProject.implementingOffice,
+        totalBudgetAllocated: selectedCategoryProject.totalBudgetAllocated,
+        totalBudgetUtilized: selectedCategoryProject.totalBudgetUtilized,
+        budgetItemId: selectedCategoryProject.budgetItemId as Id<"budgetItems">,
+        remarks: selectedCategoryProject.remarks,
+        year: selectedCategoryProject.year,
+        projectManagerId: selectedCategoryProject.projectManagerId as Id<"users">,
+        reason: "Category updated via context menu"
+      });
 
-        if (response.success) {
-            toast.success(response.message || "Category updated");
-            setShowSingleCategoryModal(false);
-            setSelectedCategoryProject(null);
-        } else {
-            toast.error(response.error?.message || "Failed to update category");
-        }
+      if (response.success) {
+        toast.success(response.message || "Category updated");
+        setShowSingleCategoryModal(false);
+        setSelectedCategoryProject(null);
+      } else {
+        toast.error(response.error?.message || "Failed to update category");
+      }
     } catch (error) {
-        toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred");
     }
   };
 
@@ -503,8 +558,10 @@ export function ProjectsTable({
       projectDelayed: acc.projectDelayed + (project.projectDelayed || 0),
       projectsOngoing: acc.projectsOngoing + project.projectsOngoing,
     }),
-    { totalBudgetAllocated: 0, obligatedBudget: 0, totalBudgetUtilized: 0, 
-      utilizationRate: 0, projectCompleted: 0, projectDelayed: 0, projectsOngoing: 0 }
+    {
+      totalBudgetAllocated: 0, obligatedBudget: 0, totalBudgetUtilized: 0,
+      utilizationRate: 0, projectCompleted: 0, projectDelayed: 0, projectsOngoing: 0
+    }
   );
 
   const countVisibleLabelColumns = () => {
@@ -517,45 +574,45 @@ export function ProjectsTable({
   return (
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-visible transition-all duration-300 shadow-sm">
-        
+
         {/* TOOLBAR */}
         <div className="h-16 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between no-print gap-4">
-          
+
           <div className="flex items-center gap-3 min-w-[200px]">
             {selectedIds.size > 0 ? (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 h-7">
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                        {selectedIds.size} Selected
-                    </Badge>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setSelectedIds(new Set())}
-                        className="text-zinc-500 text-xs h-7 hover:text-zinc-900"
-                    >
-                        Clear
-                    </Button>
-                </div>
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 h-7">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                  {selectedIds.size} Selected
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedIds(new Set())}
+                  className="text-zinc-500 text-xs h-7 hover:text-zinc-900"
+                >
+                  Clear
+                </Button>
+              </div>
             ) : (
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Projects</h3>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Projects</h3>
             )}
           </div>
 
           <div className="flex items-center gap-2 flex-1 justify-end">
             <div className="relative max-w-xs w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input 
+              <input
                 ref={searchInputRef}
                 onFocus={handleSearchFocus}
-                type="text" 
-                placeholder="Search projects..." 
+                type="text"
+                placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-9 pl-9 pr-9 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all"
               />
               {searchQuery && (
-                <button 
+                <button
                   onClick={() => setSearchQuery("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                 >
@@ -570,10 +627,10 @@ export function ProjectsTable({
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <LayoutTemplate className="w-4 h-4" />
-                  Columns 
+                  Columns
                   {hiddenColumns.size > 0 && (
                     <span className="ml-0.5 text-xs text-zinc-500">
-                       ({hiddenColumns.size} hidden)
+                      ({hiddenColumns.size} hidden)
                     </span>
                   )}
                 </Button>
@@ -582,36 +639,36 @@ export function ProjectsTable({
                 <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-[300px] overflow-y-auto">
-                    {AVAILABLE_COLUMNS.map((column) => (
+                  {AVAILABLE_COLUMNS.map((column) => (
                     <DropdownMenuCheckboxItem
-                        key={column.id}
-                        checked={!hiddenColumns.has(column.id)}
-                        onCheckedChange={(checked) => handleToggleColumn(column.id, checked)}
+                      key={column.id}
+                      checked={!hiddenColumns.has(column.id)}
+                      onCheckedChange={(checked) => handleToggleColumn(column.id, checked)}
                     >
-                        {column.label}
+                      {column.label}
                     </DropdownMenuCheckboxItem>
-                    ))}
+                  ))}
                 </div>
                 <DropdownMenuSeparator />
                 <div className="p-2 flex gap-2">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleShowAllColumns}
-                        className="w-full h-7 text-xs"
-                        disabled={hiddenColumns.size === 0}
-                    >
-                        Show All
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleHideAllColumns}
-                        className="w-full h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                        disabled={hiddenColumns.size === AVAILABLE_COLUMNS.length}
-                    >
-                        Hide All
-                    </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShowAllColumns}
+                    className="w-full h-7 text-xs"
+                    disabled={hiddenColumns.size === 0}
+                  >
+                    Show All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleHideAllColumns}
+                    className="w-full h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={hiddenColumns.size === AVAILABLE_COLUMNS.length}
+                  >
+                    Hide All
+                  </Button>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -633,13 +690,13 @@ export function ProjectsTable({
                           <div className="space-y-2 text-xs">
                             {(() => {
                               const categoryCounts = new Map<string, { name: string; color?: string; count: number }>();
-                              
+
                               Array.from(selectedIds).forEach(id => {
                                 const project = projects.find(p => p.id === id);
                                 if (project) {
                                   const catId = project.categoryId || "uncategorized";
                                   const existing = categoryCounts.get(catId);
-                                  
+
                                   if (existing) {
                                     existing.count++;
                                   } else {
@@ -652,11 +709,11 @@ export function ProjectsTable({
                                   }
                                 }
                               });
-                              
+
                               return Array.from(categoryCounts.entries()).map(([key, data]) => (
                                 <div key={key} className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                   {data.color && (
-                                    <div 
+                                    <div
                                       className="w-2 h-2 rounded-full shrink-0"
                                       style={{ backgroundColor: data.color }}
                                     />
@@ -666,12 +723,12 @@ export function ProjectsTable({
                               ));
                             })()}
                           </div>
-                          
+
                           <Separator className="my-2" />
-                          
+
                           <p className="text-xs text-zinc-500">Select a new category to move all selected projects:</p>
-                          <div className="no-click relative z-50"> 
-                            <ProjectCategoryCombobox 
+                          <div className="no-click relative z-50">
+                            <ProjectCategoryCombobox
                               value={undefined}
                               onChange={(val) => handleBulkCategoryChange(val as Id<"projectCategories">)}
                               hideInfoText={true}
@@ -687,7 +744,7 @@ export function ProjectsTable({
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
-            <Button 
+            <Button
               onClick={selectedIds.size > 0 ? handleBulkTrash : onOpenTrash}
               variant={selectedIds.size > 0 ? "destructive" : "outline"}
               size="sm"
@@ -698,101 +755,101 @@ export function ProjectsTable({
             </Button>
 
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <Download className="w-4 h-4" />
-                        Export / Print
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer">
-                        <Printer className="w-4 h-4 mr-2" /> Print PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
-                        <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <div className="p-2">
-                        <span className="text-[10px] text-zinc-500 leading-tight block">
-                            Note: Exports and prints are based on the currently shown/hidden columns.
-                        </span>
-                    </div>
-                </DropdownMenuContent>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  Export / Print
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer">
+                  <Printer className="w-4 h-4 mr-2" /> Print PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                  <span className="text-[10px] text-zinc-500 leading-tight block">
+                    Note: Exports and prints are based on the currently shown/hidden columns.
+                  </span>
+                </div>
+              </DropdownMenuContent>
             </DropdownMenu>
 
             <Separator orientation="vertical" className="h-6 mx-1" />
 
             {onAdd && (
-              <Button 
-                onClick={() => setShowAddModal(true)} 
+              <Button
+                onClick={() => setShowAddModal(true)}
                 size="sm"
                 className="gap-2 text-white shadow-sm"
                 style={{ backgroundColor: accentColorValue }}
               >
-                <span className="text-lg leading-none mb-0.5">+</span> 
+                <span className="text-lg leading-none mb-0.5">+</span>
                 Add Project
               </Button>
             )}
           </div>
         </div>
-        
+
         {/* TABLE */}
         <div className="overflow-x-auto max-h-[600px] relative">
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
                 {canManageBulkActions && (
-                    <th className="w-10 px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-20">
-                        <Checkbox 
-                            checked={isAllSelected}
-                            onCheckedChange={handleSelectAll}
-                            aria-label="Select all"
-                            className={isIndeterminate ? "opacity-50" : ""}
-                        />
-                    </th>
+                  <th className="w-10 px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-20">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                      className={isIndeterminate ? "opacity-50" : ""}
+                    />
+                  </th>
                 )}
-                
+
                 {!hiddenColumns.has('particulars') && (
-                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                        <button onClick={() => handleSort("particulars")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Particulars <SortIcon field="particulars" /></button>
-                    </th>
+                  <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                    <button onClick={() => handleSort("particulars")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Particulars <SortIcon field="particulars" /></button>
+                  </th>
                 )}
                 {!hiddenColumns.has('implementingOffice') && (
-                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "office" ? null : "office")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Implementing Office <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                    </th>
+                  <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "office" ? null : "office")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Implementing Office <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                  </th>
                 )}
                 {!hiddenColumns.has('year') && (
-                    <th className="px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "year" ? null : "year")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Year <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                    </th>
+                  <th className="px-3 py-3 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "year" ? null : "year")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Year <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                  </th>
                 )}
                 {!hiddenColumns.has('status') && (
-                    <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
-                        <button onClick={() => setActiveFilterColumn(activeFilterColumn === "status" ? null : "status")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Status <Filter className="w-3.5 h-3.5 opacity-50" /></button>
-                    </th>
+                  <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+                    <button onClick={() => setActiveFilterColumn(activeFilterColumn === "status" ? null : "status")} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">Status <Filter className="w-3.5 h-3.5 opacity-50" /></button>
+                  </th>
                 )}
                 {!hiddenColumns.has('totalBudgetAllocated') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetAllocated")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Allocated <SortIcon field="totalBudgetAllocated" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetAllocated")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Allocated <SortIcon field="totalBudgetAllocated" /></button></th>
                 )}
                 {!hiddenColumns.has('obligatedBudget') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("obligatedBudget")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Obligated Budget <SortIcon field="obligatedBudget" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("obligatedBudget")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Obligated Budget <SortIcon field="obligatedBudget" /></button></th>
                 )}
                 {!hiddenColumns.has('totalBudgetUtilized') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetUtilized")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Utilized <SortIcon field="totalBudgetUtilized" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("totalBudgetUtilized")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Budget Utilized <SortIcon field="totalBudgetUtilized" /></button></th>
                 )}
                 {!hiddenColumns.has('utilizationRate') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("utilizationRate")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Utilization Rate (%) <SortIcon field="utilizationRate" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("utilizationRate")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Utilization Rate (%) <SortIcon field="utilizationRate" /></button></th>
                 )}
                 {!hiddenColumns.has('projectCompleted') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectCompleted")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Completed <SortIcon field="projectCompleted" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectCompleted")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Completed <SortIcon field="projectCompleted" /></button></th>
                 )}
                 {!hiddenColumns.has('projectDelayed') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectDelayed")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Delayed <SortIcon field="projectDelayed" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectDelayed")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Delayed <SortIcon field="projectDelayed" /></button></th>
                 )}
                 {!hiddenColumns.has('projectsOngoing') && (
-                    <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectsOngoing")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Ongoing <SortIcon field="projectsOngoing" /></button></th>
+                  <th className="px-3 py-3 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10"><button onClick={() => handleSort("projectsOngoing")} className="flex items-center gap-2 ml-auto text-xs font-semibold uppercase tracking-wide">Ongoing <SortIcon field="projectsOngoing" /></button></th>
                 )}
                 {!hiddenColumns.has('remarks') && (
                   <th className="px-3 py-3 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 text-xs font-semibold uppercase tracking-wide">Remarks</th>
@@ -802,59 +859,59 @@ export function ProjectsTable({
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {filteredAndSortedProjects.length === 0 ?
                 (
-                <tr><td colSpan={canManageBulkActions ? (12 + 1 - hiddenColumns.size) : (12 - hiddenColumns.size)} className="px-4 py-12 text-center text-sm text-zinc-500">No projects found matching your criteria.</td></tr>
-              ) : (
-                <>
-                   {groupedProjects.map(([key, group]) => {
-                    const categoryIds = group.projects.map(p => p.id);
-                    const selectedCountInCat = categoryIds.filter(id => selectedIds.has(id)).length;
-                    const isCatAllSelected = categoryIds.length > 0 && selectedCountInCat === categoryIds.length;
-                    const isCatIndeterminate = selectedCountInCat > 0 && selectedCountInCat < categoryIds.length;
-                    const totalVisibleColumns = 12 - hiddenColumns.size;
+                  <tr><td colSpan={canManageBulkActions ? (12 + 1 - hiddenColumns.size) : (12 - hiddenColumns.size)} className="px-4 py-12 text-center text-sm text-zinc-500">No projects found matching your criteria.</td></tr>
+                ) : (
+                  <>
+                    {groupedProjects.map(([key, group]) => {
+                      const categoryIds = group.projects.map(p => p.id);
+                      const selectedCountInCat = categoryIds.filter(id => selectedIds.has(id)).length;
+                      const isCatAllSelected = categoryIds.length > 0 && selectedCountInCat === categoryIds.length;
+                      const isCatIndeterminate = selectedCountInCat > 0 && selectedCountInCat < categoryIds.length;
+                      const totalVisibleColumns = 12 - hiddenColumns.size;
 
-                    return (
+                      return (
                         <React.Fragment key={key}>
-                            {/* Category Header Row */}
-                            <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
-                              {canManageBulkActions && (
-                                <td 
-                                  className="px-3 py-2 text-center"
-                                  style={getCategoryHeaderStyle(group.category)}
-                                >
-                                  <div className="flex justify-center items-center">
-                                    <Checkbox 
-                                      checked={isCatAllSelected}
-                                      onCheckedChange={(checked) => handleSelectCategory(group.projects, checked as boolean)}
-                                      className={cn(
-                                        "border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-black", 
-                                        isCatIndeterminate ? "opacity-70" : ""
-                                      )}
-                                    />
-                                  </div>
-                                </td>
-                              )}
-                              
-                              <td 
-                                colSpan={totalVisibleColumns} 
-                                className="px-4 py-2 text-sm font-bold uppercase tracking-wider"
+                          {/* Category Header Row */}
+                          <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
+                            {canManageBulkActions && (
+                              <td
+                                className="px-3 py-2 text-center"
                                 style={getCategoryHeaderStyle(group.category)}
                               >
-                                  {group.category ? group.category.fullName : "Uncategorized"} 
-                                  <span className="opacity-80 ml-2 font-normal normal-case">
-                                    ({group.projects.length} project)
-                                  </span>
+                                <div className="flex justify-center items-center">
+                                  <Checkbox
+                                    checked={isCatAllSelected}
+                                    onCheckedChange={(checked) => handleSelectCategory(group.projects, checked as boolean)}
+                                    className={cn(
+                                      "border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-black",
+                                      isCatIndeterminate ? "opacity-70" : ""
+                                    )}
+                                  />
+                                </div>
                               </td>
-                            </tr>
+                            )}
 
-                            {group.projects.map((project) => {
-                              const isNewProject = project.id === newlyAddedProjectId;
-                              return (
-                                <motion.tr
+                            <td
+                              colSpan={totalVisibleColumns}
+                              className="px-4 py-2 text-sm font-bold uppercase tracking-wider"
+                              style={getCategoryHeaderStyle(group.category)}
+                            >
+                              {group.category ? group.category.fullName : "Uncategorized"}
+                              <span className="opacity-80 ml-2 font-normal normal-case">
+                                ({group.projects.length} project)
+                              </span>
+                            </td>
+                          </tr>
+
+                          {group.projects.map((project) => {
+                            const isNewProject = project.id === newlyAddedProjectId;
+                            return (
+                              <motion.tr
                                 key={project.id}
                                 ref={isNewProject ? newProjectRowRef : undefined}
-                                initial={isNewProject ? { 
+                                initial={isNewProject ? {
                                   boxShadow: `0 0 0 3px ${accentColorValue}`,
-                                  scale: 1.01 
+                                  scale: 1.01
                                 } : false}
                                 animate={isNewProject ? {
                                   boxShadow: [
@@ -863,117 +920,118 @@ export function ProjectsTable({
                                   ],
                                   scale: [1.01, 1]
                                 } : {}}
-                                transition={isNewProject ? { 
+                                transition={isNewProject ? {
                                   duration: 2,
                                   ease: "easeOut"
                                 } : {}}
-                                onContextMenu={(e) => { e.preventDefault();
-                                setContextMenu({ x: e.clientX, y: e.clientY, project }); }}
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  setContextMenu({ x: e.clientX, y: e.clientY, project });
+                                }}
                                 onClick={(e) => handleRowClick(project, e)}
-                                className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors ${
-                                  'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
-                                } ${selectedIds.has(project.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
-                                >
+                                className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors ${'isPinned' in project && (project as any).isPinned ? 'bg-amber-50 dark:bg-amber-950/20' : ''
+                                  } ${selectedIds.has(project.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
+                              >
                                 {canManageBulkActions && (
-                                    <td className="px-3 py-3 text-center">
-                                        <Checkbox 
-                                            checked={selectedIds.has(project.id)}
-                                            onCheckedChange={(checked) => handleSelectRow(project.id, checked as boolean)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    </td>
+                                  <td className="px-3 py-3 text-center">
+                                    <Checkbox
+                                      checked={selectedIds.has(project.id)}
+                                      onCheckedChange={(checked) => handleSelectRow(project.id, checked as boolean)}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  </td>
                                 )}
                                 {!hiddenColumns.has('particulars') && (
-                                    <td className="px-3 py-3">
-                                        <div className="flex items-center gap-2">
-                                            {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
-                                            <span className="text-sm font-medium">{project.particulars}</span>
-                                        </div>
-                                    </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex items-center gap-2">
+                                      {('isPinned' in project && (project as any).isPinned) && <Pin className="w-3.5 h-3.5 text-amber-600" />}
+                                      <span className="text-sm font-medium">{project.particulars}</span>
+                                    </div>
+                                  </td>
                                 )}
                                 {!hiddenColumns.has('implementingOffice') && (
-                                    <td className="px-3 py-3 text-sm text-zinc-600">{project.implementingOffice}</td>
+                                  <td className="px-3 py-3 text-sm text-zinc-600">{project.implementingOffice}</td>
                                 )}
                                 {!hiddenColumns.has('year') && (
-                                    <td className="px-3 py-3 text-sm text-center">{project.year || "-"}</td>
+                                  <td className="px-3 py-3 text-sm text-center">{project.year || "-"}</td>
                                 )}
                                 {!hiddenColumns.has('status') && (
-                                    <td className="px-3 py-3 text-sm">
-                                        <span className={`font-medium ${getStatusColor(project.status)}`}>
-                                        {project.status ?
+                                  <td className="px-3 py-3 text-sm">
+                                    <span className={`font-medium ${getStatusColor(project.status)}`}>
+                                      {project.status ?
                                         project.status.replace('_', ' ').charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ') : '-'}
-                                        </span>
-                                    </td>
+                                    </span>
+                                  </td>
                                 )}
                                 {!hiddenColumns.has('totalBudgetAllocated') && (
-                                    <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetAllocated)}</td>
+                                  <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetAllocated)}</td>
                                 )}
                                 {!hiddenColumns.has('obligatedBudget') && (
-                                    <td className="px-3 py-3 text-right text-sm">{project.obligatedBudget ? formatCurrency(project.obligatedBudget) : "-"}</td>
+                                  <td className="px-3 py-3 text-right text-sm">{project.obligatedBudget ? formatCurrency(project.obligatedBudget) : "-"}</td>
                                 )}
                                 {!hiddenColumns.has('totalBudgetUtilized') && (
-                                    <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetUtilized)}</td>
+                                  <td className="px-3 py-3 text-right text-sm font-medium">{formatCurrency(project.totalBudgetUtilized)}</td>
                                 )}
                                 {!hiddenColumns.has('utilizationRate') && (
-                                    <td className="px-3 py-3 text-right text-sm font-semibold">
-                                        <span className={getUtilizationColor(project.utilizationRate)}>{formatPercentage(project.utilizationRate)}</span>
-                                    </td>
+                                  <td className="px-3 py-3 text-right text-sm font-semibold">
+                                    <span className={getUtilizationColor(project.utilizationRate)}>{formatPercentage(project.utilizationRate)}</span>
+                                  </td>
                                 )}
                                 {!hiddenColumns.has('projectCompleted') && (
-                                    <td className="px-3 py-3 text-right text-sm"><span className={project.projectCompleted >= 80 ? "text-green-600" : "text-zinc-600"}>{Math.round(project.projectCompleted)}</span></td>
+                                  <td className="px-3 py-3 text-right text-sm"><span className={project.projectCompleted >= 80 ? "text-green-600" : "text-zinc-600"}>{Math.round(project.projectCompleted)}</span></td>
                                 )}
                                 {!hiddenColumns.has('projectDelayed') && (
-                                    <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectDelayed)}</td>
+                                  <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectDelayed)}</td>
                                 )}
                                 {!hiddenColumns.has('projectsOngoing') && (
-                                    <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectsOngoing)}</td>
+                                  <td className="px-3 py-3 text-right text-sm">{Math.round(project.projectsOngoing)}</td>
                                 )}
                                 {!hiddenColumns.has('remarks') && (
-                                    <td className="px-3 py-3 text-sm text-zinc-500 truncate max-w-[150px]">{project.remarks || "-"}</td>
+                                  <td className="px-3 py-3 text-sm text-zinc-500 truncate max-w-[150px]">{project.remarks || "-"}</td>
                                 )}
-                                </motion.tr>
-                              );
-                            })}
+                              </motion.tr>
+                            );
+                          })}
                         </React.Fragment>
                       );
-                   })}
+                    })}
 
-                  {/* Totals Row */}
-                  <tr className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/50 font-semibold sticky bottom-0 z-10">
-                    {canManageBulkActions && <td></td>}
-                    {visibleLabelColSpan > 0 && (
+                    {/* Totals Row */}
+                    <tr className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/50 font-semibold sticky bottom-0 z-10">
+                      {canManageBulkActions && <td></td>}
+                      {visibleLabelColSpan > 0 && (
                         <td className="px-3 py-3" colSpan={visibleLabelColSpan}>
-                            <span className="text-sm text-zinc-900">TOTAL</span>
+                          <span className="text-sm text-zinc-900">TOTAL</span>
                         </td>
-                    )}
-                    
-                    {!hiddenColumns.has('totalBudgetAllocated') && (
+                      )}
+
+                      {!hiddenColumns.has('totalBudgetAllocated') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetAllocated)}</td>
-                    )}
-                    {!hiddenColumns.has('obligatedBudget') && (
+                      )}
+                      {!hiddenColumns.has('obligatedBudget') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.obligatedBudget)}</td>
-                    )}
-                    {!hiddenColumns.has('totalBudgetUtilized') && (
+                      )}
+                      {!hiddenColumns.has('totalBudgetUtilized') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{formatCurrency(totals.totalBudgetUtilized)}</td>
-                    )}
-                    {!hiddenColumns.has('utilizationRate') && (
+                      )}
+                      {!hiddenColumns.has('utilizationRate') && (
                         <td className="px-3 py-3 text-right text-sm"><span className={getUtilizationColor(totals.utilizationRate)}>{formatPercentage(totals.utilizationRate)}</span></td>
-                    )}
-                    {!hiddenColumns.has('projectCompleted') && (
+                      )}
+                      {!hiddenColumns.has('projectCompleted') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectCompleted)}</td>
-                    )}
-                    {!hiddenColumns.has('projectDelayed') && (
+                      )}
+                      {!hiddenColumns.has('projectDelayed') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{totals.projectDelayed}</td>
-                    )}
-                    {!hiddenColumns.has('projectsOngoing') && (
+                      )}
+                      {!hiddenColumns.has('projectsOngoing') && (
                         <td className="px-3 py-3 text-right text-sm" style={{ color: accentColorValue }}>{Math.round(totals.projectsOngoing)}</td>
-                    )}
-                    {!hiddenColumns.has('remarks') && (
+                      )}
+                      {!hiddenColumns.has('remarks') && (
                         <td className="px-3 py-3 text-sm text-zinc-400 text-center">-</td>
-                    )}
-                  </tr>
-                </>
-              )}
+                      )}
+                    </tr>
+                  </>
+                )}
             </tbody>
           </table>
         </div>
@@ -1002,19 +1060,19 @@ export function ProjectsTable({
       {selectedLogProject && (
         <ActivityLogSheet type="project" entityId={selectedLogProject.id} title={`Project History: ${selectedLogProject.particulars}`} isOpen={logSheetOpen} onOpenChange={(open) => { setLogSheetOpen(open); if (!open) setSelectedLogProject(null); }} />
       )}
-      {showAddModal && <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Project" size="xl"><ProjectForm budgetItemId={budgetItemId} onSave={(d) => { if (onAdd) onAdd(d); setShowAddModal(false); }} onCancel={() => setShowAddModal(false)} /></Modal>}
+      {showAddModal && <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Project" size="xl"><ProjectForm budgetItemId={budgetItemId} budgetItemYear={budgetItemYear} onSave={(d) => { if (onAdd) onAdd(d); setShowAddModal(false); }} onCancel={() => setShowAddModal(false)} /></Modal>}
       {showEditModal && selectedProject && <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelectedProject(null); }} title="Edit Project" size="xl"><ProjectForm project={selectedProject} budgetItemId={budgetItemId} onSave={(d) => { if (onEdit) onEdit(selectedProject.id, d); setShowEditModal(false); setSelectedProject(null); }} onCancel={() => { setShowEditModal(false); setSelectedProject(null); }} /></Modal>}
       {showDeleteModal && selectedProject && <ConfirmationModal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setSelectedProject(null); }} onConfirm={() => { if (onDelete) onDelete(selectedProject.id); setSelectedProject(null); }} title="Move to Trash" message={`Are you sure you want to move "${selectedProject.particulars}" to trash? Associated breakdowns will also be moved.`} confirmText="Move to Trash" variant="danger" />}
-      
+
       {showBulkCategoryConfirmModal && pendingBulkCategoryId && (
         <ConfirmationModal
-            isOpen={showBulkCategoryConfirmModal}
-            onClose={() => { setShowBulkCategoryConfirmModal(false); setPendingBulkCategoryId(undefined); }}
-            onConfirm={confirmBulkCategoryUpdate}
-            title="Confirm Bulk Category Update"
-            message={`Are you sure you want to move ${selectedIds.size} selected projects to this category? This will update their classification.`}
-            confirmText="Yes, Update Projects"
-            variant="default"
+          isOpen={showBulkCategoryConfirmModal}
+          onClose={() => { setShowBulkCategoryConfirmModal(false); setPendingBulkCategoryId(undefined); }}
+          onConfirm={confirmBulkCategoryUpdate}
+          title="Confirm Bulk Category Update"
+          message={`Are you sure you want to move ${selectedIds.size} selected projects to this category? This will update their classification.`}
+          confirmText="Yes, Update Projects"
+          variant="default"
         />
       )}
 
@@ -1039,32 +1097,32 @@ export function ProjectsTable({
       />
 
       {showSingleCategoryModal && selectedCategoryProject && (
-         <Modal
-            isOpen={showSingleCategoryModal} 
-            onClose={() => { setShowSingleCategoryModal(false); setSelectedCategoryProject(null); }} 
-            title="Move Project to Category"
-            size="sm"
-         >
-            <div className="space-y-4">
-                <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    <p className="text-sm font-medium">{selectedCategoryProject.particulars}</p>
-                    <p className="text-xs text-zinc-500 mt-1">Current Category: {selectedCategoryProject.categoryId ? allCategories?.find(c => c._id === selectedCategoryProject.categoryId)?.fullName : "Uncategorized"}</p>
-                </div>
-                
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Select New Category</label>
-                    <ProjectCategoryCombobox
-                        value={singleCategoryId}
-                        onChange={(val) => setSingleCategoryId(val)}
-                    />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="ghost" onClick={() => setShowSingleCategoryModal(false)}>Cancel</Button>
-                    <Button onClick={saveSingleCategoryChange} style={{ backgroundColor: accentColorValue }} className="text-white">Update Category</Button>
-                </div>
+        <Modal
+          isOpen={showSingleCategoryModal}
+          onClose={() => { setShowSingleCategoryModal(false); setSelectedCategoryProject(null); }}
+          title="Move Project to Category"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <p className="text-sm font-medium">{selectedCategoryProject.particulars}</p>
+              <p className="text-xs text-zinc-500 mt-1">Current Category: {selectedCategoryProject.categoryId ? allCategories?.find(c => c._id === selectedCategoryProject.categoryId)?.fullName : "Uncategorized"}</p>
             </div>
-         </Modal>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Select New Category</label>
+              <ProjectCategoryCombobox
+                value={singleCategoryId}
+                onChange={(val) => setSingleCategoryId(val)}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setShowSingleCategoryModal(false)}>Cancel</Button>
+              <Button onClick={saveSingleCategoryChange} style={{ backgroundColor: accentColorValue }} className="text-white">Update Category</Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </>
   );
