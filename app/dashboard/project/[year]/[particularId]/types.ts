@@ -29,17 +29,28 @@ export interface Project {
   budgetItemId?: string;
   projectManagerId?: string;
   _creationTime?: number;
+  autoCalculateBudgetUtilized?: boolean; // 🆕 NEW: Auto-calculate toggle
 }
 
-export type ProjectFormData = Omit<
-  Project,
-  | "id"
-  | "utilizationRate"
-  | "projectCompleted"
-  | "projectDelayed"
-  | "projectsOngoing"
-  | "status"
-> & { categoryId?: string };
+// 🆕 SIMPLIFIED: Explicit interface instead of complex Omit type
+export interface ProjectFormData {
+  particulars: string;
+  implementingOffice: string;
+  categoryId?: string;
+  totalBudgetAllocated: number;
+  obligatedBudget?: number;
+  totalBudgetUtilized: number;
+  remarks?: string;
+  year?: number;
+  targetDateCompletion?: number;
+  isPinned?: boolean;
+  pinnedAt?: number;
+  pinnedBy?: string;
+  budgetItemId?: string;
+  projectManagerId?: string;
+  _creationTime?: number;
+  autoCalculateBudgetUtilized?: boolean; // 🆕 NEW: Auto-calculate toggle
+}
 
 // ============================================================================
 // SORTING & FILTERING TYPES (using shared types)
@@ -139,8 +150,8 @@ export interface ProjectsTableProps {
   particularId: string;
   budgetItemId?: string;
   budgetItemYear?: number;
-  onAdd?: (project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing">) => void | Promise<void>;
-  onEdit?: (id: string, project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing">) => void;
+  onAdd?: (project: ProjectFormData) => void | Promise<void>; // 🆕 SIMPLIFIED
+  onEdit?: (id: string, project: ProjectFormData) => void; // 🆕 SIMPLIFIED
   onDelete?: (id: string) => void;
   onOpenTrash?: () => void;
   newlyAddedProjectId?: string | null;

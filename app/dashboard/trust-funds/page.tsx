@@ -136,7 +136,7 @@ export default function TrustFundsLanding() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-zinc-300 border-t-transparent dark:border-zinc-700 dark:border-t-transparent mb-4"></div>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading fiscal years...</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading years...</p>
         </div>
       </div>
     );
@@ -154,7 +154,7 @@ export default function TrustFundsLanding() {
               Trust Funds
             </h1>
             <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-              Select a fiscal year to manage trust funds
+              Select a year to manage trust funds
             </p>
           </div>
           <div className="flex items-center gap-2">

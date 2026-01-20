@@ -24,6 +24,7 @@ import { ProjectsTableHeader } from "./ProjectsTable/ProjectsTableHeader";
 import { ProjectsTableBody } from "./ProjectsTable/ProjectsTableBody";
 import { ProjectsTableFooter } from "./ProjectsTable/ProjectsTableFooter";
 import { ProjectContextMenu } from "./ProjectsTable/ProjectContextMenu";
+import { ProjectBulkToggleDialog } from "./ProjectBulkToggleDialog";
 
 // Types, Constants, and Utils
 import {
@@ -75,6 +76,10 @@ export function ProjectsTable({
   const bulkMoveToTrash = useMutation(api.projects.bulkMoveToTrash);
   const bulkUpdateCategory = useMutation(api.projects.bulkUpdateCategory);
   const updateProject = useMutation(api.projects.update);
+  
+  // 🆕 NEW MUTATIONS: Auto-Calculate Toggle
+  const toggleAutoCalculate = useMutation(api.projects.toggleAutoCalculate);
+  const bulkToggleAutoCalculate = useMutation(api.projects.bulkToggleAutoCalculate);
 
   // ==================== STATE: MODALS ====================
   const [showAddModal, setShowAddModal] = useState(false);
@@ -85,6 +90,10 @@ export function ProjectsTable({
   const [showSingleCategoryModal, setShowSingleCategoryModal] = useState(false);
   const [showSearchWarningModal, setShowSearchWarningModal] = useState(false);
   const [showHideAllWarning, setShowHideAllWarning] = useState(false);
+  
+  // 🆕 NEW MODAL STATE: Bulk Auto-Calculate Toggle Dialog
+  const [showBulkToggleDialog, setShowBulkToggleDialog] = useState(false);
+  const [isBulkToggling, setIsBulkToggling] = useState(false);
 
   // ==================== STATE: DATA ====================
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -107,9 +116,10 @@ export function ProjectsTable({
   const [contextMenu, setContextMenu] = useState<ProjectContextMenuState | null>(null);
   const [logSheetOpen, setLogSheetOpen] = useState(false);
   const [selectedLogProject, setSelectedLogProject] = useState<Project | null>(null);
-  
-  // 🆕 NEW STATE: Expanded remarks
   const [expandedRemarks, setExpandedRemarks] = useState<Set<string>>(new Set());
+  
+  // 🆕 NEW STATE: Track if currently toggling auto-calculate in context menu
+  const [isTogglingAutoCalculate, setIsTogglingAutoCalculate] = useState(false);
 
   // ==================== COMPUTED VALUES ====================
   const canManageBulkActions = useMemo(() => {
@@ -204,8 +214,6 @@ export function ProjectsTable({
     }
   }, [yearFilter]);
 
-  // ==================== EVENT HANDLERS ====================
-
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = new Set(filteredAndSortedProjects.map(p => p.id));
@@ -260,10 +268,10 @@ export function ProjectsTable({
       return;
     }
     
-    // 🔧 Get year from URL params instead of hardcoding
+    // Get year from URL params
     const pathSegments = window.location.pathname.split('/');
     const projectIndex = pathSegments.findIndex(seg => seg === 'project');
-    const year = pathSegments[projectIndex + 1]; // Gets the [year] param
+    const year = pathSegments[projectIndex + 1];
     
     const projectSlug = createProjectSlug(project.particulars, project.id);
     router.push(
@@ -329,6 +337,74 @@ export function ProjectsTable({
       toast.error("Failed to update categories");
       setShowBulkCategoryConfirmModal(false);
       console.error(error);
+    }
+  };
+
+  // 🆕 NEW HANDLER: Toggle Auto-Calculate from Context Menu
+  const handleToggleAutoCalculate = async (newValue: boolean) => {
+    if (!contextMenu) return;
+    
+    setIsTogglingAutoCalculate(true);
+    
+    try {
+      const toastId = toast.loading("Updating auto-calculate mode...");
+      
+      await toggleAutoCalculate({
+        id: contextMenu.entity.id as Id<"projects">,
+        autoCalculate: newValue,
+      });
+      
+      toast.dismiss(toastId);
+      toast.success(`Switched to ${newValue ? 'auto-calculate' : 'manual'} mode`, {
+        description: newValue 
+          ? "Budget utilized will be calculated from breakdowns" 
+          : "You can now enter budget utilized manually"
+      });
+    } catch (error) {
+      console.error("Error toggling auto-calculate:", error);
+      toast.error("Failed to toggle auto-calculate", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setIsTogglingAutoCalculate(false);
+    }
+  };
+
+  // 🆕 NEW HANDLER: Open Bulk Toggle Dialog
+  const handleOpenBulkToggleDialog = () => {
+    if (selectedIds.size === 0) {
+      toast.error("No items selected");
+      return;
+    }
+    setShowBulkToggleDialog(true);
+  };
+
+  // 🆕 NEW HANDLER: Bulk Toggle Auto-Calculate
+  const handleBulkToggleAutoCalculate = async (autoCalculate: boolean, reason?: string) => {
+    setIsBulkToggling(true);
+    
+    try {
+      const result = await bulkToggleAutoCalculate({
+        ids: Array.from(selectedIds) as Id<"projects">[],
+        autoCalculate,
+        reason,
+      });
+      
+      const count = (result as any).count || selectedIds.size;
+      
+      toast.success(`Updated ${count} project(s)`, {
+        description: `All items switched to ${autoCalculate ? 'auto-calculate' : 'manual'} mode`
+      });
+      
+      setSelectedIds(new Set());
+      setShowBulkToggleDialog(false);
+    } catch (error) {
+      console.error("Error bulk toggling auto-calculate:", error);
+      toast.error("Failed to update items", {
+        description: error instanceof Error ? error.message : "Some items could not be updated"
+      });
+    } finally {
+      setIsBulkToggling(false);
     }
   };
 
@@ -450,9 +526,8 @@ export function ProjectsTable({
     setShowDeleteModal(true);
   };
 
-  // 🆕 NEW HANDLER: Toggle remarks expansion
   const handleToggleRemarks = (projectId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent row click navigation
+    e.stopPropagation();
     const newExpanded = new Set(expandedRemarks);
     if (newExpanded.has(projectId)) {
       newExpanded.delete(projectId);
@@ -462,13 +537,11 @@ export function ProjectsTable({
     setExpandedRemarks(newExpanded);
   };
 
-  // ==================== RENDER ====================
-
   return (
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-visible transition-all duration-300 shadow-sm">
         
-        {/* Toolbar */}
+        {/* Toolbar - Now with Bulk Auto-Calculate Toggle */}
         <ProjectsTableToolbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -489,6 +562,7 @@ export function ProjectsTable({
           isAdmin={canManageBulkActions}
           pendingRequestsCount={pendingParticularRequests}
           onOpenShare={() => setShowShareModal(true)}
+          onBulkToggleAutoCalculate={handleOpenBulkToggleDialog}
           onAddProject={onAdd ? () => setShowAddModal(true) : undefined}
           expandButton={expandButton}
           accentColor={accentColorValue}
@@ -543,7 +617,7 @@ export function ProjectsTable({
         </div>
       </div>
 
-      {/* Context Menu */}
+      {/* Context Menu - Now with Auto-Calculate Toggle */}
       <ProjectContextMenu
         contextMenu={contextMenu}
         onClose={() => setContextMenu(null)}
@@ -554,6 +628,17 @@ export function ProjectsTable({
         onDelete={handleDeleteProject}
         canEdit={!!onEdit}
         canDelete={!!onDelete}
+        onToggleAutoCalculate={handleToggleAutoCalculate}
+        isTogglingAutoCalculate={isTogglingAutoCalculate}
+      />
+
+      {/* 🆕 NEW MODAL: Bulk Auto-Calculate Toggle Dialog */}
+      <ProjectBulkToggleDialog
+        isOpen={showBulkToggleDialog}
+        onClose={() => setShowBulkToggleDialog(false)}
+        onConfirm={handleBulkToggleAutoCalculate}
+        selectedCount={selectedIds.size}
+        isLoading={isBulkToggling}
       />
 
       {/* Activity Log Sheet */}

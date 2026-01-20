@@ -188,9 +188,9 @@ export function FiscalYearModal({
               />
             </div>
             <div>
-              <DialogTitle>Create Fiscal Year</DialogTitle>
+              <DialogTitle>Create Year</DialogTitle>
               <DialogDescription>
-                Add a new fiscal year for budget management
+                Add year for budget management
               </DialogDescription>
             </div>
           </div>
@@ -248,7 +248,7 @@ export function FiscalYearModal({
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    Custom display name for this fiscal year
+                    Custom display name for this year
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -266,7 +266,7 @@ export function FiscalYearModal({
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Brief description of this fiscal year..."
+                      placeholder="Brief description of this year..."
                       className="bg-white dark:bg-zinc-900 resize-none"
                       rows={3}
                       {...field}
@@ -281,7 +281,7 @@ export function FiscalYearModal({
               control={form.control as any}
               name="setAsCurrent"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50 dark:bg-zinc-900/50">
+                <FormItem className="hidden flex-row items-start space-x-3 space-y-0 rounded-md border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50 dark:bg-zinc-900/50">
                   <FormControl>
                     <input
                       type="checkbox"
@@ -345,7 +345,7 @@ export function FiscalYearModal({
                     Creating...
                   </>
                 ) : (
-                  "Create Fiscal Year"
+                  "Create Year"
                 )}
               </Button>
             </DialogFooter>

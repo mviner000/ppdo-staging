@@ -11,18 +11,26 @@ import { logBudgetActivity } from "./lib/budgetActivityLogger";
 /**
  * Get all ACTIVE budget items (Hides Trash)
  * Shows items where isDeleted is false or undefined (unset)
+ * ✨ UPDATED: Now accepts optional year parameter for filtering
  */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    year: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
 
-    const budgetItems = await ctx.db
+    let budgetItems = await ctx.db
       .query("budgetItems")
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .collect();
+
+    // Filter by year if provided
+    if (args.year !== undefined) {
+      budgetItems = budgetItems.filter((item) => item.year === args.year);
+    }
 
     return budgetItems;
   },
@@ -252,7 +260,7 @@ export const getStatistics = query({
 
 /**
  * Create a new budget item
- * 🆕 UPDATED: Now validates particular exists and updates usage count
+ * 🆕 UPDATED: Now supports autoCalculateBudgetUtilized flag
  */
 export const create = mutation({
   args: {
@@ -264,6 +272,7 @@ export const create = mutation({
     notes: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     fiscalYear: v.optional(v.number()),
+    autoCalculateBudgetUtilized: v.optional(v.boolean()), // 🆕 NEW FLAG
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -306,6 +315,9 @@ export const create = mutation({
       notes: args.notes,
       departmentId: args.departmentId,
       fiscalYear: args.fiscalYear,
+      autoCalculateBudgetUtilized: args.autoCalculateBudgetUtilized !== undefined 
+        ? args.autoCalculateBudgetUtilized 
+        : true, // 🆕 Default to TRUE for new items
       isDeleted: false,
       createdBy: userId,
       createdAt: now,
@@ -333,7 +345,7 @@ export const create = mutation({
 
 /**
  * Update an existing budget item
- * 🆕 UPDATED: Now validates particular exists if changed
+ * 🆕 UPDATED: Now supports autoCalculateBudgetUtilized flag
  */
 export const update = mutation({
   args: {
@@ -346,6 +358,7 @@ export const update = mutation({
     notes: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     fiscalYear: v.optional(v.number()),
+    autoCalculateBudgetUtilized: v.optional(v.boolean()), // 🆕 NEW FLAG
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -406,6 +419,7 @@ export const update = mutation({
       notes: args.notes,
       departmentId: args.departmentId,
       fiscalYear: args.fiscalYear,
+      autoCalculateBudgetUtilized: args.autoCalculateBudgetUtilized, // 🆕 NEW FLAG
       updatedAt: now,
       updatedBy: userId,
     });
@@ -419,6 +433,131 @@ export const update = mutation({
       reason: args.reason
     });
     return args.id;
+  },
+});
+
+/**
+ * 🆕 NEW MUTATION: Toggle Auto-Calculate Flag for Budget Item
+ * This allows switching between auto-calculation and manual mode
+ */
+export const toggleAutoCalculate = mutation({
+  args: {
+    id: v.id("budgetItems"),
+    autoCalculate: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Budget item not found");
+
+    const now = Date.now();
+
+    // Update the flag
+    await ctx.db.patch(args.id, {
+      autoCalculateBudgetUtilized: args.autoCalculate,
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
+    // If switching TO auto-calculate, trigger recalculation
+    if (args.autoCalculate) {
+      await recalculateBudgetItemMetrics(ctx, args.id, userId);
+    }
+    // If switching TO manual, just recalculate the utilization rate based on current values
+    else {
+      const utilizationRate = existing.totalBudgetAllocated > 0
+        ? (existing.totalBudgetUtilized / existing.totalBudgetAllocated) * 100
+        : 0;
+      
+      await ctx.db.patch(args.id, {
+        utilizationRate,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+    }
+
+    const updatedBudget = await ctx.db.get(args.id);
+
+    // Log the change
+    await logBudgetActivity(ctx, userId, {
+      action: "updated",
+      budgetItemId: args.id,
+      previousValues: existing,
+      newValues: updatedBudget,
+      reason: args.reason || `Switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+    });
+
+    return {
+      success: true,
+      mode: args.autoCalculate ? "auto" : "manual",
+      message: args.autoCalculate 
+        ? "Auto-calculation enabled. Budget utilized will be calculated from projects."
+        : "Manual mode enabled. Budget utilized can be entered manually.",
+    };
+  },
+});
+
+/**
+ * 🆕 NEW MUTATION: Bulk Toggle Auto-Calculate
+ * Toggle auto-calculate for multiple budget items at once
+ */
+export const bulkToggleAutoCalculate = mutation({
+  args: {
+    ids: v.array(v.id("budgetItems")),
+    autoCalculate: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      throw new Error("Unauthorized: Only admins can perform bulk actions.");
+    }
+
+    const now = Date.now();
+    let successCount = 0;
+
+    for (const id of args.ids) {
+      const existing = await ctx.db.get(id);
+      if (!existing || existing.isDeleted) continue;
+
+      // Update the flag
+      await ctx.db.patch(id, {
+        autoCalculateBudgetUtilized: args.autoCalculate,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+
+      // If switching TO auto-calculate, trigger recalculation
+      if (args.autoCalculate) {
+        await recalculateBudgetItemMetrics(ctx, id, userId);
+      }
+
+      const updatedBudget = await ctx.db.get(id);
+
+      // Log the change
+      await logBudgetActivity(ctx, userId, {
+        action: "updated",
+        budgetItemId: id,
+        previousValues: existing,
+        newValues: updatedBudget,
+        reason: args.reason || `Bulk switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+      });
+
+      successCount++;
+    }
+
+    return {
+      success: true,
+      count: successCount,
+      mode: args.autoCalculate ? "auto" : "manual",
+      message: `${successCount} budget item(s) switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+    };
   },
 });
 

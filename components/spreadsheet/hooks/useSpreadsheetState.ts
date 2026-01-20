@@ -6,6 +6,7 @@ import { getCellKey } from "../utils/formatting";
 
 /**
  * Hook to manage spreadsheet state
+ * Supports both viewer and editor modes
  */
 export function useSpreadsheetState(columns: string[], totalRowNumber: number) {
   const [selectedCell, setSelectedCell] = useState<CellPosition>({ row: 1, col: 0 });
@@ -15,14 +16,12 @@ export function useSpreadsheetState(columns: string[], totalRowNumber: number) {
   const [showExportModal, setShowExportModal] = useState(false);
 
   const handleCellClick = useCallback((row: number, col: number) => {
-    // Don't allow selecting total row
-    if (row === totalRowNumber) return;
-    
+    // Don't allow selecting total row for editing
     setSelectedCell({ row, col });
     const cellKey = getCellKey(row, col, columns);
     setFormulaBarValue(cellData[cellKey] || "");
     setEditingCell(null);
-  }, [cellData, columns, totalRowNumber]);
+  }, [cellData, columns]);
 
   const handleCellDoubleClick = useCallback((row: number, col: number) => {
     // Don't allow editing total row

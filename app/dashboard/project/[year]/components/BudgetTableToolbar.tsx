@@ -3,7 +3,7 @@
 "use client";
 
 import React from "react";
-import { Search, CheckCircle2, Trash2, Share2, X, Download, Printer, FileSpreadsheet } from "lucide-react";
+import { Search, CheckCircle2, Trash2, Share2, X, Download, Printer, FileSpreadsheet, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +45,9 @@ interface BudgetTableToolbarProps {
   onBulkTrash: () => void;
   onAddNew?: () => void;
   
+  // 🆕 NEW: Auto-Calculate Toggle
+  onBulkToggleAutoCalculate?: () => void;
+  
   // UI State
   expandButton?: React.ReactNode;
   accentColor: string;
@@ -68,6 +71,7 @@ export function BudgetTableToolbar({
   onOpenTrash,
   onBulkTrash,
   onAddNew,
+  onBulkToggleAutoCalculate,
   expandButton,
   accentColor,
 }: BudgetTableToolbarProps) {
@@ -134,6 +138,19 @@ export function BudgetTableToolbar({
           onShowAll={onShowAllColumns}
           onHideAll={onHideAllColumns}
         />
+
+        {/* 🆕 NEW: Bulk Auto-Calculate Toggle (only when items are selected) */}
+        {selectedCount > 0 && onBulkToggleAutoCalculate && (
+          <Button
+            onClick={onBulkToggleAutoCalculate}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Calculator className="w-4 h-4" />
+            Toggle Auto-Calculate
+          </Button>
+        )}
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 

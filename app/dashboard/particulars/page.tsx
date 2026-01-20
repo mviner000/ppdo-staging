@@ -32,7 +32,8 @@ export default function ParticularPage() {
   const projectParticulars = useQuery(api.projectParticulars.list, {
     includeInactive: true,
   });
-  const budgetItems = useQuery(api.budgetItems.list);
+  // ✅ Fixed: Pass empty object {} to satisfy the required args parameter
+  const budgetItems = useQuery(api.budgetItems.list, {});
   const projects = useQuery(api.projects.list, {});
 
   // Get available years

@@ -2,8 +2,8 @@
 
 "use client";
 
-import { useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
 import { SpreadsheetHeader } from "./SpreadsheetHeader";
 import { SpreadsheetMenuBar } from "./SpreadsheetMenuBar";
 import { SpreadsheetFormulaBar } from "./SpreadsheetFormulaBar";
@@ -13,7 +13,9 @@ import { ExportModal } from "./ExportModal";
 import { useSpreadsheetData } from "./hooks/useSpreadsheetData";
 import { useSpreadsheetState } from "./hooks/useSpreadsheetState";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
-import { SpreadsheetContainerProps, ColumnDefinition } from "./types";
+import { useColumnResize } from "./hooks/useColumnResize";
+import { useSpreadsheetShortcuts } from "./hooks/useSpreadsheetShortcuts";
+import { SpreadsheetContainerProps } from "./types";
 import { 
   generateColumnLetters, 
   getCellKey, 
@@ -26,27 +28,32 @@ import {
   calculateGrandTotal 
 } from "./utils/cellCalculations";
 import { exportToCSV } from "./utils/exportUtils";
+import { transformText } from "./utils/textTransform";
 
 export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerProps) {
-  const searchParams = useSearchParams();
+  const params = useParams();
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Get year from URL
+  // Get year from URL params
   const selectedYear = useMemo(() => {
-    const yearParam = searchParams.get("year");
+    const yearParam = params?.year as string;
     return yearParam ? parseInt(yearParam) : undefined;
-  }, [searchParams]);
+  }, [params]);
 
-  // Fetch data
-  const { data: rawData, isLoading } = useSpreadsheetData(config, filters);
+  // Fetch ALL data (no limit, infinite scroll)
+  const { data: rawData, isLoading } = useSpreadsheetData(config, {
+    ...filters,
+    ...(selectedYear ? { year: selectedYear } : {})
+  });
 
-  // Filter by year if specified
+  // Filter by year if specified in URL
   const data = useMemo(() => {
     if (!rawData) return [];
-    if (selectedYear) {
+    if (selectedYear && !filters?.year) {
       return rawData.filter((item: any) => item.year === selectedYear);
     }
     return rawData;
-  }, [rawData, selectedYear]);
+  }, [rawData, selectedYear, filters]);
 
   // Calculate totals
   const totals = useMemo(() => calculateTotals(data, config.columns), [data, config.columns]);
@@ -75,6 +82,15 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
     return headers;
   }, [config.columns, config.features.showTotalsColumn]);
 
+  // Column resize hook
+  const {
+    columnWidths,
+    columnAlignments,
+    handleResizeStart,
+    handleDoubleClickResize,
+    updateColumnAlignment,
+  } = useColumnResize(COLUMNS, data, config.columns);
+
   // State management
   const {
     selectedCell,
@@ -91,17 +107,24 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
     handleEditingCellChange,
   } = useSpreadsheetState(COLUMNS, totalRowNumber);
 
-  // Keyboard navigation
+  // Keyboard navigation (respects viewMode)
   useKeyboardNavigation({
     selectedCell,
-    editingCell,
+    editingCell: config.features.viewMode === "editor" ? editingCell : null,
     totalColumns,
     dataRows,
     totalRowNumber,
     columns: COLUMNS,
     onCellClick: handleCellClick,
-    onCellChange: handleCellChange,
-    onEditingCellChange: handleEditingCellChange,
+    onCellChange: config.features.viewMode === "editor" ? handleCellChange : () => {},
+    onEditingCellChange: config.features.viewMode === "editor" ? handleEditingCellChange : () => {},
+  });
+
+  // Spreadsheet shortcuts (prevents browser shortcuts like Ctrl+R)
+  useSpreadsheetShortcuts({
+    onAlignLeft: () => updateColumnAlignment(selectedCell.col, "left"),
+    onAlignCenter: () => updateColumnAlignment(selectedCell.col, "center"),
+    onAlignRight: () => updateColumnAlignment(selectedCell.col, "right"),
   });
 
   // Initialize cell data from fetched data
@@ -161,6 +184,43 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
     setShowExportModal(false);
   };
 
+  // Text transform handler - ONLY for text columns
+  const handleTextTransform = (transform: "uppercase" | "lowercase" | "camelCase" | "reset") => {
+    const colIndex = selectedCell.col;
+    
+    // Check if the selected column is a text column
+    const columnDef = config.columns[colIndex];
+    if (!columnDef || columnDef.type !== "text") {
+      return; // Don't transform non-text columns
+    }
+    
+    setCellData((prevData) => {
+      const newData = { ...prevData };
+      
+      // Transform all cells in the selected column (except total row)
+      rows.forEach((row) => {
+        if (row === totalRowNumber) return; // Skip total row
+        
+        const cellKey = getCellKey(row, colIndex, COLUMNS);
+        const currentValue = newData[cellKey];
+        
+        if (currentValue) {
+          newData[cellKey] = transformText(currentValue, transform);
+        }
+      });
+      
+      return newData;
+    });
+  };
+
+  // Get selected column type
+  const selectedColumnType = useMemo(() => {
+    if (selectedCell.col >= config.columns.length) {
+      return "currency"; // Total column
+    }
+    return config.columns[selectedCell.col]?.type || "text";
+  }, [selectedCell.col, config.columns]);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#f9fbfd]">
@@ -173,7 +233,7 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#f9fbfd]">
+    <div className="flex h-screen flex-col bg-[#f9fbfd]" ref={containerRef}>
       <SpreadsheetHeader
         title={config.title}
         selectedYear={selectedYear}
@@ -184,6 +244,11 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
 
       <SpreadsheetMenuBar
         onExport={config.features.enableExport ? () => setShowExportModal(true) : undefined}
+        selectedColumn={selectedCell.col}
+        selectedColumnType={selectedColumnType}
+        columnAlignment={columnAlignments[selectedCell.col]}
+        onAlignmentChange={(alignment) => updateColumnAlignment(selectedCell.col, alignment)}
+        onTextTransform={handleTextTransform}
       />
 
       <SpreadsheetFormulaBar
@@ -191,6 +256,7 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
         formulaBarValue={formulaBarValue}
         columns={COLUMNS}
         onFormulaBarChange={handleFormulaBarChange}
+        viewMode={config.features.viewMode}
       />
 
       <SpreadsheetGrid
@@ -199,12 +265,17 @@ export function SpreadsheetContainer({ config, filters }: SpreadsheetContainerPr
         columnHeaders={columnHeaders}
         selectedCell={selectedCell}
         cellData={cellData}
-        editingCell={editingCell}
+        editingCell={config.features.viewMode === "editor" ? editingCell : null}
         totalRowNumber={totalRowNumber}
+        columnWidths={columnWidths}
+        columnAlignments={columnAlignments}
         onCellClick={handleCellClick}
-        onCellDoubleClick={handleCellDoubleClick}
-        onCellChange={handleCellChange}
-        onEditingCellChange={handleEditingCellChange}
+        onCellDoubleClick={config.features.viewMode === "editor" ? handleCellDoubleClick : () => {}}
+        onCellChange={config.features.viewMode === "editor" ? handleCellChange : () => {}}
+        onEditingCellChange={config.features.viewMode === "editor" ? handleEditingCellChange : () => {}}
+        onResizeStart={handleResizeStart}
+        onDoubleClickResize={handleDoubleClickResize}
+        containerRef={containerRef}
       />
 
       <SpreadsheetSheetTabs />

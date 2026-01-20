@@ -24,6 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
   AccordionContent,
@@ -48,7 +50,7 @@ import {
   X,
   Loader2
 } from "lucide-react";
-import { Project } from "../../../../../../types/types";
+import { Project } from "../types";
 import { ProjectParticularCombobox } from "./ProjectParticularCombobox";
 import { ImplementingOfficeSelector } from "./ImplementingOfficeSelector";
 import { ProjectCategoryCombobox } from "./ProjectCategoryCombobox";
@@ -79,6 +81,7 @@ const projectSchema = z
     totalBudgetUtilized: z.number().min(0),
     remarks: z.string().optional(),
     year: z.number().int().min(2000).max(2100).optional(),
+    autoCalculateBudgetUtilized: z.boolean().optional(), // 🆕 NEW FIELD
   })
   .refine(
     (data) => !data.obligatedBudget || data.obligatedBudget <= data.totalBudgetAllocated,
@@ -94,7 +97,7 @@ interface ProjectFormProps {
   project?: Project | null;
   budgetItemId?: string;
   budgetItemYear?: number;
-  onSave: (project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing" | "status"> & { categoryId?: string }) => void;
+  onSave: (project: Omit<Project, "id" | "utilizationRate" | "projectCompleted" | "projectDelayed" | "projectsOngoing" | "status"> & { categoryId?: string; autoCalculateBudgetUtilized?: boolean }) => void;
   onCancel: () => void;
 }
 
@@ -188,10 +191,16 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
       totalBudgetUtilized: project?.totalBudgetUtilized || 0,
       remarks: project?.remarks || "",
       year: project?.year || urlYear || budgetItemYear || undefined,
+      autoCalculateBudgetUtilized: project?.autoCalculateBudgetUtilized !== undefined 
+        ? project.autoCalculateBudgetUtilized 
+        : true, // 🆕 Default to TRUE for new items
     },
   });
 
   const formValues = form.watch();
+
+  // 🆕 Watch auto-calculate state
+  const autoCalculate = form.watch("autoCalculateBudgetUtilized");
 
   // Initialize display values
   useEffect(() => {
@@ -382,6 +391,7 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
       ...values,
       remarks: values.remarks || "",
       categoryId: values.categoryId || undefined,
+      autoCalculateBudgetUtilized: values.autoCalculateBudgetUtilized, // 🆕 Include flag
     };
 
     if (!project) {
@@ -633,6 +643,34 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
             />
           </div>
 
+          {/* 🆕 NEW FIELD: Auto-Calculate Budget Utilization Switch */}
+          <FormField
+            name="autoCalculateBudgetUtilized"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 bg-zinc-50 dark:bg-zinc-900/50">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none flex-1">
+                  <FormLabel className="text-sm font-medium flex items-center gap-2">
+                    Auto-Calculate Budget Utilization
+                    <Badge variant={field.value ? "default" : "secondary"} className="text-xs">
+                      {field.value ? "Auto" : "Manual"}
+                    </Badge>
+                  </FormLabel>
+                  <FormDescription className="text-xs">
+                    {field.value 
+                      ? "Budget utilized is automatically calculated from breakdowns. Manual input is disabled." 
+                      : "Budget utilized can be manually entered. Automatic calculation from breakdowns is disabled."}
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+
           <div className="pt-2 space-y-3">
             <div className="flex items-center justify-between">
               <Button
@@ -649,7 +687,8 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
                     setDisplayUtilized("");
                   }
                 }}
-                className="text-xs flex items-center gap-2 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-orange-700 dark:text-orange-400"
+                disabled={autoCalculate === true}
+                className="text-xs flex items-center gap-2 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-orange-700 dark:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {showManualInput ? (
                   <><MinusCircle className="w-3 h-3" /> Hide Manual Inputs</>
@@ -657,6 +696,11 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
                   <><PlusCircle className="w-3 h-3" /> Input Utilized and Obligated Budget</>
                 )}
               </Button>
+              {autoCalculate && (
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Disabled: Auto-calculate is ON
+                </span>
+              )}
             </div>
 
             {showManualInput && (
@@ -726,10 +770,11 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
                             </span>
                             <Input
                               placeholder="0"
+                              disabled={autoCalculate === true}
                               className={`bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 pl-8 ${isBudgetExceeded
                                 ? "border-orange-500 focus-visible:ring-orange-500"
                                 : "border-zinc-300 dark:border-zinc-700"
-                                }`}
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                               value={displayUtilized}
                               onChange={(e) => {
                                 const value = e.target.value;
@@ -750,6 +795,11 @@ export function ProjectForm({ project, budgetItemId, budgetItemYear, onSave, onC
                             />
                           </div>
                         </FormControl>
+                        {autoCalculate && (
+                          <FormDescription className="text-xs text-blue-600 dark:text-blue-400">
+                            This field is read-only because auto-calculate is enabled
+                          </FormDescription>
+                        )}
                         {isBudgetExceeded && (
                           <p className="text-xs text-orange-500 mt-1">
                             ⚠️ Warning: Utilized budget exceeds allocated budget.

@@ -1,7 +1,8 @@
 // app/dashboard/project/budget/[particularId]/components/ProjectsTable/ProjectContextMenu.tsx
 
 import React, { useRef, useEffect } from "react";
-import { Pin, PinOff, History, FolderOpen, Edit, Trash2 } from "lucide-react";
+import { Pin, PinOff, History, FolderOpen, Edit, Trash2, Calculator } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { ProjectContextMenuState } from "../../types";
 
 interface ProjectContextMenuProps {
@@ -14,6 +15,8 @@ interface ProjectContextMenuProps {
   onDelete: () => void;
   canEdit?: boolean;
   canDelete?: boolean;
+  onToggleAutoCalculate?: (newValue: boolean) => void;
+  isTogglingAutoCalculate?: boolean;
 }
 
 /**
@@ -29,6 +32,8 @@ export function ProjectContextMenu({
   onDelete,
   canEdit = true,
   canDelete = true,
+  onToggleAutoCalculate,
+  isTogglingAutoCalculate = false,
 }: ProjectContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,11 +56,15 @@ export function ProjectContextMenu({
   if (!contextMenu) return null;
 
   const isPinned = 'isPinned' in contextMenu.entity && (contextMenu.entity as any).isPinned;
+  // Get current auto-calculate state (default to true for backward compatibility)
+  const isAutoCalculate = 'autoCalculateBudgetUtilized' in contextMenu.entity 
+    ? (contextMenu.entity as any).autoCalculateBudgetUtilized !== false
+    : true;
 
   return (
     <div
       ref={menuRef}
-      className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-1 z-50 min-w-[180px]"
+      className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-1 z-50 min-w-[220px]"
       style={{ 
         top: `${contextMenu.y}px`, 
         left: `${contextMenu.x}px` 
@@ -81,6 +90,35 @@ export function ProjectContextMenu({
           </>
         )}
       </button>
+
+      {/* 🆕 AUTO-CALCULATE TOGGLE */}
+      {onToggleAutoCalculate && (
+        <div className="border-t border-zinc-200 dark:border-zinc-700 my-1">
+          <div className="px-4 py-2.5 flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+            <div className="flex items-center gap-3 flex-1">
+              <Calculator className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  Auto-Calculate Budget
+                </span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {isAutoCalculate ? "ON" : "OFF"}
+                </span>
+              </div>
+            </div>
+            <Switch
+              checked={isAutoCalculate}
+              onCheckedChange={(checked) => {
+                onToggleAutoCalculate(checked);
+                onClose();
+              }}
+              disabled={isTogglingAutoCalculate}
+              className="ml-2"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Activity Log */}
       <button

@@ -52,6 +52,18 @@ export const budgetTables = {
     ),
     
     /**
+     * 🆕 AUTO-CALCULATION FLAG
+     * When TRUE (default): totalBudgetUtilized is auto-calculated from child projects
+     * When FALSE: totalBudgetUtilized can be manually set and won't be overridden
+     * 
+     * Use Cases:
+     * - Historical data (2024 and earlier): Set to FALSE, enter manual values
+     * - Current/Future data: Set to TRUE for automatic aggregation
+     * - Mixed scenarios: Can be toggled per budget item as needed
+     */
+    autoCalculateBudgetUtilized: v.optional(v.boolean()),
+    
+    /**
      * Whether this budget item is pinned
      */
     isPinned: v.optional(v.boolean()),
@@ -99,7 +111,9 @@ export const budgetTables = {
     .index("yearAndStatus", ["year", "status"])
     .index("isPinned", ["isPinned"])
     .index("pinnedAt", ["pinnedAt"])
-    .index("isDeleted", ["isDeleted"]),
+    .index("isDeleted", ["isDeleted"])
+    // 🆕 Index for auto-calculation flag
+    .index("autoCalculate", ["autoCalculateBudgetUtilized"]),
 
   /**
    * Obligations.

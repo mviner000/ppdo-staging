@@ -11,7 +11,8 @@ export function SpreadsheetFormulaBar({
   selectedCell, 
   formulaBarValue, 
   columns, 
-  onFormulaBarChange 
+  onFormulaBarChange,
+  viewMode
 }: SpreadsheetFormulaBarProps) {
   return (
     <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-2">
@@ -30,6 +31,7 @@ export function SpreadsheetFormulaBar({
         onChange={(e) => onFormulaBarChange(e.target.value)}
         className="h-8 flex-1 border-none bg-transparent px-2 focus-visible:ring-0"
         placeholder=""
+        readOnly={viewMode === "viewer"}
       />
     </div>
   );

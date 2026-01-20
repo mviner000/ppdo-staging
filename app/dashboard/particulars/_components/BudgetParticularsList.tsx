@@ -69,7 +69,9 @@ export function BudgetParticularsList({ selectedYear }: BudgetParticularsListPro
   const budgetParticulars = useQuery(api.budgetParticulars.list, {
     includeInactive: true,
   });
-  const budgetItems = useQuery(api.budgetItems.list);
+  
+  // ✅ Fixed: Pass empty object {} to satisfy the required args parameter
+  const budgetItems = useQuery(api.budgetItems.list, {});
 
   const [searchTerm, setSearchTerm] = useState("");
   const [editingParticular, setEditingParticular] = useState<Doc<"budgetParticulars"> | null>(null);

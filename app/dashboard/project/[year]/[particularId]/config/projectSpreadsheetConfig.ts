@@ -31,6 +31,7 @@ export const createProjectSpreadsheetConfig = (
     enableShare: false,
     showTotalsRow: true,
     showTotalsColumn: true,
+    viewMode: "viewer", // ✅ ADDED: Set to "viewer" for read-only or "editor" for editable
   },
   title: `Projects - ${particular}`,
   accentColor: "#3b82f6",

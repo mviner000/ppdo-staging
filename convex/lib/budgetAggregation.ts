@@ -6,10 +6,12 @@ type MutationCtx = GenericMutationCtx<DataModel>;
 
 /**
  * Calculate and update budgetItem metrics based on child projects
- * ✅ UPDATED: 
- * 1. Aggregates `obligatedBudget` and `totalBudgetUtilized` from projects.
- * 2. Recalculates `utilizationRate` based on Budget's allocated vs Projects' utilized.
- * 3. Excludes soft-deleted (trashed) projects.
+ * ✅ UPDATED WITH AUTO-CALCULATION FLAG:
+ * 1. Checks `autoCalculateBudgetUtilized` flag before updating totalBudgetUtilized
+ * 2. When flag is TRUE (default): Aggregates from projects (auto-calculation)
+ * 3. When flag is FALSE: Preserves manual value (no auto-calculation)
+ * 4. Always calculates obligatedBudget, status counts, and status (regardless of flag)
+ * 5. Excludes soft-deleted (trashed) projects
  */
 export async function recalculateBudgetItemMetrics(
   ctx: MutationCtx,
@@ -26,6 +28,9 @@ export async function recalculateBudgetItemMetrics(
   const budgetItem = await ctx.db.get(budgetItemId);
   if (!budgetItem) throw new Error("Budget item not found");
 
+  // 🆕 Check auto-calculation flag (defaults to TRUE for backward compatibility)
+  const shouldAutoCalculate = budgetItem.autoCalculateBudgetUtilized !== false;
+
   // Initialize Aggregators
   let totalObligated = 0;
   let totalUtilized = 0;
@@ -33,24 +38,53 @@ export async function recalculateBudgetItemMetrics(
 
   // Aggregate Data from Projects
   for (const project of projects) {
-    // Sum Financials (aggregating the already aggregated values from projects)
+    // Sum Obligated Budget (always calculated)
     totalObligated += (project.obligatedBudget || 0);
-    totalUtilized += (project.totalBudgetUtilized || 0);
+    
+    // 🆕 Sum Utilized Budget (only if we're auto-calculating)
+    if (shouldAutoCalculate) {
+      totalUtilized += (project.totalBudgetUtilized || 0);
+    }
 
-    // Count Statuses
+    // Count Statuses (always calculated)
     const status = project.status;
     if (status === "completed") statusCounts.completed++;
     else if (status === "delayed") statusCounts.delayed++;
     else if (status === "ongoing") statusCounts.onTrack++;
   }
 
-  // Calculate Dynamic Utilization Rate
-  // Formula: (Total Utilized from Projects / Budget Allocated) * 100
-  const utilizationRate = budgetItem.totalBudgetAllocated > 0
-    ? (totalUtilized / budgetItem.totalBudgetAllocated) * 100
-    : 0;
+  // 🆕 Prepare update object based on auto-calculation flag
+  const updateData: any = {
+    obligatedBudget: totalObligated,
+    projectCompleted: statusCounts.completed,
+    projectDelayed: statusCounts.delayed,
+    projectsOnTrack: statusCounts.onTrack,
+    updatedAt: Date.now(),
+    updatedBy: userId,
+  };
 
-  // Auto-calculate Status
+  // 🆕 Only update totalBudgetUtilized and utilizationRate if auto-calculating
+  if (shouldAutoCalculate) {
+    // Calculate Dynamic Utilization Rate
+    // Formula: (Total Utilized from Projects / Budget Allocated) * 100
+    const utilizationRate = budgetItem.totalBudgetAllocated > 0
+      ? (totalUtilized / budgetItem.totalBudgetAllocated) * 100
+      : 0;
+
+    updateData.totalBudgetUtilized = totalUtilized;
+    updateData.utilizationRate = utilizationRate;
+  } else {
+    // 🆕 Manual mode: Recalculate utilizationRate based on existing manual value
+    const manualUtilized = budgetItem.totalBudgetUtilized || 0;
+    const utilizationRate = budgetItem.totalBudgetAllocated > 0
+      ? (manualUtilized / budgetItem.totalBudgetAllocated) * 100
+      : 0;
+    
+    updateData.utilizationRate = utilizationRate;
+    // Note: totalBudgetUtilized is NOT updated, preserving manual input
+  }
+
+  // Auto-calculate Status (always calculated)
   let status: "completed" | "delayed" | "ongoing";
   if (projects.length === 0) {
     status = "ongoing"; // Default
@@ -60,27 +94,20 @@ export async function recalculateBudgetItemMetrics(
     else if (statusCounts.completed > 0) status = "completed";
     else status = "ongoing";
   }
+  updateData.status = status;
 
-  // Update Budget Item with Aggregated Values
-  await ctx.db.patch(budgetItemId, {
-    obligatedBudget: totalObligated,
-    totalBudgetUtilized: totalUtilized,
-    utilizationRate: utilizationRate,
-    projectCompleted: statusCounts.completed,
-    projectDelayed: statusCounts.delayed,
-    projectsOnTrack: statusCounts.onTrack,
-    status: status,
-    updatedAt: Date.now(),
-    updatedBy: userId,
-  });
+  // Update Budget Item with Calculated Values
+  await ctx.db.patch(budgetItemId, updateData);
 
   return {
     projectsCount: projects.length,
     ...statusCounts,
     totalObligated,
-    totalUtilized,
-    utilizationRate,
+    totalUtilized: shouldAutoCalculate ? totalUtilized : budgetItem.totalBudgetUtilized,
+    utilizationRate: updateData.utilizationRate,
     status,
+    autoCalculated: shouldAutoCalculate,
+    mode: shouldAutoCalculate ? "auto" : "manual",
   };
 }
 

@@ -27,6 +27,7 @@ export const BUDGET_SPREADSHEET_CONFIG: SpreadsheetConfig = {
     enableShare: false,
     showTotalsRow: true,
     showTotalsColumn: true,
+    viewMode: "viewer", // ✅ Added: Required property for SpreadsheetFeatures
   },
   title: "Budget Tracking",
   accentColor: "#3b82f6",

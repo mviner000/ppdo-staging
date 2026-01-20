@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 export function TimeLocation() {
   const [currentTime, setCurrentTime] = useState<string>("");
-  const [location, setLocation] = useState<string>("Getting location...");
+  const [location, setLocation] = useState<string>("Tarlac, Philippines");
 
   // Update time every second
   useEffect(() => {
@@ -30,7 +30,6 @@ export function TimeLocation() {
   // Get user location
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocation("Location not supported");
       return;
     }
 
@@ -69,18 +68,16 @@ export function TimeLocation() {
                 : address.country;
             }
 
-            setLocation(locationString || "Location found");
-          } else {
-            setLocation("Tarlac, Philippines");
+            setLocation(locationString || "Tarlac, Philippines");
           }
         } catch (error) {
-          console.error("Error getting location:", error);
-          setLocation("Tarlac, Philippines");
+          // Silently fail and keep default location
+          console.debug("Location unavailable, using default");
         }
       },
-      (error) => {
-        console.error("Geolocation error:", error);
-        setLocation("Tarlac, Philippines");
+      () => {
+        // Silently fail and keep default location
+        console.debug("Geolocation denied, using default");
       },
       {
         enableHighAccuracy: false,

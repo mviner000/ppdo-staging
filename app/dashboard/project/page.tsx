@@ -1,3 +1,5 @@
+// app/dashboard/project/page.tsx
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -43,8 +45,8 @@ export default function ProjectDashboardLanding() {
   // Fetch fiscal years
   const fiscalYears = useQuery(api.fiscalYears.list, { includeInactive: false });
   
-  // Fetch data
-  const allBudgetItems = useQuery(api.budgetItems.list);
+  // ✅ Fixed: Pass empty object {} to satisfy the required args parameter
+  const allBudgetItems = useQuery(api.budgetItems.list, {});
   const allProjects = useQuery(api.projects.list, {});
   const allBreakdowns = useQuery(api.govtProjects.getProjectBreakdowns, {});
 
@@ -142,7 +144,7 @@ export default function ProjectDashboardLanding() {
   };
 
   if (isLoadingAccess || isLoadingYears || isLoadingData) {
-    return <LoadingState message="Loading fiscal years..." />;
+    return <LoadingState message="Loading years..." />;
   }
 
   if (!canAccess) {
@@ -161,7 +163,7 @@ export default function ProjectDashboardLanding() {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            Fiscal Years
+            Years
           </h1>
           <div className="flex items-center gap-2">
             {sortedYears.length > 0 && (

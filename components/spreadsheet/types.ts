@@ -1,6 +1,7 @@
 // app/components/spreadsheet/types.ts
 
 import { Id } from "@/convex/_generated/dataModel";
+import { RefObject } from "react";
 
 /**
  * Core spreadsheet types
@@ -33,6 +34,7 @@ export interface SpreadsheetFeatures {
   enableShare: boolean;
   showTotalsRow: boolean;
   showTotalsColumn: boolean;
+  viewMode: "viewer" | "editor"; // New: Control edit permissions
 }
 
 /**
@@ -87,6 +89,11 @@ export interface SpreadsheetHeaderProps {
 
 export interface SpreadsheetMenuBarProps {
   onExport?: () => void;
+  selectedColumn: number;
+  selectedColumnType: "text" | "currency" | "percentage" | "number";
+  columnAlignment?: "left" | "center" | "right";
+  onAlignmentChange: (alignment: "left" | "center" | "right") => void;
+  onTextTransform: (transform: "uppercase" | "lowercase" | "camelCase" | "reset") => void;
 }
 
 export interface SpreadsheetFormulaBarProps {
@@ -94,6 +101,7 @@ export interface SpreadsheetFormulaBarProps {
   formulaBarValue: string;
   columns: string[];
   onFormulaBarChange: (value: string) => void;
+  viewMode: "viewer" | "editor";
 }
 
 export interface SpreadsheetGridProps {
@@ -104,10 +112,15 @@ export interface SpreadsheetGridProps {
   cellData: CellData;
   editingCell: string | null;
   totalRowNumber: number;
+  columnWidths: number[];
+  columnAlignments: ("left" | "center" | "right")[];
   onCellClick: (row: number, col: number) => void;
   onCellDoubleClick: (row: number, col: number) => void;
   onCellChange: (row: number, col: number, value: string) => void;
   onEditingCellChange: (cell: string | null) => void;
+  onResizeStart: (colIndex: number, e: React.MouseEvent) => void;
+  onDoubleClickResize: (colIndex: number) => void;
+  containerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export interface SpreadsheetCellProps {
@@ -122,6 +135,8 @@ export interface SpreadsheetCellProps {
   dataCellAttr?: string;
   isDisabled?: boolean;
   isTotalRow?: boolean;
+  width?: number;
+  alignment?: "left" | "center" | "right";
 }
 
 export interface ExportModalProps {

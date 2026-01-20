@@ -50,6 +50,18 @@ export const projectTables = {
     totalBudgetUtilized: v.number(),
     utilizationRate: v.number(),
     
+    /**
+     * 🆕 AUTO-CALCULATION FLAG
+     * When TRUE (default): totalBudgetUtilized is auto-calculated from child breakdowns
+     * When FALSE: totalBudgetUtilized can be manually set and won't be overridden
+     * 
+     * Use Cases:
+     * - Historical data (2024 and earlier): Set to FALSE, enter manual values
+     * - Current/Future data: Set to TRUE for automatic aggregation
+     * - Mixed scenarios: Can be toggled per project as needed
+     */
+    autoCalculateBudgetUtilized: v.optional(v.boolean()),
+    
     // ============================================================================
     // PROJECT METRICS (matches budgetItems structure)
     // ============================================================================
@@ -119,7 +131,9 @@ export const projectTables = {
     .index("isPinned", ["isPinned"])
     .index("pinnedAt", ["pinnedAt"])
     .index("year", ["year"])
-    .index("departmentAndStatus", ["departmentId", "status"]),
+    .index("departmentAndStatus", ["departmentId", "status"])
+    // 🆕 Index for auto-calculation flag
+    .index("autoCalculate", ["autoCalculateBudgetUtilized"]),
 
   /**
    * Remarks.

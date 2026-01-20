@@ -9,12 +9,13 @@ import { internal } from "./_generated/api";
 
 /**
  * Get ACTIVE projects (Hidden Trash)
- * 🆕 ENHANCED: Added category filtering
+ * 🆕 ENHANCED: Added category and year filtering
  */
 export const list = query({
   args: {
     budgetItemId: v.optional(v.id("budgetItems")),
     categoryId: v.optional(v.id("projectCategories")),
+    year: v.optional(v.number()), // ✨ NEW: Year filter
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -47,6 +48,11 @@ export const list = query({
         .filter((q) => q.neq(q.field("isDeleted"), true))
         .order("desc")
         .collect();
+    }
+
+    // ✨ Filter by year if provided (client-side filter since no year index exists)
+    if (args.year !== undefined) {
+      projects = projects.filter((project) => project.year === args.year);
     }
 
     return projects;
@@ -267,13 +273,14 @@ export const getForValidation = query({
       budgetItemId: project.budgetItemId,
       categoryId: project.categoryId,
       status: project.status,
+      autoCalculateBudgetUtilized: project.autoCalculateBudgetUtilized,
     };
   },
 });
 
 /**
  * Create a new project
- * 🆕 ENHANCED: Validates category, updates category usage count
+ * 🆕 ENHANCED: Supports autoCalculateBudgetUtilized flag
  * ✅ RETURNS STANDARDIZED ApiResponse
  */
 export const create = mutation({
@@ -289,6 +296,7 @@ export const create = mutation({
     year: v.optional(v.number()),
     targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),
+    autoCalculateBudgetUtilized: v.optional(v.boolean()), // 🆕 NEW FLAG
   },
   handler: async (ctx, args) => {
     try {
@@ -418,6 +426,9 @@ export const create = mutation({
         year: args.year,
         targetDateCompletion: args.targetDateCompletion,
         projectManagerId: args.projectManagerId,
+        autoCalculateBudgetUtilized: args.autoCalculateBudgetUtilized !== undefined 
+          ? args.autoCalculateBudgetUtilized 
+          : true, // 🆕 Default to TRUE for new projects
         createdBy: userId,
         createdAt: now,
         updatedAt: now,
@@ -484,7 +495,7 @@ export const create = mutation({
 
 /**
  * Update an existing project
- * 🆕 ENHANCED: Validates category changes, updates category usage counts
+ * 🆕 ENHANCED: Supports autoCalculateBudgetUtilized flag
  */
 export const update = mutation({
   args: {
@@ -500,6 +511,7 @@ export const update = mutation({
     year: v.optional(v.number()),
     targetDateCompletion: v.optional(v.number()),
     projectManagerId: v.optional(v.id("users")),
+    autoCalculateBudgetUtilized: v.optional(v.boolean()), // 🆕 NEW FLAG
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -631,6 +643,7 @@ export const update = mutation({
       year: args.year,
       targetDateCompletion: args.targetDateCompletion,
       projectManagerId: args.projectManagerId,
+      autoCalculateBudgetUtilized: args.autoCalculateBudgetUtilized, // 🆕 NEW FLAG
       updatedAt: now,
       updatedBy: userId,
     });
@@ -663,6 +676,147 @@ export const update = mutation({
     await recalculateProjectMetrics(ctx, args.id, userId);
 
     return args.id;
+  },
+});
+
+/**
+ * 🆕 NEW MUTATION: Toggle Auto-Calculate Flag for Project
+ * This allows switching between auto-calculation and manual mode
+ */
+export const toggleAutoCalculate = mutation({
+  args: {
+    id: v.id("projects"),
+    autoCalculate: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Project not found");
+
+    const now = Date.now();
+
+    // Update the flag
+    await ctx.db.patch(args.id, {
+      autoCalculateBudgetUtilized: args.autoCalculate,
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
+    // If switching TO auto-calculate, trigger recalculation
+    if (args.autoCalculate) {
+      await recalculateProjectMetrics(ctx, args.id, userId);
+    }
+    // If switching TO manual, just recalculate the utilization rate based on current values
+    else {
+      const utilizationRate = existing.totalBudgetAllocated > 0
+        ? (existing.totalBudgetUtilized / existing.totalBudgetAllocated) * 100
+        : 0;
+      
+      await ctx.db.patch(args.id, {
+        utilizationRate,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+    }
+
+    const updatedProject = await ctx.db.get(args.id);
+
+    // Log the change
+    await logProjectActivity(ctx, userId, {
+      action: "updated",
+      projectId: args.id,
+      previousValues: existing,
+      newValues: updatedProject,
+      reason: args.reason || `Switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+    });
+
+    // Update parent budget item if exists
+    if (existing.budgetItemId) {
+      await recalculateBudgetItemMetrics(ctx, existing.budgetItemId, userId);
+    }
+
+    return {
+      success: true,
+      mode: args.autoCalculate ? "auto" : "manual",
+      message: args.autoCalculate 
+        ? "Auto-calculation enabled. Budget utilized will be calculated from breakdowns."
+        : "Manual mode enabled. Budget utilized can be entered manually.",
+    };
+  },
+});
+
+/**
+ * 🆕 NEW MUTATION: Bulk Toggle Auto-Calculate
+ * Toggle auto-calculate for multiple projects at once
+ */
+export const bulkToggleAutoCalculate = mutation({
+  args: {
+    ids: v.array(v.id("projects")),
+    autoCalculate: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+      throw new Error("Unauthorized: Only admins can perform bulk actions.");
+    }
+
+    const now = Date.now();
+    let successCount = 0;
+    const affectedBudgetItems = new Set<string>();
+
+    for (const id of args.ids) {
+      const existing = await ctx.db.get(id);
+      if (!existing || existing.isDeleted) continue;
+
+      // Update the flag
+      await ctx.db.patch(id, {
+        autoCalculateBudgetUtilized: args.autoCalculate,
+        updatedAt: now,
+        updatedBy: userId,
+      });
+
+      // If switching TO auto-calculate, trigger recalculation
+      if (args.autoCalculate) {
+        await recalculateProjectMetrics(ctx, id, userId);
+      }
+
+      const updatedProject = await ctx.db.get(id);
+
+      // Log the change
+      await logProjectActivity(ctx, userId, {
+        action: "updated",
+        projectId: id,
+        previousValues: existing,
+        newValues: updatedProject,
+        reason: args.reason || `Bulk switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+      });
+
+      // Track affected budget items
+      if (existing.budgetItemId) {
+        affectedBudgetItems.add(existing.budgetItemId);
+      }
+
+      successCount++;
+    }
+
+    // Recalculate all affected budget items
+    for (const budgetItemId of affectedBudgetItems) {
+      await recalculateBudgetItemMetrics(ctx, budgetItemId as any, userId);
+    }
+
+    return {
+      success: true,
+      count: successCount,
+      mode: args.autoCalculate ? "auto" : "manual",
+      message: `${successCount} project(s) switched to ${args.autoCalculate ? 'auto-calculate' : 'manual'} mode`,
+    };
   },
 });
 

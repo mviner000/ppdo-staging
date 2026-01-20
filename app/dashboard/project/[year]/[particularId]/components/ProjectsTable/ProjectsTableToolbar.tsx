@@ -9,7 +9,8 @@ import {
   Printer, 
   FileSpreadsheet,
   CheckCircle2,
-  Share2
+  Share2,
+  Calculator
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,9 @@ interface ProjectsTableToolbarProps {
   pendingRequestsCount: number | undefined;
   onOpenShare: () => void;
   
+  // 🆕 NEW: Auto-Calculate Toggle
+  onBulkToggleAutoCalculate?: () => void;
+  
   // Add Project
   onAddProject?: () => void;
   
@@ -92,6 +96,7 @@ export function ProjectsTableToolbar({
   isAdmin,
   pendingRequestsCount,
   onOpenShare,
+  onBulkToggleAutoCalculate,
   onAddProject,
   expandButton,
   accentColor,
@@ -166,6 +171,19 @@ export function ProjectsTableToolbar({
           />
         )}
 
+        {/* 🆕 NEW: Bulk Auto-Calculate Toggle (only when items are selected) */}
+        {selectedCount > 0 && onBulkToggleAutoCalculate && (
+          <Button
+            onClick={onBulkToggleAutoCalculate}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Calculator className="w-4 h-4" />
+            Toggle Auto-Calculate
+          </Button>
+        )}
+
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Trash Button */}
@@ -204,7 +222,7 @@ export function ProjectsTableToolbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Share Button (Admin Only) - NEW */}
+        {/* Share Button (Admin Only) */}
         {isAdmin && (
           <Button
             onClick={onOpenShare}

@@ -17,6 +17,7 @@ import { BudgetTableRow } from "./table/BudgetTableRow";
 import { BudgetTableTotalsRow } from "./table/BudgetTableTotalsRow";
 import { BudgetTableEmptyState } from "./table/BudgetTableEmptyState";
 import { BudgetContextMenu } from "./table/BudgetContextMenu";
+import { BudgetBulkToggleDialog } from "./BudgetBulkToggleDialog";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import {
@@ -87,6 +88,10 @@ export function BudgetTrackingTable({
   const pendingRequestsCount = useQuery(api.accessRequests.getPendingCount);
   const togglePinBudgetItem = useMutation(api.budgetItems.togglePin);
   const bulkMoveToTrash = useMutation(api.budgetItems.bulkMoveToTrash);
+  
+  // 🆕 NEW MUTATIONS: Auto-Calculate Toggle
+  const toggleAutoCalculate = useMutation(api.budgetItems.toggleAutoCalculate);
+  const bulkToggleAutoCalculate = useMutation(api.budgetItems.bulkToggleAutoCalculate);
 
   // ============================================================================
   // MODAL STATES
@@ -99,11 +104,17 @@ export function BudgetTrackingTable({
   const [selectedItem, setSelectedItem] = useState<BudgetItem | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // 🆕 NEW MODAL STATE: Bulk Auto-Calculate Toggle Dialog
+  const [showBulkToggleDialog, setShowBulkToggleDialog] = useState(false);
+  const [isBulkToggling, setIsBulkToggling] = useState(false);
 
   // ============================================================================
   // CONTEXT MENU STATE
   // ============================================================================
   const [contextMenu, setContextMenu] = useState<BudgetContextMenuState | null>(null);
+  // 🆕 NEW STATE: Track if currently toggling auto-calculate in context menu
+  const [isTogglingAutoCalculate, setIsTogglingAutoCalculate] = useState(false);
 
   // ============================================================================
   // FILTER & SORT STATES
@@ -363,6 +374,73 @@ export function BudgetTrackingTable({
     setContextMenu(null);
   };
 
+  // 🆕 NEW HANDLER: Toggle Auto-Calculate from Context Menu
+  const handleToggleAutoCalculate = async (item: BudgetItem, newValue: boolean) => {
+    setIsTogglingAutoCalculate(true);
+    setContextMenu(null);
+    
+    try {
+      const toastId = toast.loading("Updating auto-calculate mode...");
+      
+      await toggleAutoCalculate({
+        id: item.id as Id<"budgetItems">,
+        autoCalculate: newValue,
+      });
+      
+      toast.dismiss(toastId);
+      toast.success(`Switched to ${newValue ? 'auto-calculate' : 'manual'} mode`, {
+        description: newValue 
+          ? "Budget utilized will be calculated from children" 
+          : "You can now enter budget utilized manually"
+      });
+    } catch (error) {
+      console.error("Error toggling auto-calculate:", error);
+      toast.error("Failed to toggle auto-calculate", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setIsTogglingAutoCalculate(false);
+    }
+  };
+
+  // 🆕 NEW HANDLER: Open Bulk Toggle Dialog
+  const handleOpenBulkToggleDialog = () => {
+    if (selectedIds.size === 0) {
+      toast.error("No items selected");
+      return;
+    }
+    setShowBulkToggleDialog(true);
+  };
+
+  // 🆕 NEW HANDLER: Bulk Toggle Auto-Calculate
+  const handleBulkToggleAutoCalculate = async (autoCalculate: boolean, reason?: string) => {
+    setIsBulkToggling(true);
+    
+    try {
+      const result = await bulkToggleAutoCalculate({
+        ids: Array.from(selectedIds) as Id<"budgetItems">[],
+        autoCalculate,
+        reason,
+      });
+      
+      const count = (result as any).count || selectedIds.size;
+      
+      toast.success(`Updated ${count} budget item(s)`, {
+        description: `All items switched to ${autoCalculate ? 'auto-calculate' : 'manual'} mode`
+      });
+      
+      setSelectedIds(new Set());
+      setShowBulkToggleDialog(false);
+    } catch (error) {
+      console.error("Error bulk toggling auto-calculate:", error);
+      toast.error("Failed to update items", {
+        description: error instanceof Error ? error.message : "Some items could not be updated"
+      });
+    } finally {
+      setIsBulkToggling(false);
+    }
+  };
+
   const handleSave = (
     formData: Omit<
       BudgetItem,
@@ -529,7 +607,7 @@ export function BudgetTrackingTable({
   return (
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        {/* Toolbar - Now with column visibility and export */}
+        {/* Toolbar - Now with Bulk Auto-Calculate Toggle */}
         <BudgetTableToolbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -547,6 +625,7 @@ export function BudgetTrackingTable({
           onOpenShare={() => setShowShareModal(true)}
           onOpenTrash={onOpenTrash || (() => {})}
           onBulkTrash={handleBulkTrash}
+          onBulkToggleAutoCalculate={handleOpenBulkToggleDialog}
           onAddNew={onAdd ? () => setShowAddModal(true) : undefined}
           expandButton={expandButton}
           accentColor={accentColorValue}
@@ -618,7 +697,7 @@ export function BudgetTrackingTable({
         </div>
       </div>
       
-      {/* Context Menu */}
+      {/* Context Menu - Now with Auto-Calculate Toggle */}
       {contextMenu && (
         <BudgetContextMenu
           ref={contextMenuRef}
@@ -629,8 +708,19 @@ export function BudgetTrackingTable({
           onPin={handlePin}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onToggleAutoCalculate={handleToggleAutoCalculate}
+          isTogglingAutoCalculate={isTogglingAutoCalculate}
         />
       )}
+      
+      {/* 🆕 NEW MODAL: Bulk Auto-Calculate Toggle Dialog */}
+      <BudgetBulkToggleDialog
+        isOpen={showBulkToggleDialog}
+        onClose={() => setShowBulkToggleDialog(false)}
+        onConfirm={handleBulkToggleAutoCalculate}
+        selectedCount={selectedIds.size}
+        isLoading={isBulkToggling}
+      />
       
       {/* Modals */}
       {showAddModal && (

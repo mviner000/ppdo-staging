@@ -5,8 +5,9 @@ import { api } from "@/convex/_generated/api";
 import { BudgetItem, BudgetItemFromDB } from "@/types/types";
 
 export function useBudgetData() {
-  const budgetItemsFromDB = useQuery(api.budgetItems.list);
-  const statistics = useQuery(api.budgetItems.getStatistics);
+  // ✅ Fixed: Pass empty object {} to satisfy the required args parameter
+  const budgetItemsFromDB = useQuery(api.budgetItems.list, {});
+  const statistics = useQuery(api.budgetItems.getStatistics, {});
 
   const budgetItems: BudgetItem[] =
     budgetItemsFromDB?.map((item: BudgetItemFromDB) => ({
