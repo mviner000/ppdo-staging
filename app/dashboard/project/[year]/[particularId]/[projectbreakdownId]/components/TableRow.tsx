@@ -2,7 +2,12 @@
 
 "use client";
 
-import { Edit, Trash2, Eye } from "lucide-react";
+import { useState } from "react";
+import { Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -10,6 +15,13 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Breakdown, ColumnConfig } from "../types/breakdown.types";
 import { formatCellValue } from "../utils/formatters";
 
@@ -38,6 +50,29 @@ export function TableRow({
   onDelete,
   onStartRowResize,
 }: TableRowProps) {
+  const [isHoveringStatus, setIsHoveringStatus] = useState(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const updateBreakdown = useMutation(api.govtProjects.updateProjectBreakdown);
+
+  const handleStatusChange = async (newStatus: "completed" | "ongoing" | "delayed") => {
+    setIsUpdating(true);
+    try {
+      await updateBreakdown({
+        breakdownId: breakdown._id as Id<"govtProjectBreakdowns">,
+        status: newStatus,
+        reason: "Status updated via quick dropdown",
+      });
+      toast.success("Status updated successfully!");
+      setIsSelectOpen(false);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -74,33 +109,98 @@ export function TableRow({
           </td>
 
           {/* Data Cells */}
-          {columns.map(column => {
+          {columns.map((column) => {
             const cellValue = formatCellValue(breakdown[column.key], column, breakdown);
             const isStatusColumn = column.key === 'status';
             
             return (
               <td
                 key={column.key}
-                className="px-2 sm:px-3 py-2 text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300"
+                className="px-2 sm:px-3 py-2 text-[11px] sm:text-xs text-zinc-900 dark:text-zinc-100"
                 style={{ 
                   border: '1px solid rgb(228 228 231 / 1)',
                   textAlign: column.align,
                 }}
+                onMouseEnter={() => isStatusColumn && !isUpdating && setIsHoveringStatus(true)}
+                onMouseLeave={() => {
+                  if (isStatusColumn && !isSelectOpen && !isUpdating) {
+                    setIsHoveringStatus(false);
+                  }
+                }}
               >
                 {isStatusColumn && cellValue !== '-' ? (
-                  <span
-                    className="inline-flex px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded"
-                    style={{
-                      backgroundColor: 
-                        cellValue.toLowerCase() === 'completed' ? 'rgb(24 24 27 / 1)' :
-                        cellValue.toLowerCase() === 'ongoing' ? 'rgb(63 63 70 / 1)' :
-                        cellValue.toLowerCase() === 'delayed' ? 'rgb(82 82 91 / 1)' :
-                        'rgb(113 113 122 / 1)',
-                      color: 'rgb(250 250 250 / 1)',
-                    }}
+                  <div 
+                    className="flex items-center justify-center relative"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {cellValue}
-                  </span>
+                    {isUpdating ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 
+                          className="animate-spin text-zinc-500 dark:text-zinc-400" 
+                          style={{ width: '14px', height: '14px' }}
+                        />
+                        <span className="text-zinc-500 dark:text-zinc-400 text-[11px] sm:text-xs">
+                          Updating...
+                        </span>
+                      </div>
+                    ) : (isHoveringStatus || isSelectOpen) ? (
+                      <Select
+                        value={breakdown.status}
+                        onValueChange={handleStatusChange}
+                        open={isSelectOpen}
+                        onOpenChange={(open) => {
+                          setIsSelectOpen(open);
+                          if (!open) {
+                            setIsHoveringStatus(false);
+                          }
+                        }}
+                        disabled={isUpdating}
+                      >
+                        <SelectTrigger 
+                          className="cursor-pointer font-semibold py-0 text-[11px] sm:text-xs border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ 
+                            width: '120px',
+                            fontSize: '12px',
+                            height: '26px',
+                            margin: '0px',
+                            paddingTop: '4px',
+                            paddingBottom: '4px',
+                            paddingRight: '2px',
+                          }}
+                        >
+                          <SelectValue>
+                            <span className="text-zinc-900 dark:text-zinc-100">
+                              {cellValue}
+                            </span>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="min-w-[110px]">
+                          <SelectItem 
+                            value="completed" 
+                            className="text-xs cursor-pointer"
+                          >
+                            <span className="text-zinc-900 dark:text-zinc-100">Completed</span>
+                          </SelectItem>
+                          <SelectItem 
+                            value="ongoing" 
+                            className="text-xs cursor-pointer"
+                          >
+                            <span className="text-zinc-900 dark:text-zinc-100">Ongoing</span>
+                          </SelectItem>
+                          <SelectItem 
+                            value="delayed" 
+                            className="text-xs cursor-pointer"
+                          >
+                            <span className="text-zinc-900 dark:text-zinc-100">Delayed</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {cellValue}
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="truncate block">{cellValue}</span>
                 )}

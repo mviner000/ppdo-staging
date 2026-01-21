@@ -25,6 +25,10 @@ export function formatCellValue(
     case "number":
       return formatPercentage(value);
     
+    case "status":
+      // Return capitalized plain text
+      return String(value).charAt(0).toUpperCase() + String(value).slice(1);
+    
     default:
       // Special case for municipality field
       if (column.key === "municipality") {

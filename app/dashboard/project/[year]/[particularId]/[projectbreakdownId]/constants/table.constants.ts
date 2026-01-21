@@ -5,7 +5,7 @@ import { ColumnConfig } from "../types/breakdown.types";
 export const TABLE_IDENTIFIER = "govtProjectBreakdowns";
 
 // 🆕 UPDATED: Compact row height
-export const DEFAULT_ROW_HEIGHT = 32; // Changed from 48
+export const DEFAULT_ROW_HEIGHT = 42; // Changed from 48
 
 // 🆕 UPDATED: Minimum heights for resizing
 export const MIN_COLUMN_WIDTH = 80;

@@ -26,18 +26,16 @@ export function TableHeader({
 }: TableHeaderProps) {
   return (
     <thead 
-      className="sticky top-0 z-10"
-      style={{ 
-        backgroundColor: 'rgb(250 250 250 / 1)',
-      }}
+      className="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-800"
     >
       <tr>
         {/* Row Number Column */}
         <th 
-          className="text-center py-2 text-[11px] sm:text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide"
+          className="text-center py-2 text-[11px] sm:text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-wide"
           style={{ 
             width: '48px',
             border: '1px solid rgb(228 228 231 / 1)',
+            borderColor: 'rgb(228 228 231 / 1)',
           }}
         >
           #
@@ -51,7 +49,7 @@ export function TableHeader({
             onDragStart={() => onDragStart(index)}
             onDragOver={onDragOver}
             onDrop={() => onDrop(index)}
-            className={`relative px-2 sm:px-3 py-2 text-zinc-700 dark:text-zinc-300 ${
+            className={`relative px-2 sm:px-3 py-2 text-zinc-700 dark:text-zinc-200 ${
               canEditLayout ? "cursor-move" : ""
             }`}
             style={{ 
@@ -95,7 +93,7 @@ export function TableHeader({
 
         {/* Actions Column */}
         <th 
-          className="text-center py-2 text-[11px] sm:text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide"
+          className="text-center py-2 text-[11px] sm:text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-wide"
           style={{ 
             width: '64px',
             border: '1px solid rgb(228 228 231 / 1)',

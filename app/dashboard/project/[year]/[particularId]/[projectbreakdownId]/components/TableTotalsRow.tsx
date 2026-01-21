@@ -18,14 +18,11 @@ export function TableTotalsRow({
 }: TableTotalsRowProps) {
   return (
     <tr
-      className="sticky bottom-0"
-      style={{ 
-        backgroundColor: 'rgb(250 250 250 / 1)',
-      }}
+      className="sticky bottom-0 bg-zinc-50 dark:bg-zinc-800"
     >
       {/* Empty Row Number Cell */}
       <td 
-        className="text-center py-2 text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-300"
+        className="text-center py-2 text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-200"
         style={{ 
           border: '2px solid rgb(228 228 231 / 1)',
         }}
@@ -46,7 +43,7 @@ export function TableTotalsRow({
         return (
           <td
             key={column.key}
-            className="px-2 sm:px-3 py-2 font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300"
+            className="px-2 sm:px-3 py-2 font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-200"
             style={{ 
               border: '2px solid rgb(228 228 231 / 1)',
               textAlign: column.align,
@@ -59,7 +56,7 @@ export function TableTotalsRow({
 
       {/* Total Label */}
       <td 
-        className="text-center font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300 uppercase tracking-wide"
+        className="text-center font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-200 uppercase tracking-wide"
         style={{ 
           border: '2px solid rgb(228 228 231 / 1)',
         }}
