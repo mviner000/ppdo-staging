@@ -29,7 +29,7 @@ export const trustFundTables = {
     /**
      * Date when the trust fund was received
      */
-    dateReceived: v.optional(v.number()), // Timestamp - NOW OPTIONAL
+    dateReceived: v.optional(v.number()), // Timestamp - OPTIONAL
     
     /**
      * Financial tracking fields
@@ -46,22 +46,25 @@ export const trustFundTables = {
     utilizationRate: v.optional(v.number()),
     
     /**
+     * Project Status
+     * Tracks the current state of the trust fund project
+     */
+    status: v.optional(
+      v.union(
+        v.literal("active"), // Legacy value - kept for backward compatibility
+        v.literal("not_available"),
+        v.literal("not_yet_started"),
+        v.literal("ongoing"),
+        v.literal("completed")
+      )
+    ),
+    
+    /**
      * Optional fields
      */
     remarks: v.optional(v.string()),
     year: v.optional(v.number()), // Fiscal year
     fiscalYear: v.optional(v.number()),
-    
-    /**
-     * Status tracking
-     */
-    status: v.optional(
-      v.union(
-        v.literal("active"),
-        v.literal("completed"),
-        v.literal("pending")
-      )
-    ),
     
     /**
      * Pin functionality

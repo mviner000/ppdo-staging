@@ -49,7 +49,7 @@ export function ParticularPageHeader({
               {particularFullName}
             </h1>
             <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Projects under {particularFullName} for fiscal year {year}
+              Projects under {particularFullName} for year {year}
             </p>
           </div>
         </div>

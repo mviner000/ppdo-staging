@@ -173,7 +173,7 @@ export function BudgetTableHeader({
               className="group flex items-center gap-2 ml-auto hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
-                Budget Allocated
+                Allocated Budget
               </span>
               <SortIcon field="totalBudgetAllocated" />
             </button>
@@ -203,7 +203,7 @@ export function BudgetTableHeader({
               className="group flex items-center gap-2 ml-auto hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
-                Budget Utilized
+                Utilized Budget
               </span>
               <SortIcon field="totalBudgetUtilized" />
             </button>

@@ -1,4 +1,4 @@
-// app/dashboard/trust-funds/components/TrustFundForm.tsx
+// app/dashboard/trust-funds/[year]/components/TrustFundForm.tsx
 
 "use client";
 
@@ -18,10 +18,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TrustFund } from "@/types/trustFund.types";
 import { ImplementingOfficeSelector } from "@/app/dashboard/project/[year]/[particularId]/components/ImplementingOfficeSelector";
 
-// ✅ FIXED: Made dateReceived optional in schema
+// UPDATED: Added "active" to the enum to match the UI and Schema
 const trustFundSchema = z.object({
   projectTitle: z.string().min(1, { message: "Project title is required" }),
   officeInCharge: z.string().min(1, { message: "Office in charge is required" }),
@@ -29,6 +36,7 @@ const trustFundSchema = z.object({
   received: z.number().min(0, { message: "Must be 0 or greater" }),
   obligatedPR: z.number().min(0).optional(),
   utilized: z.number().min(0),
+  status: z.enum(["not_available", "not_yet_started", "ongoing", "completed", "active"]).optional(),
   remarks: z.string().optional(),
   year: z.number().int().min(2000).max(2100).optional(),
 });
@@ -39,7 +47,7 @@ interface TrustFundFormProps {
   trustFund?: TrustFund | null;
   onSave: (data: any) => void;
   onCancel: () => void;
-  year?: number; // ✅ ADDED: Accept year from URL
+  year?: number;
 }
 
 const formatNumberWithCommas = (value: string): string => {
@@ -64,7 +72,6 @@ const formatNumberForDisplay = (value: number): string => {
   }).format(value);
 };
 
-// ✅ FIXED: Helper function to convert timestamp to date string
 const timestampToDateString = (timestamp?: number): string => {
   if (!timestamp) return "";
   return new Date(timestamp).toISOString().split('T')[0];
@@ -77,7 +84,6 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
   const [displayObligated, setDisplayObligated] = useState("");
   const [displayUtilized, setDisplayUtilized] = useState("");
 
-  // ✅ ADDED: Determine if year is from URL (should be disabled)
   const isYearFromUrl = year !== undefined;
 
   const form = useForm<TrustFundFormValues>({
@@ -85,12 +91,13 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
     defaultValues: {
       projectTitle: trustFund?.projectTitle || "",
       officeInCharge: trustFund?.officeInCharge || "",
-      dateReceived: timestampToDateString(trustFund?.dateReceived), // ✅ FIXED: Handle optional
+      dateReceived: timestampToDateString(trustFund?.dateReceived),
       received: trustFund?.received || 0,
       obligatedPR: trustFund?.obligatedPR || undefined,
       utilized: trustFund?.utilized || 0,
+      status: trustFund?.status || "not_available", // Ensures a valid default
       remarks: trustFund?.remarks || "",
-      year: trustFund?.year || year || new Date().getFullYear(), // ✅ CHANGED: Use URL year if available
+      year: trustFund?.year || year || new Date().getFullYear(),
     },
   });
 
@@ -110,7 +117,6 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
   const utilizationRate = received > 0 ? (utilized / received) * 100 : 0;
 
   function onSubmit(values: TrustFundFormValues) {
-    // ✅ FIXED: Handle optional dateReceived properly
     const dateReceivedTimestamp = values.dateReceived && values.dateReceived.trim()
       ? new Date(values.dateReceived).getTime() 
       : undefined;
@@ -122,6 +128,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
       received: values.received,
       obligatedPR: values.obligatedPR && values.obligatedPR > 0 ? values.obligatedPR : undefined,
       utilized: values.utilized,
+      status: values.status,
       remarks: values.remarks || undefined,
       year: values.year || undefined,
     });
@@ -169,7 +176,37 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
           )}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* UPDATED: Status field with corrected Select items including 'active' */}
+          <FormField
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                  Status
+                </FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="not_available">Not Available</SelectItem>
+                    <SelectItem value="not_yet_started">Not Yet Started</SelectItem>
+                    <SelectItem value="ongoing">Ongoing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             name="dateReceived"
             render={({ field }) => (
@@ -204,7 +241,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
                     min="2000"
                     max="2100"
                     className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700"
-                    disabled={isYearFromUrl} // ✅ ADDED: Disable if year from URL
+                    disabled={isYearFromUrl}
                     {...field}
                     value={field.value || ""}
                     onChange={(e) => {

@@ -31,35 +31,79 @@ export default function YearTrustFundsPage({ params }: PageProps) {
     return trustFunds.filter((fund) => fund.year === year);
   }, [trustFunds, year]);
 
-  // Calculate statistics for filtered items
-  const yearStatistics = useMemo(() => {
+  // Calculate statistics and status summary for filtered items
+  const { yearStatistics, statusCounts } = useMemo(() => {
     if (yearFilteredFunds.length === 0) {
       return {
-        totalReceived: 0,
-        totalUtilized: 0,
-        totalBalance: 0,
-        totalProjects: 0,
+        yearStatistics: {
+          totalReceived: 0,
+          totalUtilized: 0,
+          totalBalance: 0,
+          totalProjects: 0,
+        },
+        statusCounts: {
+          active: 0,
+          not_yet_started: 0,
+          ongoing: 0,
+          completed: 0,
+          not_available: 0
+        }
       };
     }
 
-    const totalReceived = yearFilteredFunds.reduce(
-      (sum, fund) => sum + fund.received,
-      0
-    );
-    const totalUtilized = yearFilteredFunds.reduce(
-      (sum, fund) => sum + fund.utilized,
-      0
-    );
-    const totalBalance = yearFilteredFunds.reduce(
-      (sum, fund) => sum + fund.balance,
-      0
+    const stats = yearFilteredFunds.reduce(
+      (acc, fund) => {
+        acc.totalReceived += fund.received;
+        acc.totalUtilized += fund.utilized;
+        acc.totalBalance += fund.balance;
+        
+        // ✅ FIXED: Handle all status types including 'active'
+        const status = fund.status || 'not_available';
+        
+        // Explicitly check each status type
+        switch (status) {
+          case 'active':
+            acc.counts.active++;
+            break;
+          case 'not_yet_started':
+            acc.counts.not_yet_started++;
+            break;
+          case 'ongoing':
+            acc.counts.ongoing++;
+            break;
+          case 'completed':
+            acc.counts.completed++;
+            break;
+          case 'not_available':
+          default:
+            acc.counts.not_available++;
+            break;
+        }
+        
+        return acc;
+      },
+      { 
+        totalReceived: 0, 
+        totalUtilized: 0, 
+        totalBalance: 0,
+        counts: {
+          active: 0,
+          not_yet_started: 0,
+          ongoing: 0,
+          completed: 0,
+          not_available: 0
+        }
+      }
     );
 
     return {
-      totalReceived,
-      totalUtilized,
-      totalBalance,
-      totalProjects: yearFilteredFunds.length,
+      yearStatistics: {
+        totalReceived: stats.totalReceived,
+        totalUtilized: stats.totalUtilized,
+        totalBalance: stats.totalBalance,
+        totalProjects: yearFilteredFunds.length,
+      },
+      statusCounts: stats.counts
     };
   }, [yearFilteredFunds]);
 
@@ -112,12 +156,13 @@ export default function YearTrustFundsPage({ params }: PageProps) {
           totalUtilized={yearStatistics.totalUtilized}
           totalBalance={yearStatistics.totalBalance}
           totalProjects={yearStatistics.totalProjects}
+          statusCounts={statusCounts}
         />
       )}
 
       <TrustFundsTable
         data={yearFilteredFunds}
-        year={year} // ✅ ADDED: Pass year from URL
+        year={year}
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}

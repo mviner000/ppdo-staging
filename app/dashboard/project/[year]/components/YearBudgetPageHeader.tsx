@@ -30,7 +30,7 @@ export function YearBudgetPageHeader({ year }: YearBudgetPageHeaderProps) {
               Budget Tracking {year}
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-              Monitor budget allocation, utilization, and project status for fiscal year {year}
+              Monitor budget allocation, utilization, and project status for year {year}
             </p>
           </div>
         </div>

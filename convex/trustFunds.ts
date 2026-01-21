@@ -1,9 +1,8 @@
 // convex/trustFunds.ts
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { logTrustFundActivity } from "./lib/trustFundActivityLogger";
-import { internal } from "./_generated/api";
 
 /**
  * Get all ACTIVE trust funds (excludes deleted)
@@ -103,10 +102,17 @@ export const create = mutation({
   args: {
     projectTitle: v.string(),
     officeInCharge: v.string(),
-    dateReceived: v.optional(v.number()), // ✅ CHANGED: Made optional
+    dateReceived: v.optional(v.number()),
     received: v.number(),
     obligatedPR: v.optional(v.number()),
     utilized: v.number(),
+    status: v.optional(v.union(
+      v.literal("active"), // Legacy - kept for backward compatibility
+      v.literal("not_available"),
+      v.literal("not_yet_started"),
+      v.literal("ongoing"),
+      v.literal("completed")
+    )),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
     fiscalYear: v.optional(v.number()),
@@ -148,13 +154,13 @@ export const create = mutation({
       projectTitle: args.projectTitle,
       officeInCharge: args.officeInCharge,
       departmentId: departmentId,
-      dateReceived: args.dateReceived, // ✅ Can now be undefined
+      dateReceived: args.dateReceived,
       received: args.received,
       obligatedPR: args.obligatedPR,
       utilized: args.utilized,
       balance,
       utilizationRate,
-      status: "active",
+      status: args.status || "not_available",
       remarks: args.remarks,
       year: args.year,
       fiscalYear: args.fiscalYear,
@@ -186,10 +192,17 @@ export const update = mutation({
     id: v.id("trustFunds"),
     projectTitle: v.string(),
     officeInCharge: v.string(),
-    dateReceived: v.optional(v.number()), // ✅ CHANGED: Made optional
+    dateReceived: v.optional(v.number()),
     received: v.number(),
     obligatedPR: v.optional(v.number()),
     utilized: v.number(),
+    status: v.optional(v.union(
+      v.literal("active"), // Legacy - kept for backward compatibility
+      v.literal("not_available"),
+      v.literal("not_yet_started"),
+      v.literal("ongoing"),
+      v.literal("completed")
+    )),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
     fiscalYear: v.optional(v.number()),
@@ -242,12 +255,13 @@ export const update = mutation({
       projectTitle: args.projectTitle,
       officeInCharge: args.officeInCharge,
       departmentId: departmentId,
-      dateReceived: args.dateReceived, // ✅ Can now be undefined
+      dateReceived: args.dateReceived,
       received: args.received,
       obligatedPR: args.obligatedPR,
       utilized: args.utilized,
       balance,
       utilizationRate,
+      status: args.status,
       remarks: args.remarks,
       year: args.year,
       fiscalYear: args.fiscalYear,
@@ -444,6 +458,51 @@ export const togglePin = mutation({
       pinnedBy: newPinnedState ? userId : undefined,
       updatedAt: now,
       updatedBy: userId,
+    });
+    
+    return args.id;
+  },
+});
+
+/**
+ * Quick update status only (for inline dropdown)
+ */
+export const updateStatus = mutation({
+  args: {
+    id: v.id("trustFunds"),
+    status: v.union(
+      v.literal("active"),
+      v.literal("not_available"),
+      v.literal("not_yet_started"),
+      v.literal("ongoing"),
+      v.literal("completed")
+    ),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Trust fund not found");
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.id, {
+      status: args.status,
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
+    const updatedTrustFund = await ctx.db.get(args.id);
+    
+    // Log activity
+    await logTrustFundActivity(ctx, userId, {
+      action: "updated",
+      trustFundId: args.id,
+      previousValues: existing,
+      newValues: updatedTrustFund,
+      reason: args.reason || `Status changed to ${args.status}`
     });
     
     return args.id;

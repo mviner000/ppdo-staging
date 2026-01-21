@@ -2,21 +2,23 @@
 
 import { Id } from "@/convex/_generated/dataModel";
 
+export type TrustFundStatus = "not_available" | "not_yet_started" | "ongoing" | "completed" | "active";
+
 export interface TrustFund {
   id: string;
   projectTitle: string;
   officeInCharge: string;
   departmentId?: string;
-  dateReceived?: number; // ✅ CHANGED: Made optional to match schema
+  dateReceived?: number;
   received: number;
   obligatedPR?: number;
   utilized: number;
   balance: number;
   utilizationRate?: number;
+  status?: TrustFundStatus;
   remarks?: string;
   year?: number;
   fiscalYear?: number;
-  status?: "active" | "completed" | "pending";
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: string;
@@ -36,16 +38,16 @@ export interface TrustFundFromDB {
   projectTitle: string;
   officeInCharge: string;
   departmentId?: Id<"departments">;
-  dateReceived?: number; // ✅ CHANGED: Made optional to match schema
+  dateReceived?: number;
   received: number;
   obligatedPR?: number;
   utilized: number;
   balance: number;
   utilizationRate?: number;
+  status?: TrustFundStatus;
   remarks?: string;
   year?: number;
   fiscalYear?: number;
-  status?: "active" | "completed" | "pending";
   isPinned?: boolean;
   pinnedAt?: number;
   pinnedBy?: Id<"users">;
@@ -62,10 +64,11 @@ export interface TrustFundFromDB {
 export interface TrustFundFormData {
   projectTitle: string;
   officeInCharge: string;
-  dateReceived?: number; // ✅ CHANGED: Made optional to match schema
+  dateReceived?: number;
   received: number;
   obligatedPR?: number;
   utilized: number;
+  status?: TrustFundStatus;
   remarks?: string;
   year?: number;
   fiscalYear?: number;
@@ -79,19 +82,17 @@ export interface TrustFundStatistics {
   averageUtilizationRate: number;
 }
 
-export type TrustFundStatus = "active" | "completed" | "pending";
-
 export type TrustFundSortField =
   | "projectTitle"
   | "officeInCharge"
+  | "status"
   | "dateReceived"
   | "received"
   | "obligatedPR"
   | "utilized"
   | "balance"
   | "utilizationRate"
-  | "year"
-  | "status";
+  | "year";
 
 export type SortDirection = "asc" | "desc" | null;
 
@@ -101,24 +102,22 @@ export interface TrustFundContextMenuState {
   entity: TrustFund;
 }
 
-// ✅ FIXED: Helper function to convert DB format to frontend format
-// Now handles optional dateReceived field properly
 export function convertTrustFundFromDB(dbFund: TrustFundFromDB): TrustFund {
   return {
     id: dbFund._id,
     projectTitle: dbFund.projectTitle,
     officeInCharge: dbFund.officeInCharge,
     departmentId: dbFund.departmentId,
-    dateReceived: dbFund.dateReceived, // ✅ Now properly optional
+    dateReceived: dbFund.dateReceived,
     received: dbFund.received,
     obligatedPR: dbFund.obligatedPR,
     utilized: dbFund.utilized,
     balance: dbFund.balance,
     utilizationRate: dbFund.utilizationRate,
+    status: dbFund.status,
     remarks: dbFund.remarks,
     year: dbFund.year,
     fiscalYear: dbFund.fiscalYear,
-    status: dbFund.status,
     isPinned: dbFund.isPinned,
     pinnedAt: dbFund.pinnedAt,
     pinnedBy: dbFund.pinnedBy as string,
