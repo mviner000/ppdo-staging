@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { Search, Trash2, Printer, Plus } from "lucide-react";
 
 interface TableToolbarProps {
   search: string;
@@ -22,12 +22,24 @@ export function TableToolbar({
   accentColor,
 }: TableToolbarProps) {
   return (
-    <div className="flex flex-col sm:flex-row justify-between gap-3 p-4 border-b shrink-0">
+    <div 
+      className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 shrink-0"
+      style={{
+        borderBottom: '1px solid rgb(228 228 231 / 1)',
+      }}
+    >
       {/* Search Input */}
-      <div className="relative w-full sm:w-72">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+      <div className="relative w-full sm:w-64 lg:w-72">
+        <Search 
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" 
+          style={{ width: '14px', height: '14px' }}
+        />
         <input
-          className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+          className="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-shadow"
+          style={{
+            border: '1px solid rgb(228 228 231 / 1)',
+            borderRadius: '6px',
+          }}
           placeholder="Search..."
           value={search}
           onChange={e => onSearchChange(e.target.value)}
@@ -35,46 +47,46 @@ export function TableToolbar({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
         {onOpenTrash && (
           <button
             onClick={onOpenTrash}
-            className="cursor-pointer px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:scale-105 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+            style={{
+              border: '1px solid rgb(228 228 231 / 1)',
+              borderRadius: '6px',
+            }}
             title="View Recycle Bin"
           >
-            <div className="flex items-center gap-2">
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Recycle Bin</span>
-            </div>
+            <Trash2 style={{ width: '14px', height: '14px' }} />
+            <span className="hidden sm:inline">Recycle Bin</span>
           </button>
         )}
 
         <button
           onClick={onPrint}
-          className="cursor-pointer px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+          style={{
+            border: '1px solid rgb(228 228 231 / 1)',
+            borderRadius: '6px',
+          }}
           title="Print"
         >
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" 
-              />
-            </svg>
-            <span className="hidden sm:inline">Print</span>
-          </div>
+          <Printer style={{ width: '14px', height: '14px' }} />
+          <span className="hidden sm:inline">Print</span>
         </button>
 
         {onAdd && (
           <button
             onClick={onAdd}
-            className="cursor-pointer px-3 sm:px-4 py-2 rounded text-white font-medium flex-1 sm:flex-none"
-            style={{ backgroundColor: accentColor }}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            style={{ 
+              backgroundColor: accentColor,
+              borderRadius: '6px',
+            }}
           >
-            <span className="hidden sm:inline">Add Record</span>
-            <span className="sm:hidden">Add</span>
+            <Plus style={{ width: '14px', height: '14px' }} />
+            <span>Add Record</span>
           </button>
         )}
       </div>

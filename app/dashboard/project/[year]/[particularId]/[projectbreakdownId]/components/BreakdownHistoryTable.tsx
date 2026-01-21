@@ -130,8 +130,12 @@ export function BreakdownHistoryTable({
 
   return (
     <div 
-      className="flex flex-col border rounded-xl bg-white dark:bg-zinc-900" 
-      style={{ height: TABLE_HEIGHT }}
+      className="flex flex-col bg-white dark:bg-zinc-900"
+      style={{ 
+        height: TABLE_HEIGHT,
+        border: '1px solid rgb(228 228 231 / 1)',
+        borderRadius: '8px',
+      }}
     >
       {/* TOOLBAR */}
       <TableToolbar
@@ -143,53 +147,74 @@ export function BreakdownHistoryTable({
         accentColor={accentColorValue}
       />
 
-      {/* SCROLL CONTAINER */}
-      <div className="flex-1 overflow-auto w-[1920px] md:w-auto">
-        {/* HEADER */}
-        <TableHeader
-          columns={columns}
-          gridTemplateColumns={gridTemplateColumns}
-          canEditLayout={canEditLayout}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-          onStartResize={startResizeColumn}
-        />
+      {/* TABLE WRAPPER - CRITICAL: Contains the border grid */}
+      <div 
+        className="flex-1 overflow-auto"
+        style={{
+          borderTop: '1px solid rgb(228 228 231 / 1)',
+        }}
+      >
+        {/* TABLE CONTENT - Fixed width table with borders */}
+        <table 
+          className="w-full"
+          style={{
+            borderCollapse: 'collapse',
+            tableLayout: 'fixed',
+            minWidth: '100%',
+          }}
+        >
+          {/* HEADER */}
+          <TableHeader
+            columns={columns}
+            gridTemplateColumns={gridTemplateColumns}
+            canEditLayout={canEditLayout}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onStartResize={startResizeColumn}
+          />
 
-        {/* BODY */}
-        {filteredRows.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            {/* ROWS */}
-            {filteredRows.map((breakdown, index) => {
-              const height = rowHeights[breakdown._id] ?? DEFAULT_ROW_HEIGHT;
+          {/* BODY */}
+          {filteredRows.length === 0 ? (
+            <tbody>
+              <tr>
+                <td colSpan={columns.length + 2}>
+                  <EmptyState />
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            <tbody>
+              {/* ROWS */}
+              {filteredRows.map((breakdown, index) => {
+                const height = rowHeights[breakdown._id] ?? DEFAULT_ROW_HEIGHT;
 
-              return (
-                <TableRow
-                  key={breakdown._id}
-                  breakdown={breakdown}
-                  index={index}
-                  columns={columns}
-                  gridTemplateColumns={gridTemplateColumns}
-                  rowHeight={height}
-                  canEditLayout={canEditLayout}
-                  onRowClick={handleRowClick}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onStartRowResize={startResizeRow}
-                />
-              );
-            })}
+                return (
+                  <TableRow
+                    key={breakdown._id}
+                    breakdown={breakdown}
+                    index={index}
+                    columns={columns}
+                    gridTemplateColumns={gridTemplateColumns}
+                    rowHeight={height}
+                    canEditLayout={canEditLayout}
+                    onRowClick={handleRowClick}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onStartRowResize={startResizeRow}
+                  />
+                );
+              })}
 
-            {/* TOTALS ROW */}
-            <TableTotalsRow
-              columns={columns}
-              totals={totals}
-              gridTemplateColumns={gridTemplateColumns}
-            />
-          </>
-        )}
+              {/* TOTALS ROW */}
+              <TableTotalsRow
+                columns={columns}
+                totals={totals}
+                gridTemplateColumns={gridTemplateColumns}
+              />
+            </tbody>
+          )}
+        </table>
       </div>
     </div>
   );

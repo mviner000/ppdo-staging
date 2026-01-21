@@ -17,14 +17,21 @@ export function TableTotalsRow({
   gridTemplateColumns,
 }: TableTotalsRowProps) {
   return (
-    <div
-      className="grid border-t-2 border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 sticky bottom-0"
-      style={{ gridTemplateColumns }}
+    <tr
+      className="sticky bottom-0"
+      style={{ 
+        backgroundColor: 'rgb(250 250 250 / 1)',
+      }}
     >
       {/* Empty Row Number Cell */}
-      <div className="text-center border-r text-xs py-3 font-bold text-zinc-700 dark:text-zinc-300">
+      <td 
+        className="text-center py-2 text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-300"
+        style={{ 
+          border: '2px solid rgb(228 228 231 / 1)',
+        }}
+      >
         {/* Empty */}
-      </div>
+      </td>
 
       {/* Column Totals */}
       {columns.map(column => {
@@ -37,22 +44,28 @@ export function TableTotalsRow({
         }
 
         return (
-          <div
+          <td
             key={column.key}
-            className={`px-3 py-3 border-r font-bold text-zinc-700 dark:text-zinc-300 ${
-              column.align === 'right' ? 'text-right' :
-              column.align === 'center' ? 'text-center' : 'text-left'
-            }`}
+            className="px-2 sm:px-3 py-2 font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300"
+            style={{ 
+              border: '2px solid rgb(228 228 231 / 1)',
+              textAlign: column.align,
+            }}
           >
             {cellContent}
-          </div>
+          </td>
         );
       })}
 
       {/* Total Label */}
-      <div className="flex items-center justify-center font-bold text-zinc-700 dark:text-zinc-300">
+      <td 
+        className="text-center font-bold text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300 uppercase tracking-wide"
+        style={{ 
+          border: '2px solid rgb(228 228 231 / 1)',
+        }}
+      >
         TOTAL
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

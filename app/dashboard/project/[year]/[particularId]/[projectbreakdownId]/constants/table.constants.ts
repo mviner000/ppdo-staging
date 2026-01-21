@@ -4,11 +4,12 @@ import { ColumnConfig } from "../types/breakdown.types";
 
 export const TABLE_IDENTIFIER = "govtProjectBreakdowns";
 
-export const DEFAULT_ROW_HEIGHT = 48;
+// 🆕 UPDATED: Compact row height
+export const DEFAULT_ROW_HEIGHT = 32; // Changed from 48
 
+// 🆕 UPDATED: Minimum heights for resizing
 export const MIN_COLUMN_WIDTH = 80;
-
-export const MIN_ROW_HEIGHT = 32;
+export const MIN_ROW_HEIGHT = 28; // Changed from 32
 
 export const TABLE_HEIGHT = "700px";
 
@@ -16,91 +17,91 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { 
     key: "projectTitle", 
     label: "Project Name", 
-    width: 260, 
+    width: 200, // Reduced from 260
     type: "text", 
     align: "left" 
   },
   { 
     key: "implementingOffice", 
     label: "Implementing Office", 
-    width: 180, 
+    width: 160, // Reduced from 180
     type: "text", 
     align: "left" 
   },
   { 
     key: "allocatedBudget", 
     label: "Allocated Budget", 
-    width: 140, 
+    width: 120, // Reduced from 140
     type: "currency", 
     align: "right" 
   },
   { 
     key: "obligatedBudget", 
     label: "Obligated Budget", 
-    width: 140, 
+    width: 120, // Reduced from 140
     type: "currency", 
     align: "right" 
   },
   { 
     key: "budgetUtilized", 
     label: "Budget Utilized", 
-    width: 140, 
+    width: 120, // Reduced from 140
     type: "currency", 
     align: "right" 
   },
   { 
     key: "utilizationRate", 
     label: "Utilization Rate", 
-    width: 140, 
+    width: 100, // Reduced from 140
     type: "number", 
     align: "right" 
   },
   { 
     key: "balance", 
     label: "Balance", 
-    width: 140, 
+    width: 120, // Reduced from 140
     type: "currency", 
     align: "right" 
   },
   { 
     key: "dateStarted", 
     label: "Date Started", 
-    width: 130, 
+    width: 110, // Reduced from 130
     type: "date", 
     align: "left" 
   },
   { 
     key: "targetDate", 
     label: "Target Date", 
-    width: 130, 
+    width: 110, // Reduced from 130
     type: "date", 
     align: "left" 
   },
   { 
     key: "completionDate", 
     label: "Completion Date", 
-    width: 130, 
+    width: 110, // Reduced from 130
     type: "date", 
     align: "left" 
   },
   { 
     key: "projectAccomplishment", 
-    label: "Project Accomplishment%", 
-    width: 90, 
+    label: "Accomplishment %", // Shortened
+    width: 80, // Reduced from 90
     type: "number", 
     align: "right" 
   },
   { 
     key: "status", 
     label: "Status", 
-    width: 130, 
+    width: 100, // Reduced from 130
     type: "status", 
     align: "center" 
   },
   { 
     key: "remarks", 
     label: "Remarks", 
-    width: 220, 
+    width: 180, // Reduced from 220
     type: "text", 
     align: "left" 
   },

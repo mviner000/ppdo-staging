@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Eye } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/context-menu";
 import { Breakdown, ColumnConfig } from "../types/breakdown.types";
 import { formatCellValue } from "../utils/formatters";
-import { DEFAULT_ROW_HEIGHT } from "../constants/table.constants";
 
 interface TableRowProps {
   breakdown: Breakdown;
@@ -42,77 +41,119 @@ export function TableRow({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div
-          className="grid border-b hover:bg-zinc-50 dark:hover:bg-zinc-800 relative bg-white dark:bg-zinc-900 cursor-pointer transition-colors"
-          style={{ gridTemplateColumns, height: rowHeight }}
+        <tr
+          className="bg-white dark:bg-zinc-900 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 cursor-pointer transition-colors"
+          style={{ height: rowHeight }}
           onClick={(e) => onRowClick(breakdown, e)}
         >
           {/* Row Number */}
-          <div className="text-center border-r text-xs py-2 text-zinc-600 dark:text-zinc-400 relative">
+          <td 
+            className="text-center text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 relative"
+            style={{ 
+              border: '1px solid rgb(228 228 231 / 1)',
+            }}
+          >
             {index + 1}
             {canEditLayout && (
               <div
-                className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize"
+                className="absolute bottom-0 left-0 right-0 cursor-row-resize"
                 onMouseDown={e => onStartRowResize(e, breakdown._id)}
+                style={{ 
+                  height: '4px',
+                  marginBottom: '-2px',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgb(59 130 246 / 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               />
             )}
-          </div>
+          </td>
 
           {/* Data Cells */}
-          {columns.map(column => (
-            <div
-              key={column.key}
-              className={`px-3 py-2 truncate border-r text-zinc-700 dark:text-zinc-300 ${
-                column.align === 'right' ? 'text-right' :
-                column.align === 'center' ? 'text-center' : 'text-left'
-              }`}
-            >
-              {formatCellValue(breakdown[column.key], column, breakdown)}
-            </div>
-          ))}
+          {columns.map(column => {
+            const cellValue = formatCellValue(breakdown[column.key], column, breakdown);
+            const isStatusColumn = column.key === 'status';
+            
+            return (
+              <td
+                key={column.key}
+                className="px-2 sm:px-3 py-2 text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300"
+                style={{ 
+                  border: '1px solid rgb(228 228 231 / 1)',
+                  textAlign: column.align,
+                }}
+              >
+                {isStatusColumn && cellValue !== '-' ? (
+                  <span
+                    className="inline-flex px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded"
+                    style={{
+                      backgroundColor: 
+                        cellValue.toLowerCase() === 'completed' ? 'rgb(24 24 27 / 1)' :
+                        cellValue.toLowerCase() === 'ongoing' ? 'rgb(63 63 70 / 1)' :
+                        cellValue.toLowerCase() === 'delayed' ? 'rgb(82 82 91 / 1)' :
+                        'rgb(113 113 122 / 1)',
+                      color: 'rgb(250 250 250 / 1)',
+                    }}
+                  >
+                    {cellValue}
+                  </span>
+                ) : (
+                  <span className="truncate block">{cellValue}</span>
+                )}
+              </td>
+            );
+          })}
 
           {/* Actions */}
-          <div className="flex items-center justify-center gap-2">
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(breakdown);
-                }}
-                className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                title="Edit"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(breakdown._id);
-                }}
-                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+          <td 
+            className="text-center"
+            style={{ 
+              border: '1px solid rgb(228 228 231 / 1)',
+            }}
+          >
+            <div className="flex items-center justify-center gap-1">
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(breakdown);
+                  }}
+                  className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded transition-colors"
+                  title="Edit"
+                >
+                  <Edit style={{ width: '14px', height: '14px' }} className="text-zinc-600 dark:text-zinc-400" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(breakdown._id);
+                  }}
+                  className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-600 dark:text-red-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 style={{ width: '14px', height: '14px' }} />
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
       </ContextMenuTrigger>
 
-      <ContextMenuContent className="w-56">
+      <ContextMenuContent className="w-48">
         <ContextMenuItem
           onClick={(e) => {
             e.stopPropagation();
             onRowClick(breakdown, e as any);
           }}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer text-xs"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
+          <Eye style={{ width: '14px', height: '14px' }} />
           <span>View Details</span>
         </ContextMenuItem>
 
@@ -124,9 +165,9 @@ export function TableRow({
                 e.stopPropagation();
                 onEdit(breakdown);
               }}
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer text-xs"
             >
-              <Edit className="w-4 h-4" />
+              <Edit style={{ width: '14px', height: '14px' }} />
               <span>Edit Breakdown</span>
             </ContextMenuItem>
           </>
@@ -140,9 +181,9 @@ export function TableRow({
                 e.stopPropagation();
                 onDelete(breakdown._id);
               }}
-              className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+              className="flex items-center gap-2 cursor-pointer text-xs text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 style={{ width: '14px', height: '14px' }} />
               <span>Move to Trash</span>
             </ContextMenuItem>
           </>
