@@ -1,4 +1,4 @@
-// app/dashboard/trust-funds/[year]/components/TrustFundsTableBody.tsx
+// app/dashboard/trust-funds/[year]/components/table/TrustFundsTableBody.tsx
 
 "use client";
 
@@ -18,6 +18,7 @@ interface TrustFundsTableBodyProps {
     obligatedPR: number;
     utilized: number;
     balance: number;
+    utilizationRate: number; // ✅ Added utilizationRate
   };
   updatingStatusIds: Set<string>;
   onToggleSelection: (id: string) => void;

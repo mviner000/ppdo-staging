@@ -37,6 +37,18 @@ export const truncateText = (text: string, maxLength: number = 50): string => {
   return text.substring(0, maxLength) + "...";
 };
 
+// 👇 Format percentage helper
+export const formatPercentage = (value?: number): string => {
+  if (value === undefined || value === null) return "—";
+  return `${value.toFixed(2)}%`;
+};
+
+// 👇 Calculate utilization rate helper
+export const calculateUtilizationRate = (utilized: number, received: number): number => {
+  if (received === 0) return 0;
+  return (utilized / received) * 100;
+};
+
 export const exportToCSV = (
   data: TrustFund[], 
   hiddenColumns: Set<string>, 
@@ -59,6 +71,9 @@ export const exportToCSV = (
             case "received": return item.received;
             case "obligatedPR": return item.obligatedPR || 0;
             case "utilized": return item.utilized;
+            case "utilizationRate": 
+              return item.utilizationRate?.toFixed(2) || 
+                     calculateUtilizationRate(item.utilized, item.received).toFixed(2);
             case "balance": return item.balance;
             case "remarks": return item.remarks || "";
             default: return "";
@@ -104,8 +119,9 @@ export const printTable = (orientation: 'portrait' | 'landscape'): void => {
   }, 100);
 };
 
+// 👇 Calculate totals including utilization rate
 export const calculateTotals = (data: TrustFund[]) => {
-  return data.reduce(
+  const totals = data.reduce(
     (acc, item) => {
       acc.received += item.received;
       acc.obligatedPR += item.obligatedPR || 0;
@@ -115,4 +131,14 @@ export const calculateTotals = (data: TrustFund[]) => {
     },
     { received: 0, obligatedPR: 0, utilized: 0, balance: 0 }
   );
+
+  // Calculate average utilization rate for totals
+  const avgUtilizationRate = totals.received > 0 
+    ? (totals.utilized / totals.received) * 100 
+    : 0;
+
+  return {
+    ...totals,
+    utilizationRate: avgUtilizationRate,
+  };
 };

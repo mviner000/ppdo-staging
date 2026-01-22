@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TrustFund } from "@/types/trustFund.types";
-import { formatCurrency, formatDate, formatStatus, getStatusClassName, truncateText } from "../../../utils";
+import { formatCurrency, formatDate, formatStatus, getStatusClassName, truncateText, formatPercentage, calculateUtilizationRate } from "../../../utils";
 import { STATUS_COLUMN_WIDTH } from "../../../constants";
 
 interface StatusCellProps {
@@ -155,6 +155,9 @@ export function TrustFundsTableRow({
 }: TrustFundsTableRowProps) {
   const isColumnVisible = (columnId: string) => !hiddenColumns.has(columnId);
 
+  // Calculate utilization rate if not already present
+  const utilizationRate = item.utilizationRate ?? calculateUtilizationRate(item.utilized, item.received);
+
   return (
     <TableRow 
       className="h-10 hover:bg-muted/40"
@@ -217,6 +220,13 @@ export function TrustFundsTableRow({
       {isColumnVisible("utilized") && (
         <TableCell className="px-3 text-right tabular-nums">
           {formatCurrency(item.utilized)}
+        </TableCell>
+      )}
+
+      {/* ✅ Utilization Rate Column */}
+      {isColumnVisible("utilizationRate") && (
+        <TableCell className="px-3 text-center tabular-nums font-medium text-zinc-700 dark:text-zinc-300">
+          {formatPercentage(utilizationRate)}
         </TableCell>
       )}
 

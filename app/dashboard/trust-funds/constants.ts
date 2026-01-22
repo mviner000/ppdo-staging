@@ -8,6 +8,7 @@ export const AVAILABLE_COLUMNS = [
   { id: "received", label: "Received" },
   { id: "obligatedPR", label: "Obligated PR" },
   { id: "utilized", label: "Utilized" },
+  { id: "utilizationRate", label: "Utilization %" }, // ✅ Utilization Rate column
   { id: "balance", label: "Balance" },
   { id: "remarks", label: "Remarks", resizable: true },
 ] as const;
@@ -45,11 +46,6 @@ export const STATUS_CONFIG = {
     className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
     dotColor: "bg-zinc-600"
   },
-  // active: { 
-  //   label: "Active", 
-  //   className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  //   dotColor: "bg-zinc-700"
-  // },
 } as const;
 
 export const STATUS_CLASSES = {

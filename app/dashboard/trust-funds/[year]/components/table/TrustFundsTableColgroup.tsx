@@ -25,6 +25,8 @@ export function TrustFundsTableColgroup({
       {isColumnVisible("received") && <col style={{ width: '150px' }} />}
       {isColumnVisible("obligatedPR") && <col style={{ width: '150px' }} />}
       {isColumnVisible("utilized") && <col style={{ width: '150px' }} />}
+      {/* ✅ Utilization Rate column */}
+      {isColumnVisible("utilizationRate") && <col style={{ width: '120px' }} />}
       {isColumnVisible("balance") && <col style={{ width: '150px' }} />}
       {isColumnVisible("remarks") && <col style={{ width: `${columnWidths.remarks}px` }} />}
       <col style={{ width: '80px' }} />

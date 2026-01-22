@@ -30,17 +30,17 @@ export function TrustFundsTableHeader({
   const isColumnVisible = (columnId: string) => !hiddenColumns.has(columnId);
 
   return (
-    <TableHeader className="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-950">
-      <TableRow className="h-10 border-b">
+    <TableHeader className="sticky top-0 z-30 bg-white dark:bg-zinc-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-border">
+      <TableRow className="h-10 border-b-0 hover:bg-transparent">
         {isAdmin && (
-          <TableHead className="px-2 text-center">
+          <TableHead className="px-2 text-center bg-white dark:bg-zinc-950 border-b">
             <Checkbox checked={allSelected} onCheckedChange={onToggleAll} />
           </TableHead>
         )}
 
         {isColumnVisible("projectTitle") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("projectTitle")}
           >
             <div className="relative flex items-center gap-1 pr-4">
@@ -59,7 +59,7 @@ export function TrustFundsTableHeader({
 
         {isColumnVisible("officeInCharge") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("officeInCharge")}
           >
             <div className="flex items-center gap-1">
@@ -71,7 +71,7 @@ export function TrustFundsTableHeader({
 
         {isColumnVisible("status") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("status")}
             style={{ 
               width: `${STATUS_COLUMN_WIDTH}px`,
@@ -88,7 +88,7 @@ export function TrustFundsTableHeader({
 
         {isColumnVisible("dateReceived") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("dateReceived")}
           >
             <div className="flex items-center gap-1">
@@ -100,7 +100,7 @@ export function TrustFundsTableHeader({
 
         {isColumnVisible("received") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("received")}
           >
             <div className="flex w-full items-center justify-end gap-1">
@@ -111,14 +111,14 @@ export function TrustFundsTableHeader({
         )}
 
         {isColumnVisible("obligatedPR") && (
-          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right">
+          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right bg-white dark:bg-zinc-950 border-b">
             OBLIGATED PR
           </TableHead>
         )}
 
         {isColumnVisible("utilized") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("utilized")}
           >
             <div className="flex w-full items-center justify-end gap-1">
@@ -128,9 +128,16 @@ export function TrustFundsTableHeader({
           </TableHead>
         )}
 
+        {/* ✅ Utilization Rate Column */}
+        {isColumnVisible("utilizationRate") && (
+          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center bg-white dark:bg-zinc-950 border-b">
+            UTILIZATION %
+          </TableHead>
+        )}
+
         {isColumnVisible("balance") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
             onClick={() => onSort("balance")}
           >
             <div className="flex w-full items-center justify-end gap-1">
@@ -141,7 +148,7 @@ export function TrustFundsTableHeader({
         )}
 
         {isColumnVisible("remarks") && (
-          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium">
+          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium bg-white dark:bg-zinc-950 border-b">
             <div className="relative flex items-center gap-1 pr-4">
               REMARKS
               <button
@@ -155,7 +162,7 @@ export function TrustFundsTableHeader({
           </TableHead>
         )}
 
-        <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center no-print">
+        <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center no-print bg-white dark:bg-zinc-950 border-b">
           ACTIONS
         </TableHead>
       </TableRow>
