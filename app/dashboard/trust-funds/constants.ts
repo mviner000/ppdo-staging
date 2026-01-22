@@ -21,6 +21,9 @@ export const COLUMN_WIDTHS_STORAGE_KEY = "trustFundsTableColumnWidths";
 
 export const MIN_COLUMN_WIDTH = 150;
 
+// Status column width - easily adjustable by developers
+export const STATUS_COLUMN_WIDTH = 140;
+
 export const STATUS_CONFIG = {
   not_available: { 
     label: "Not Available", 

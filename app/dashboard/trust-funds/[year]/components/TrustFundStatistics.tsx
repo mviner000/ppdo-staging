@@ -1,7 +1,15 @@
 // app/dashboard/trust-funds/[year]/components/TrustFundStatistics.tsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface TrustFundStatisticsProps {
   totalReceived: number;
@@ -24,6 +32,8 @@ export default function TrustFundStatistics({
   totalProjects,
   statusCounts,
 }: TrustFundStatisticsProps) {
+  const [showAllStatuses, setShowAllStatuses] = useState(false);
+
   const currency = useMemo(
     () =>
       new Intl.NumberFormat("en-PH", {
@@ -42,36 +52,66 @@ export default function TrustFundStatistics({
   // Define all possible statuses with their display configuration
   const statusConfig = [
     { 
-      key: 'active' as const, 
-      label: 'Active',
-      dotColor: 'bg-zinc-700'
-    },
-    { 
       key: 'not_yet_started' as const, 
       label: 'Not Yet Started',
-      dotColor: 'bg-zinc-400'
+      dotColor: 'bg-zinc-400',
+      visible: true
     },
     { 
       key: 'ongoing' as const, 
       label: 'Ongoing',
-      dotColor: 'bg-zinc-500'
+      dotColor: 'bg-zinc-500',
+      visible: true
     },
     { 
       key: 'completed' as const, 
       label: 'Completed',
-      dotColor: 'bg-zinc-600'
+      dotColor: 'bg-zinc-600',
+      visible: true
+    },
+    { 
+      key: 'active' as const, 
+      label: 'Active',
+      dotColor: 'bg-zinc-700',
+      visible: false // Hidden by default
     },
     { 
       key: 'not_available' as const, 
       label: 'Not Available',
-      dotColor: 'bg-zinc-300'
+      dotColor: 'bg-zinc-300',
+      visible: false // Hidden by default
     },
   ];
 
-  // Create the sub-description list for Total Projects - ALWAYS show all statuses
+  // Filter visible statuses based on showAllStatuses state
+  const visibleStatuses = showAllStatuses 
+    ? statusConfig 
+    : statusConfig.filter(s => s.visible);
+
+  // Create the sub-description list for Total Projects
   const projectBreakdown = (
     <div className="mt-3 flex flex-col gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-      {statusConfig.map((status) => {
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Status Breakdown</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 w-6 p-0 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowAllStatuses(!showAllStatuses)}>
+              {showAllStatuses ? "Hide Other Subtotals" : "Show All Subtotals"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {visibleStatuses.map((status) => {
         const count = statusCounts[status.key];
         return (
           <div key={status.key} className="flex justify-between items-center">
@@ -83,6 +123,7 @@ export default function TrustFundStatistics({
           </div>
         );
       })}
+
       {/* Divider and Total */}
       <div className="h-px bg-zinc-200 dark:bg-zinc-700 my-1" />
       <div className="flex justify-between items-center font-medium text-zinc-700 dark:text-zinc-300">

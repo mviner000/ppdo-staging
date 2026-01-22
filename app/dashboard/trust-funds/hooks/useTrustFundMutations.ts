@@ -15,14 +15,16 @@ export function useTrustFundMutations() {
     try {
       const toastId = toast.loading("Creating trust fund...");
       
-      // ✅ dateReceived is now optional in both TrustFundFormData and the mutation
+      const status = data.status || "not_yet_started";
+      
       await createTrustFund({
         projectTitle: data.projectTitle,
         officeInCharge: data.officeInCharge,
-        dateReceived: data.dateReceived, // Can be undefined
+        dateReceived: data.dateReceived,
         received: data.received,
         obligatedPR: data.obligatedPR,
         utilized: data.utilized,
+        status: status,
         remarks: data.remarks,
         year: data.year,
         fiscalYear: data.fiscalYear,
@@ -41,15 +43,17 @@ export function useTrustFundMutations() {
     try {
       const toastId = toast.loading("Updating trust fund...");
       
-      // ✅ dateReceived is now optional in both TrustFundFormData and the mutation
+      const status = data.status || "not_yet_started";
+      
       await updateTrustFund({
         id: id as Id<"trustFunds">,
         projectTitle: data.projectTitle,
         officeInCharge: data.officeInCharge,
-        dateReceived: data.dateReceived, // Can be undefined
+        dateReceived: data.dateReceived,
         received: data.received,
         obligatedPR: data.obligatedPR,
         utilized: data.utilized,
+        status: status,
         remarks: data.remarks,
         year: data.year,
         fiscalYear: data.fiscalYear,

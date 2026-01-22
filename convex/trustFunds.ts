@@ -106,13 +106,14 @@ export const create = mutation({
     received: v.number(),
     obligatedPR: v.optional(v.number()),
     utilized: v.number(),
-    status: v.optional(v.union(
-      v.literal("active"), // Legacy - kept for backward compatibility
+    // CRITICAL: Make status REQUIRED, not optional
+    status: v.union(
+      v.literal("active"),
       v.literal("not_available"),
       v.literal("not_yet_started"),
       v.literal("ongoing"),
       v.literal("completed")
-    )),
+    ),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
     fiscalYear: v.optional(v.number()),
@@ -150,6 +151,9 @@ export const create = mutation({
     // Auto-link department ID if this agency represents a department
     const departmentId = agency.departmentId;
 
+    // DEBUG LOG
+    console.log('Creating trust fund with status:', args.status);
+
     const trustFundId = await ctx.db.insert("trustFunds", {
       projectTitle: args.projectTitle,
       officeInCharge: args.officeInCharge,
@@ -160,7 +164,7 @@ export const create = mutation({
       utilized: args.utilized,
       balance,
       utilizationRate,
-      status: args.status || "not_available",
+      status: args.status, // FIXED: Status is now required, no fallback needed
       remarks: args.remarks,
       year: args.year,
       fiscalYear: args.fiscalYear,
@@ -171,6 +175,9 @@ export const create = mutation({
     });
 
     const newTrustFund = await ctx.db.get(trustFundId);
+    
+    // DEBUG LOG
+    console.log('Created trust fund with status:', newTrustFund?.status);
     
     // Log activity
     await logTrustFundActivity(ctx, userId, {
@@ -196,13 +203,14 @@ export const update = mutation({
     received: v.number(),
     obligatedPR: v.optional(v.number()),
     utilized: v.number(),
-    status: v.optional(v.union(
-      v.literal("active"), // Legacy - kept for backward compatibility
+    // CRITICAL: Make status REQUIRED, not optional
+    status: v.union(
+      v.literal("active"),
       v.literal("not_available"),
       v.literal("not_yet_started"),
       v.literal("ongoing"),
       v.literal("completed")
-    )),
+    ),
     remarks: v.optional(v.string()),
     year: v.optional(v.number()),
     fiscalYear: v.optional(v.number()),
@@ -251,6 +259,9 @@ export const update = mutation({
     
     const departmentId = agency?.departmentId;
 
+    // DEBUG LOG
+    console.log('Updating trust fund with status:', args.status);
+
     await ctx.db.patch(args.id, {
       projectTitle: args.projectTitle,
       officeInCharge: args.officeInCharge,
@@ -261,7 +272,7 @@ export const update = mutation({
       utilized: args.utilized,
       balance,
       utilizationRate,
-      status: args.status,
+      status: args.status, // FIXED: Status is now required, no fallback needed
       remarks: args.remarks,
       year: args.year,
       fiscalYear: args.fiscalYear,
@@ -270,6 +281,9 @@ export const update = mutation({
     });
 
     const updatedTrustFund = await ctx.db.get(args.id);
+    
+    // DEBUG LOG
+    console.log('Updated trust fund with status:', updatedTrustFund?.status);
     
     // Log activity
     await logTrustFundActivity(ctx, userId, {

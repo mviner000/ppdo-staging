@@ -8,40 +8,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { useAccentColor } from "@/contexts/AccentColorContext";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  ArrowUpDown, 
-  Pin,
-  MoreVertical,
-  Eye,
-  Edit,
-  Archive,
-  GripVertical
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Modal } from "@/app/dashboard/project/[year]/components/Modal";
 import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/ConfirmationModal";
 import { TrustFundForm } from "./TrustFundForm";
@@ -49,21 +17,15 @@ import { ActivityLogSheet } from "@/components/ActivityLogSheet";
 import { TrustFundTableToolbar } from "./TrustFundTableToolbar";
 import { TrustFundContextMenu } from "./TrustFundContextMenu";
 import { PrintOrientationModal } from "./PrintOrientationModal";
+import { TrustFundsTableColgroup } from "./table/TrustFundsTableColgroup";
+import { TrustFundsTableHeader } from "./table/TrustFundsTableHeader";
+import { TrustFundsTableBody } from "./table/TrustFundsTableBody";
 
 // Import TrustFund from global types
 import { TrustFund } from "@/types/trustFund.types";
 // Import table-specific types from local types
 import { TrustFundsTableProps, ContextMenuState } from "../../types";
-import { AVAILABLE_COLUMNS } from "../../constants";
-import { 
-  formatCurrency, 
-  formatDate, 
-  getStatusClassName, 
-  truncateText,
-  exportToCSV,
-  printTable,
-  calculateTotals
-} from "../../utils";
+import { exportToCSV, printTable, calculateTotals } from "../../utils";
 import { useColumnWidths } from "../../hooks/useColumnWidths";
 import { useColumnResize } from "../../hooks/useColumnResize";
 import { useTableSort } from "../../hooks/useTableSort";
@@ -102,6 +64,9 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
   // Column Visibility State
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
 
+  // Status update loading state
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<Set<string>>(new Set());
+
   // Custom Hooks
   const { columnWidths, setColumnWidths } = useColumnWidths();
   const { handleResizeStart } = useColumnResize(columnWidths, setColumnWidths);
@@ -137,6 +102,9 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
   };
 
   const handleStatusChange = async (itemId: string, newStatus: string) => {
+    // Add to updating set
+    setUpdatingStatusIds(prev => new Set(prev).add(itemId));
+    
     try {
       await updateStatus({ 
         id: itemId as Id<"trustFunds">, 
@@ -147,6 +115,13 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
     } catch (error) {
       toast.error("Failed to update status");
       console.error(error);
+    } finally {
+      // Remove from updating set
+      setUpdatingStatusIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
     }
   };
 
@@ -194,8 +169,6 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
     setShowPrintModal(false);
   };
 
-  const isColumnVisible = (columnId: string) => !hiddenColumns.has(columnId);
-
   return (
     <>
       <Card className="rounded-lg border print-area">
@@ -209,7 +182,7 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
           hiddenColumns={hiddenColumns}
           onToggleColumn={handleToggleColumn}
           onShowAllColumns={() => setHiddenColumns(new Set())}
-          onHideAllColumns={() => setHiddenColumns(new Set(AVAILABLE_COLUMNS.map(c => c.id)))}
+          onHideAllColumns={() => setHiddenColumns(new Set(['projectTitle', 'officeInCharge', 'status', 'dateReceived', 'received', 'obligatedPR', 'utilized', 'balance', 'remarks']))}
           onExportCSV={handleExportCSV}
           onPrint={() => setShowPrintModal(true)}
           isAdmin={isAdmin}
@@ -223,355 +196,40 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
         <CardContent className="p-0">
           <div className="relative max-h-[600px] overflow-auto">
             <Table className="w-full text-sm" style={{ tableLayout: 'auto' }}>
-              <colgroup>
-                {isAdmin && <col style={{ width: '44px' }} />}
-                {isColumnVisible("projectTitle") && <col style={{ width: `${columnWidths.projectTitle}px` }} />}
-                {isColumnVisible("officeInCharge") && <col style={{ width: '200px' }} />}
-                {isColumnVisible("status") && <col style={{ width: '180px' }} />}
-                {isColumnVisible("dateReceived") && <col style={{ width: '130px' }} />}
-                {isColumnVisible("received") && <col style={{ width: '150px' }} />}
-                {isColumnVisible("obligatedPR") && <col style={{ width: '150px' }} />}
-                {isColumnVisible("utilized") && <col style={{ width: '150px' }} />}
-                {isColumnVisible("balance") && <col style={{ width: '150px' }} />}
-                {isColumnVisible("remarks") && <col style={{ width: `${columnWidths.remarks}px` }} />}
-                <col style={{ width: '80px' }} />
-              </colgroup>
+              <TrustFundsTableColgroup
+                isAdmin={isAdmin}
+                hiddenColumns={hiddenColumns}
+                columnWidths={columnWidths}
+              />
 
-              <TableHeader className="sticky top-0 z-10 bg-zinc-50 dark:bg-zinc-950">
-                <TableRow className="h-10 border-b">
-                  {isAdmin && (
-                    <TableHead className="px-2 text-center">
-                      <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
-                    </TableHead>
-                  )}
+              <TrustFundsTableHeader
+                isAdmin={isAdmin}
+                hiddenColumns={hiddenColumns}
+                columnWidths={columnWidths}
+                allSelected={allSelected}
+                onToggleAll={toggleAll}
+                onSort={handleSort}
+                onResizeStart={handleResizeStart}
+              />
 
-                  {isColumnVisible("projectTitle") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("projectTitle")}
-                    >
-                      <div className="relative flex items-center gap-1 pr-4">
-                        PROJECT TITLE
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                        <button
-                          className="absolute right-0 cursor-col-resize text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
-                          onMouseDown={(e) => handleResizeStart('projectTitle', e)}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <GripVertical className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("officeInCharge") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("officeInCharge")}
-                    >
-                      <div className="flex items-center gap-1">
-                        OFFICE IN-CHARGE
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("status") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("status")}
-                    >
-                      <div className="flex items-center gap-1">
-                        STATUS
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("dateReceived") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("dateReceived")}
-                    >
-                      <div className="flex items-center gap-1">
-                        DATE RECEIVED
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("received") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("received")}
-                    >
-                      <div className="flex w-full items-center justify-end gap-1">
-                        RECEIVED
-                        <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("obligatedPR") && (
-                    <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right">
-                      OBLIGATED PR
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("utilized") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("utilized")}
-                    >
-                      <div className="flex w-full items-center justify-end gap-1">
-                        UTILIZED
-                        <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("balance") && (
-                    <TableHead
-                      className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      onClick={() => handleSort("balance")}
-                    >
-                      <div className="flex w-full items-center justify-end gap-1">
-                        BALANCE
-                        <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
-                      </div>
-                    </TableHead>
-                  )}
-
-                  {isColumnVisible("remarks") && (
-                    <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium">
-                      <div className="relative flex items-center gap-1 pr-4">
-                        REMARKS
-                        <button
-                          className="absolute right-0 cursor-col-resize text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
-                          onMouseDown={(e) => handleResizeStart('remarks', e)}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <GripVertical className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </TableHead>
-                  )}
-
-                  <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center no-print">
-                    ACTIONS
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredAndSortedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={20} className="text-center py-8 text-zinc-500">
-                      No trust funds found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <>
-                    {filteredAndSortedData.map((item) => (
-                      <TableRow 
-                        key={item.id} 
-                        className="h-10 hover:bg-muted/40"
-                        onContextMenu={(e) => handleContextMenu(item, e)}
-                      >
-                        {isAdmin && (
-                          <TableCell className="px-2 text-center no-print">
-                            <Checkbox
-                              checked={selected.includes(item.id)}
-                              onCheckedChange={() => toggleOne(item.id)}
-                            />
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("projectTitle") && (
-                          <TableCell className="px-3 font-medium">
-                            <div className="flex items-center gap-2">
-                              {item.isPinned && (
-                                <Pin className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
-                              )}
-                              <span className="truncate" title={item.projectTitle}>
-                                {truncateText(item.projectTitle, Math.floor(columnWidths.projectTitle / 8))}
-                              </span>
-                            </div>
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("officeInCharge") && (
-                          <TableCell className="px-3 truncate">
-                            {item.officeInCharge}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("status") && (
-                          <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
-                            <Select
-                              value={item.status || "not_available"}
-                              onValueChange={(value) => handleStatusChange(item.id, value)}
-                            >
-                              <SelectTrigger 
-                                className={`h-7 text-xs border-0 shadow-none focus:ring-1 ${getStatusClassName(item.status)}`}
-                              >
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent align="start">
-                                <SelectItem value="not_available" className="text-xs">
-                                  <span className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                                    Not Available
-                                  </span>
-                                </SelectItem>
-                                <SelectItem value="not_yet_started" className="text-xs">
-                                  <span className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                                    Not Yet Started
-                                  </span>
-                                </SelectItem>
-                                <SelectItem value="ongoing" className="text-xs">
-                                  <span className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                                    Ongoing
-                                  </span>
-                                </SelectItem>
-                                <SelectItem value="completed" className="text-xs">
-                                  <span className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-zinc-600" />
-                                    Completed
-                                  </span>
-                                </SelectItem>
-                                <SelectItem value="active" className="text-xs">
-                                  <span className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-zinc-700" />
-                                    Active
-                                  </span>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("dateReceived") && (
-                          <TableCell className="px-3">
-                            {formatDate(item.dateReceived)}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("received") && (
-                          <TableCell className="px-3 text-right tabular-nums">
-                            {formatCurrency(item.received)}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("obligatedPR") && (
-                          <TableCell className="px-3 text-right tabular-nums">
-                            {item.obligatedPR ? formatCurrency(item.obligatedPR) : "—"}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("utilized") && (
-                          <TableCell className="px-3 text-right tabular-nums">
-                            {formatCurrency(item.utilized)}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("balance") && (
-                          <TableCell className="px-3 text-right font-semibold tabular-nums">
-                            {formatCurrency(item.balance)}
-                          </TableCell>
-                        )}
-
-                        {isColumnVisible("remarks") && (
-                          <TableCell className="px-3 text-muted-foreground">
-                            <span className="truncate block" title={item.remarks || ""}>
-                              {item.remarks ? truncateText(item.remarks, Math.floor(columnWidths.remarks / 8)) : "—"}
-                            </span>
-                          </TableCell>
-                        )}
-
-                        <TableCell className="px-3 text-center no-print">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewLog(item)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Activity Log
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handlePin(item)}>
-                                <Pin className="h-4 w-4 mr-2" />
-                                {item.isPinned ? "Unpin" : "Pin"}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {onEdit && (
-                                <DropdownMenuItem onClick={() => handleEdit(item)}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                              )}
-                              {onDelete && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDelete(item)}
-                                  className="text-red-600"
-                                >
-                                  <Archive className="h-4 w-4 mr-2" />
-                                  Move to Trash
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    
-                    {/* Total Row */}
-                    <TableRow className="border-t bg-muted/30 font-semibold h-11">
-                      {isAdmin && <TableCell />}
-                      
-                      {isColumnVisible("projectTitle") && (
-                        <TableCell className="px-3">TOTAL</TableCell>
-                      )}
-
-                      {isColumnVisible("officeInCharge") && <TableCell />}
-                      {isColumnVisible("status") && <TableCell />}
-                      {isColumnVisible("dateReceived") && <TableCell />}
-
-                      {isColumnVisible("received") && (
-                        <TableCell className="px-3 text-right tabular-nums">
-                          {formatCurrency(totals.received)}
-                        </TableCell>
-                      )}
-
-                      {isColumnVisible("obligatedPR") && (
-                        <TableCell className="px-3 text-right tabular-nums">
-                          {formatCurrency(totals.obligatedPR)}
-                        </TableCell>
-                      )}
-
-                      {isColumnVisible("utilized") && (
-                        <TableCell className="px-3 text-right tabular-nums">
-                          {formatCurrency(totals.utilized)}
-                        </TableCell>
-                      )}
-
-                      {isColumnVisible("balance") && (
-                        <TableCell className="px-3 text-right tabular-nums">
-                          {formatCurrency(totals.balance)}
-                        </TableCell>
-                      )}
-
-                      {isColumnVisible("remarks") && <TableCell />}
-                      <TableCell className="no-print" />
-                    </TableRow>
-                  </>
-                )}
-              </TableBody>
+              <TrustFundsTableBody
+                data={filteredAndSortedData}
+                isAdmin={isAdmin}
+                selected={selected}
+                hiddenColumns={hiddenColumns}
+                columnWidths={columnWidths}
+                totals={totals}
+                updatingStatusIds={updatingStatusIds}
+                onToggleSelection={toggleOne}
+                onContextMenu={handleContextMenu}
+                onStatusChange={handleStatusChange}
+                onPin={handlePin}
+                onViewLog={handleViewLog}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                canEdit={!!onEdit}
+                canDelete={!!onDelete}
+              />
             </Table>
           </div>
         </CardContent>

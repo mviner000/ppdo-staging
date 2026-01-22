@@ -28,7 +28,6 @@ import {
 import { TrustFund } from "@/types/trustFund.types";
 import { ImplementingOfficeSelector } from "@/app/dashboard/project/[year]/[particularId]/components/ImplementingOfficeSelector";
 
-// UPDATED: Added "active" to the enum to match the UI and Schema
 const trustFundSchema = z.object({
   projectTitle: z.string().min(1, { message: "Project title is required" }),
   officeInCharge: z.string().min(1, { message: "Office in charge is required" }),
@@ -36,7 +35,7 @@ const trustFundSchema = z.object({
   received: z.number().min(0, { message: "Must be 0 or greater" }),
   obligatedPR: z.number().min(0).optional(),
   utilized: z.number().min(0),
-  status: z.enum(["not_available", "not_yet_started", "ongoing", "completed", "active"]).optional(),
+  status: z.enum(["not_available", "not_yet_started", "ongoing", "completed", "active"]),
   remarks: z.string().optional(),
   year: z.number().int().min(2000).max(2100).optional(),
 });
@@ -95,7 +94,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
       received: trustFund?.received || 0,
       obligatedPR: trustFund?.obligatedPR || undefined,
       utilized: trustFund?.utilized || 0,
-      status: trustFund?.status || "not_available", // Ensures a valid default
+      status: trustFund?.status || "not_yet_started",
       remarks: trustFund?.remarks || "",
       year: trustFund?.year || year || new Date().getFullYear(),
     },
@@ -109,7 +108,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
     if (received > 0) setDisplayReceived(formatNumberForDisplay(received));
     if (obligated && obligated > 0) setDisplayObligated(formatNumberForDisplay(obligated));
     if (utilized && utilized > 0) setDisplayUtilized(formatNumberForDisplay(utilized));
-  }, []);
+  }, [form]);
 
   const received = form.watch("received");
   const utilized = form.watch("utilized");
@@ -121,7 +120,15 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
       ? new Date(values.dateReceived).getTime() 
       : undefined;
     
-    onSave({
+    if (!values.status) {
+      form.setError("status", { 
+        type: "manual", 
+        message: "Please select a status" 
+      });
+      return;
+    }
+    
+    const payload = {
       projectTitle: values.projectTitle,
       officeInCharge: values.officeInCharge,
       dateReceived: dateReceivedTimestamp,
@@ -131,7 +138,9 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
       status: values.status,
       remarks: values.remarks || undefined,
       year: values.year || undefined,
-    });
+    };
+    
+    onSave(payload);
   }
 
   return (
@@ -177,13 +186,12 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* UPDATED: Status field with corrected Select items including 'active' */}
           <FormField
             name="status"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                  Status
+                  Status <span className="text-red-500">*</span>
                 </FormLabel>
                 <Select
                   value={field.value}
@@ -195,8 +203,8 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="not_available">Not Available</SelectItem>
                     <SelectItem value="not_yet_started">Not Yet Started</SelectItem>
+                    <SelectItem value="not_available">Not Available</SelectItem>
                     <SelectItem value="ongoing">Ongoing</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
@@ -373,7 +381,6 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
           />
         </div>
 
-        {/* Calculated Fields Display */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border">
           <div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Balance</p>
