@@ -58,6 +58,9 @@ export function BreakdownHistoryTable({
 
   // Search state
   const [search, setSearch] = useState("");
+  
+  // 🆕 Column visibility state
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
 
   // Custom hooks
   const {
@@ -87,6 +90,29 @@ export function BreakdownHistoryTable({
   });
 
   /* =======================
+     🆕 COLUMN VISIBILITY HANDLERS
+  ======================= */
+  
+  const handleToggleColumn = (columnId: string, isChecked: boolean) => {
+    const newHidden = new Set(hiddenColumns);
+    if (isChecked) {
+      newHidden.delete(columnId);
+    } else {
+      newHidden.add(columnId);
+    }
+    setHiddenColumns(newHidden);
+  };
+
+  const handleShowAllColumns = () => {
+    setHiddenColumns(new Set());
+  };
+
+  const handleHideAllColumns = () => {
+    const allColIds = columns.map((c) => c.key);
+    setHiddenColumns(new Set(allColIds));
+  };
+
+  /* =======================
      NAVIGATION HANDLER
   ======================= */
   
@@ -112,17 +138,22 @@ export function BreakdownHistoryTable({
      COMPUTED VALUES
   ======================= */
 
+  // 🆕 Filter visible columns
+  const visibleColumns = useMemo(() => {
+    return columns.filter(col => !hiddenColumns.has(col.key));
+  }, [columns, hiddenColumns]);
+
   const gridTemplateColumns = useMemo(() => {
-    return generateGridTemplate(columns);
-  }, [columns]);
+    return generateGridTemplate(visibleColumns);
+  }, [visibleColumns]);
 
   const filteredRows = useMemo(() => {
     return filterBreakdowns(breakdowns, search);
   }, [breakdowns, search]);
 
   const totals = useMemo(() => {
-    return calculateColumnTotals(filteredRows, columns);
-  }, [filteredRows, columns]);
+    return calculateColumnTotals(filteredRows, visibleColumns);
+  }, [filteredRows, visibleColumns]);
 
   /* =======================
      RENDER
@@ -145,6 +176,11 @@ export function BreakdownHistoryTable({
         onAdd={onAdd}
         onOpenTrash={onOpenTrash}
         accentColor={accentColorValue}
+        columns={columns}
+        hiddenColumns={hiddenColumns}
+        onToggleColumn={handleToggleColumn}
+        onShowAll={handleShowAllColumns}
+        onHideAll={handleHideAllColumns}
       />
 
       {/* TABLE WRAPPER - CRITICAL: Contains the border grid */}
@@ -165,7 +201,7 @@ export function BreakdownHistoryTable({
         >
           {/* HEADER */}
           <TableHeader
-            columns={columns}
+            columns={visibleColumns}
             gridTemplateColumns={gridTemplateColumns}
             canEditLayout={canEditLayout}
             onDragStart={onDragStart}
@@ -178,7 +214,7 @@ export function BreakdownHistoryTable({
           {filteredRows.length === 0 ? (
             <tbody>
               <tr>
-                <td colSpan={columns.length + 2}>
+                <td colSpan={visibleColumns.length + 2}>
                   <EmptyState />
                 </td>
               </tr>
@@ -194,7 +230,7 @@ export function BreakdownHistoryTable({
                     key={breakdown._id}
                     breakdown={breakdown}
                     index={index}
-                    columns={columns}
+                    columns={visibleColumns}
                     gridTemplateColumns={gridTemplateColumns}
                     rowHeight={height}
                     canEditLayout={canEditLayout}
@@ -208,7 +244,7 @@ export function BreakdownHistoryTable({
 
               {/* TOTALS ROW */}
               <TableTotalsRow
-                columns={columns}
+                columns={visibleColumns}
                 totals={totals}
                 gridTemplateColumns={gridTemplateColumns}
               />

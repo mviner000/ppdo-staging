@@ -74,11 +74,11 @@ export default function BudgetStatistics({
       label: 'Delayed',
       dotColor: 'bg-zinc-500'
     },
-    { 
-      key: 'not_available' as const, 
-      label: 'N/A',
-      dotColor: 'bg-zinc-400'
-    },
+    // { 
+    //   key: 'not_available' as const, 
+    //   label: 'Not Available',
+    //   dotColor: 'bg-zinc-400'
+    // },
   ];
 
   // Project breakdown sub-content

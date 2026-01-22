@@ -3,6 +3,8 @@
 "use client";
 
 import { Search, Trash2, Printer, Plus } from "lucide-react";
+import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
+import { ColumnConfig } from "../types/breakdown.types";
 
 interface TableToolbarProps {
   search: string;
@@ -11,6 +13,13 @@ interface TableToolbarProps {
   onAdd?: () => void;
   onOpenTrash?: () => void;
   accentColor: string;
+  
+  // 🆕 Column visibility props
+  columns: ColumnConfig[];
+  hiddenColumns: Set<string>;
+  onToggleColumn: (columnId: string, isChecked: boolean) => void;
+  onShowAll: () => void;
+  onHideAll: () => void;
 }
 
 export function TableToolbar({
@@ -20,6 +29,11 @@ export function TableToolbar({
   onAdd,
   onOpenTrash,
   accentColor,
+  columns,
+  hiddenColumns,
+  onToggleColumn,
+  onShowAll,
+  onHideAll,
 }: TableToolbarProps) {
   return (
     <div 
@@ -48,10 +62,19 @@ export function TableToolbar({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
+        {/* 🆕 Column Visibility Menu */}
+        <ColumnVisibilityMenu
+          columns={columns}
+          hiddenColumns={hiddenColumns}
+          onToggleColumn={onToggleColumn}
+          onShowAll={onShowAll}
+          onHideAll={onHideAll}
+        />
+        
         {onOpenTrash && (
           <button
             onClick={onOpenTrash}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+            className="flex cursor-pointer items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
             style={{
               border: '1px solid rgb(228 228 231 / 1)',
               borderRadius: '6px',
@@ -65,7 +88,7 @@ export function TableToolbar({
 
         <button
           onClick={onPrint}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+          className="flex cursor-pointer items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
           style={{
             border: '1px solid rgb(228 228 231 / 1)',
             borderRadius: '6px',
@@ -79,7 +102,7 @@ export function TableToolbar({
         {onAdd && (
           <button
             onClick={onAdd}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="flex cursor-pointer items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:opacity-90 transition-opacity"
             style={{ 
               backgroundColor: accentColor,
               borderRadius: '6px',
