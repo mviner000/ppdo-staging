@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/BudgetParticularCombobox.tsx
+// app/dashboard/project/[year]/components/BudgetParticularCombobox.tsx
 
 "use client";
 

@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/utils/index.ts
+// app/dashboard/project/[year]/utils/index.ts
 
 // Re-export shared utilities
 export {

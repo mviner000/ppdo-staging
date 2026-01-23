@@ -1,5 +1,4 @@
 // services/index.ts
-// NEW FILE - CREATE THIS
 
 /**
  * Centralized services for Budget and Project modules

@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/BaseShareModal.tsx
+// app/dashboard/project/[year]/components/BaseShareModal.tsx
 
 "use client";
 

@@ -1,9 +1,9 @@
-// app/dashboard/project/budget/components/BudgetTableToolbar.tsx
+// app/dashboard/project/[year]/components/BudgetTableToolbar.tsx
 
 "use client";
 
 import React from "react";
-import { Search, CheckCircle2, Trash2, Share2, X, Download, Printer, FileSpreadsheet, Calculator } from "lucide-react";
+import { Search, CheckCircle2, Trash2, Share2, X, Download, Eye, FileSpreadsheet, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -35,7 +35,7 @@ interface BudgetTableToolbarProps {
   
   // Export/Print
   onExportCSV: () => void;
-  onPrint: () => void;
+  onOpenPrintPreview: () => void; // 🆕 NEW: Print Preview instead of direct print
   
   // Actions
   isAdmin: boolean;
@@ -45,8 +45,11 @@ interface BudgetTableToolbarProps {
   onBulkTrash: () => void;
   onAddNew?: () => void;
   
-  // 🆕 NEW: Auto-Calculate Toggle
+  // Auto-Calculate Toggle
   onBulkToggleAutoCalculate?: () => void;
+  
+  // Draft indicator
+  hasPrintDraft?: boolean; // 🆕 NEW: Show draft badge
   
   // UI State
   expandButton?: React.ReactNode;
@@ -64,7 +67,7 @@ export function BudgetTableToolbar({
   onShowAllColumns,
   onHideAllColumns,
   onExportCSV,
-  onPrint,
+  onOpenPrintPreview,
   isAdmin,
   pendingRequestsCount,
   onOpenShare,
@@ -72,6 +75,7 @@ export function BudgetTableToolbar({
   onBulkTrash,
   onAddNew,
   onBulkToggleAutoCalculate,
+  hasPrintDraft,
   expandButton,
   accentColor,
 }: BudgetTableToolbarProps) {
@@ -139,7 +143,7 @@ export function BudgetTableToolbar({
           onHideAll={onHideAllColumns}
         />
 
-        {/* 🆕 NEW: Bulk Auto-Calculate Toggle (only when items are selected) */}
+        {/* Bulk Auto-Calculate Toggle (only when items are selected) */}
         {selectedCount > 0 && onBulkToggleAutoCalculate && (
           <Button
             onClick={onBulkToggleAutoCalculate}
@@ -169,26 +173,37 @@ export function BudgetTableToolbar({
           )}
         </Button>
 
-        {/* Export/Print Dropdown */}
+        {/* 🆕 NEW: Print Preview Button with Draft Indicator */}
+        <Button
+          onClick={onOpenPrintPreview}
+          variant="outline"
+          size="sm"
+          className="gap-2 relative"
+        >
+          <Eye className="w-4 h-4" />
+          <span className="hidden sm:inline">Print Preview</span>
+          {hasPrintDraft && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+          )}
+        </Button>
+
+        {/* Export CSV */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Export / Print</span>
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={onPrint} className="cursor-pointer">
-              <Printer className="w-4 h-4 mr-2" /> Print PDF
-            </DropdownMenuItem>
+            <DropdownMenuLabel>Export Options</DropdownMenuLabel>
             <DropdownMenuItem onClick={onExportCSV} className="cursor-pointer">
               <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <div className="p-2">
               <span className="text-[10px] text-zinc-500 leading-tight block">
-                Note: Exports and prints are based on the currently shown/hidden columns.
+                Note: Exports are based on the currently shown/hidden columns.
               </span>
             </div>
           </DropdownMenuContent>

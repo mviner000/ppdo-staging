@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/table/BudgetColumnVisibilityMenu.tsx
+// app/dashboard/project/[year]/components/table/BudgetColumnVisibilityMenu.tsx
 
 import { ColumnVisibilityMenu, BaseColumn } from "@/components/ColumnVisibilityMenu";
 import { BUDGET_TABLE_COLUMNS } from "../../constants";

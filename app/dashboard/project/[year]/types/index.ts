@@ -1,151 +1,94 @@
-// app/dashboard/project/budget/types/index.ts
+// app/dashboard/project/[year]/types/index.ts
 
-import { Id } from "@/convex/_generated/dataModel";
-import { SortState, ContextMenuState } from "@/lib/shared/types/table.types";
+/**
+ * Central export point for all budget tracking types
+ * 
+ * This file serves as the single source of truth for all type imports.
+ * Import types from this file rather than individual type files.
+ * 
+ * Example:
+ * import { BudgetItem, BudgetTableProps, UseBudgetTableStateReturn } from '@/app/dashboard/project/[year]/types';
+ */
 
 // ============================================================================
-// BUDGET ITEM TYPES
+// BUDGET TYPES
 // ============================================================================
-
-export interface BudgetItem {
-  id: string;
-  particular: string;
-  totalBudgetAllocated: number;
-  obligatedBudget?: number;
-  totalBudgetUtilized: number;
-  utilizationRate: number;
-  projectCompleted: number;
-  projectDelayed: number;
-  projectsOnTrack: number;
-  year?: number;
-  status?: "completed" | "ongoing" | "delayed";
-  isPinned?: boolean;
-  pinnedAt?: number;
-  pinnedBy?: string;
-}
-
-export interface BudgetItemFromDB {
-  _id: Id<"budgetItems">;
-  particulars: string;
-  totalBudgetAllocated: number;
-  obligatedBudget?: number;
-  totalBudgetUtilized: number;
-  utilizationRate: number;
-  projectCompleted: number;
-  projectDelayed: number;
-  projectsOnTrack: number;
-  year?: number;
-  status?: "completed" | "ongoing" | "delayed";
-  isPinned?: boolean;
-  pinnedAt?: number;
-  pinnedBy?: string;
-}
-
-export type BudgetItemFormData = Omit<
+export type {
   BudgetItem,
-  | "id"
-  | "utilizationRate"
-  | "projectCompleted"
-  | "projectDelayed"
-  | "projectsOnTrack"
-  | "status"
->;
-
-// ============================================================================
-// STATISTICS TYPES
-// ============================================================================
-
-export interface BudgetStatistics {
-  totalAllocated: number;
-  totalUtilized: number;
-  averageUtilizationRate: number;
-  totalProjects: number;
-}
-
-// ============================================================================
-// SORTING & FILTERING TYPES (using shared types)
-// ============================================================================
-
-export type BudgetSortField =
-  | "particular"
-  | "year"
-  | "status"
-  | "totalBudgetAllocated"
-  | "obligatedBudget"
-  | "totalBudgetUtilized"
-  | "utilizationRate"
-  | "projectCompleted"
-  | "projectDelayed"
-  | "projectsOnTrack";
-
-// Use shared SortState
-export type BudgetSortState = SortState<BudgetSortField>;
-
-// Use shared ContextMenuState
-export type BudgetContextMenuState = ContextMenuState<BudgetItem>;
-
-// ============================================================================
-// ACCESS & USER TYPES
-// ============================================================================
-
-export interface AccessCheck {
-  canAccess: boolean;
-  user?: {
-    name?: string;
-    email?: string;
-    role?: "super_admin" | "admin" | "inspector" | "user";
-  };
-  department?: {
-    name?: string;
-  };
-}
-
-export interface UserFromList {
-  _id: Id<"users">;
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  nameExtension?: string;
-  name?: string;
-  email?: string;
-  departmentName?: string;
-  role?: "super_admin" | "admin" | "inspector" | "user";
-  status?: "active" | "inactive" | "suspended";
-}
-
-// ============================================================================
-// BUDGET PARTICULAR TYPES
-// ============================================================================
-
-export interface BudgetParticular {
-  _id: Id<"budgetParticulars">;
-  code: string;
-  fullName: string;
-  description?: string;
-  category?: string;
-  usageCount?: number;
-  isActive?: boolean;
-}
-
-// ============================================================================
-// TOTALS TYPES
-// ============================================================================
-
-export interface BudgetTotals {
-  totalBudgetAllocated: number;
-  obligatedBudget: number;
-  totalBudgetUtilized: number;
-  projectCompleted: number;
-  projectDelayed: number;
-  projectsOnTrack: number;
-}
+  BudgetItemFromDB,
+  BudgetItemFormData,
+  BudgetStatistics,
+  BudgetTotals,
+  BudgetParticular,
+  BudgetStatus,
+  BudgetSortField,
+} from "./budget.types";
 
 // ============================================================================
 // TABLE TYPES
 // ============================================================================
+export type {
+  BudgetTrackingTableProps,
+  SortDirection,
+  SortField,
+  BudgetContextMenuState,
+  ColumnConfig,
+  FilterState,
+} from "./table.types";
 
-export type SortDirection = "asc" | "desc" | null;
-export type SortField = BudgetSortField | null;
+// ============================================================================
+// HOOK RETURN TYPES
+// ============================================================================
+export type {
+  UseBudgetTableStateReturn,
+  UseBudgetTableFiltersReturn,
+  UseBudgetTableSelectionReturn,
+  UseBudgetTableActionsReturn,
+  UseBudgetTablePrintReturn,
+  UseBudgetAccessReturn,
+  UseBudgetDataReturn,
+  UseBudgetMutationsReturn,
+  UsePrintDraftReturn,
+} from "./hook.types";
 
-// Re-export ContextMenuState for backward compatibility
-export type { ContextMenuState } from "@/lib/shared/types/table.types";
+// ============================================================================
+// ACCESS & USER TYPES
+// ============================================================================
+export type {
+  AccessCheck,
+  UserFromList,
+  UserRole,
+  UserStatus,
+  AccessLevel,
+} from "./access.types";
+
+// ============================================================================
+// FORM & MODAL TYPES
+// ============================================================================
+export type {
+  BudgetItemFormProps,
+  ConfirmationModalProps,
+  ModalSize,
+  ModalProps,
+  ViolationData,
+  BudgetViolationModalProps,
+  BudgetBulkToggleDialogProps,
+} from "./form.types";
+
+// ============================================================================
+// PRINT & EXPORT TYPES
+// ============================================================================
+export type {
+  ColumnDefinition,
+  PrintPreviewModalProps,
+  PrintPreviewToolbarProps,
+  DraftMetadata,
+  DraftInfo,
+  StorageInfo,
+} from "./print.types";
+
+// ============================================================================
+// RE-EXPORT SHARED TYPES (if needed for backward compatibility)
+// ============================================================================
+// NOTE: Remove these if you want to force migration to new type imports
+export type { SortState, ContextMenuState } from "@/lib/shared/types/table.types";

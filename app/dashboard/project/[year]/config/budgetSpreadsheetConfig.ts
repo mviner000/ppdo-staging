@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/config/budgetSpreadsheetConfig.ts
+// app/dashboard/project/[year]/config/budgetSpreadsheetConfig.ts
 
 import { SpreadsheetConfig, ColumnDefinition } from "@/components/spreadsheet/types";
 import { api } from "@/convex/_generated/api";

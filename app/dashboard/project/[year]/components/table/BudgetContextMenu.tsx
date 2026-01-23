@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/table/BudgetContextMenu.tsx
+// app/dashboard/project/[year]/components/table/BudgetContextMenu.tsx
 
 "use client";
 

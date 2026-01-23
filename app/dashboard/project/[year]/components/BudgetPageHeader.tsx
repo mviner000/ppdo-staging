@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/BudgetPageHeader.tsx
+// app/dashboard/project/[year]/components/BudgetPageHeader.tsx
 
 import { ActivityLogSheet } from "@/components/ActivityLogSheet";
 

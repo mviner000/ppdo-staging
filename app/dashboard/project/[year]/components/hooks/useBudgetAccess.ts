@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/hooks/useBudgetAccess.ts
+// app/dashboard/project/[year]/components/hooks/useBudgetAccess.ts
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";

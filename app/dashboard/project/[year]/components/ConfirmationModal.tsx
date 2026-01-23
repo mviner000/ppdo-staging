@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/ConfirmationModal.tsx
+// app/dashboard/project/[year]/components/ConfirmationModal.tsx
 
 "use client";
 

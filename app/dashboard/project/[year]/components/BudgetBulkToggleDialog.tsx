@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/BudgetBulkToggleDialog.tsx
+// app/dashboard/project/[year]/components/BudgetBulkToggleDialog.tsx
 
 "use client";
 

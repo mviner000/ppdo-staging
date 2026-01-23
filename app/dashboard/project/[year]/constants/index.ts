@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/constants/index.ts
+// app/dashboard/project/[year]/constants/index.ts
 
 // Re-export shared constants
 export {

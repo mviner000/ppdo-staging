@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/ExpandModal.tsx
+// app/dashboard/project/[year]/components/ExpandModal.tsx
 
 "use client";
 

@@ -1,4 +1,4 @@
-// app/dashboard/project/budget/components/LoadingState.tsx
+// app/dashboard/project/[year]/components/LoadingState.tsx
 
 interface LoadingStateProps {
   message?: string;

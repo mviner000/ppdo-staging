@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ThemeToggle } from "../../components/ThemeToggle";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Quote } from "lucide-react";
 
 interface LocationData {
   city: string;
@@ -34,7 +34,7 @@ interface UserFriendlyError {
 const parseAuthError = (error: any): UserFriendlyError => {
   const errorMessage = error?.message?.toLowerCase() || '';
   const errorData = error?.data || {};
-  
+
   // Wrong password - Convex throws "InvalidSecret" when password is incorrect
   if (
     errorMessage.includes('invalidsecret') ||
@@ -47,7 +47,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Try again or click "Forgot password?" below.'
     };
   }
-  
+
   // Account not found - Convex throws "InvalidAccountId" when email doesn't exist
   if (
     errorMessage.includes('invalidaccountid') ||
@@ -60,7 +60,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Check your email or contact support.'
     };
   }
-  
+
   // Generic invalid credentials fallback
   if (
     errorMessage.includes('invalid credentials') ||
@@ -76,7 +76,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Try again or click "Forgot password?" below.'
     };
   }
-  
+
   // Account locked
   if (
     errorMessage.includes('locked') ||
@@ -90,7 +90,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Contact support to unlock it.'
     };
   }
-  
+
   // Account suspended
   if (
     errorMessage.includes('suspended') ||
@@ -104,7 +104,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Contact support for help.'
     };
   }
-  
+
   // Account inactive
   if (
     errorMessage.includes('inactive') ||
@@ -119,7 +119,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Contact support to activate it.'
     };
   }
-  
+
   // Network or connection errors
   if (
     errorMessage.includes('network') ||
@@ -136,7 +136,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Check your internet and try again.'
     };
   }
-  
+
   // Password requirements error (shouldn't happen on sign in, but just in case)
   if (errorMessage.includes('invalid password') && errorMessage.includes('8 characters')) {
     return {
@@ -146,7 +146,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Enter a longer password.'
     };
   }
-  
+
   // Missing required fields
   if (
     errorMessage.includes('missing') ||
@@ -159,7 +159,7 @@ const parseAuthError = (error: any): UserFriendlyError => {
       action: 'Fill in all fields and try again.'
     };
   }
-  
+
   // Generic fallback
   return {
     type: 'unknown',
@@ -178,11 +178,11 @@ export default function SignIn() {
   const [locationLoading, setLocationLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  
+
   // Mutations for login trail tracking
   const recordSuccessfulLogin = useMutation(api.auth.recordSuccessfulLogin);
   const recordFailedLogin = useMutation(api.auth.recordFailedLogin);
-  
+
   // Query to get current user after successful login
   const currentUser = useQuery(api.auth.getCurrentUser);
 
@@ -190,7 +190,7 @@ export default function SignIn() {
   useEffect(() => {
     async function fetchLocationData() {
       setLocationLoading(true);
-      
+
       // First, try to get IP address
       let ipAddress = "Unknown";
       try {
@@ -225,7 +225,7 @@ export default function SignIn() {
             // Got coordinates, now reverse geocode
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            
+
             try {
               // Use a reverse geocoding service
               const geocodeResponse = await fetch(
@@ -237,11 +237,11 @@ export default function SignIn() {
                   signal: AbortSignal.timeout(5000),
                 }
               );
-              
+
               if (geocodeResponse.ok) {
                 const geocodeData = await geocodeResponse.json();
                 const address = geocodeData.address || {};
-                
+
                 setLocationData({
                   city: address.city || address.town || address.village || address.municipality || 'Unknown',
                   region: address.state || address.province || address.region || 'Unknown',
@@ -254,7 +254,7 @@ export default function SignIn() {
             } catch (error) {
               console.log('Reverse geocoding failed, falling back to IP location');
             }
-            
+
             // If reverse geocoding fails, fall back to IP-based location
             await fetchIPBasedLocation(ipAddress);
           },
@@ -281,7 +281,7 @@ export default function SignIn() {
         const response = await fetch(`https://ipapi.co/${ipAddress}/json/`, {
           signal: AbortSignal.timeout(5000),
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setLocationData({
@@ -309,7 +309,7 @@ export default function SignIn() {
           country: 'Unknown'
         });
       }
-      
+
       setLocationLoading(false);
     }
 
@@ -351,110 +351,84 @@ export default function SignIn() {
 
       {/* Container */}
       <div className="w-full max-w-6xl mx-auto flex flex-col md:flex-row rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden relative z-20">
-        {/* Left Column - Image */}
-        <div className="hidden md:flex md:w-1/2 relative overflow-hidden bg-white dark:bg-zinc-900 flex-col items-start p-8">
-          {/* Logos */}
-          <div className="flex items-center gap-2 mb-8 w-full">
-            <img src="/logo.png" alt="Logo" className="h-12 object-contain" />
-            <img src="/y.png" alt="Y Logo" className="h-12 object-contain" />
-          </div>
-          <div className="shrink-0 mb-1 w-full flex justify-center relative">
-            {/* Floating elements around the image */}
-            <div className="absolute inset-0 pointer-events-none">
-              {/* Top Left - Document Icon */}
-              <div className="absolute top-8 left-8 w-8 h-8 opacity-20 dark:opacity-10 animate-float-slow">
-                <svg
-                  className="w-full h-full text-zinc-700 dark:text-zinc-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+        {/* Left Column - Premium Brand Panel */}
+        <div className="hidden md:flex md:w-1/2 relative overflow-hidden bg-zinc-900 group">
+          {/* Background Image with subtle zoom effect */}
+          <div
+            className="absolute inset-0 z-0 transition-transform duration-10000 ease-out group-hover:scale-110"
+            style={{
+              backgroundImage: `url('/Capitol.jpg')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+
+          {/* Multi-layered Gradient Overlays */}
+          <div className="absolute inset-0 z-10 bg-gradient-to-t from-zinc-950 via-zinc-900/60 to-transparent" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-emerald-950/40 via-transparent to-transparent" />
+
+          {/* Animated Decorative Orbs */}
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute top-1/2 -right-24 w-64 h-64 bg-emerald-600/5 rounded-full blur-3xl animate-float-medium" />
+
+          {/* Content Container */}
+          <div className="relative z-20 flex flex-col w-full h-full p-10 lg:p-12">
+            {/* Branding Section */}
+            <div className="flex flex-col space-y-6 animate-fade-in-up">
+              <div className="flex items-center gap-4 p-4 rounded-2xl w-fit">
+                <img src="/logo.png" alt="Logo" className="h-14 w-auto object-contain drop-shadow-lg" />
+                <img src="/y.png" alt="Y Logo" className="h-14 w-auto object-contain drop-shadow-lg" />
               </div>
 
-              {/* Top Right - Star Icon */}
-              <div className="absolute top-6 right-6 w-10 h-10 opacity-20 dark:opacity-10 animate-float-medium">
-                <svg
-                  className="w-full h-full text-zinc-700 dark:text-zinc-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                  />
-                </svg>
+              <div className="space-y-1">
+                <p className="text-zinc-400 text-xs font-semibold tracking-[0.3em] uppercase">
+                  Republic of the Philippines
+                </p>
+                <h3 className="text-white text-xl font-bold tracking-tight">
+                  PROVINCE OF TARLAC
+                </h3>
               </div>
-
-              {/* Bottom Left - Shield Icon */}
-              <div className="absolute bottom-8 left-6 w-9 h-9 opacity-20 dark:opacity-10 animate-float-slow-delayed">
-                <svg
-                  className="w-full h-full text-zinc-700 dark:text-zinc-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-              </div>
-
-              {/* Bottom Right - Building Icon */}
-              <div className="absolute bottom-6 right-8 w-8 h-8 opacity-20 dark:opacity-10 animate-float-medium-delayed">
-                <svg
-                  className="w-full h-full text-zinc-700 dark:text-zinc-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
-
-              {/* Left Middle - Circle */}
-              <div className="absolute top-1/2 left-4 -translate-y-1/2 w-6 h-6 rounded-full border-2 border-zinc-400 dark:border-zinc-600 opacity-30 dark:opacity-20 animate-float-slow"></div>
-
-              {/* Right Middle - Circle */}
-              <div className="absolute top-1/2 right-4 -translate-y-1/2 w-8 h-8 rounded-full border-2 border-zinc-400 dark:border-zinc-600 opacity-30 dark:opacity-20 animate-float-medium"></div>
             </div>
 
-            <div className="relative z-10 depth-of-field-container">
-              <img
-                src="/cy (2).png"
-                alt="Profile"
-                className="max-w-full max-h-[400px] object-contain relative z-10"
-                style={{
-                  filter: "drop-shadow(0 25px 50px rgba(0, 0, 0, 0.15))",
-                }}
-              />
+            {/* Hero Text */}
+            <div className="mt-auto mb-10 space-y-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight">
+                Bawat Oras, <br />
+                <span className="text-emerald-400">Damayan.</span>
+              </h2>
+              <p className="text-zinc-300 text-lg max-w-sm font-medium leading-relaxed">
+                Digitizing Tarlac to build a more responsive and unified future for every Tarlaqueño.
+              </p>
             </div>
-          </div>
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="text-center">
-              <blockquote className="text-xl md:text-2xl font-medium text-zinc-700 dark:text-zinc-300 mb-4 italic">
+
+            {/* Glassmorphic Quote Card */}
+            <div
+              className="mt-6 p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl animate-fade-in-up relative overflow-hidden"
+              style={{ animationDelay: '400ms' }}
+            >
+              <Quote className="absolute -top-4 -right-4 w-24 h-24 text-white/5 rotate-12" />
+              <blockquote className="relative z-10 text-xl font-medium text-white italic leading-relaxed">
                 "Building a better tomorrow for Tarlac, one system at a time."
               </blockquote>
-              <p className="text-sm md:text-base text-zinc-500 dark:text-zinc-400">
-                — Gov. Christian Yap
-              </p>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-8 w-[2px] bg-emerald-500 rounded-full" />
+                <div>
+                  <p className="text-white font-bold leading-none">Gov. Christian Yap</p>
+                  <p className="text-zinc-400 text-xs mt-1">Provincial Governor</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle Floating Elements (maintained but refined) */}
+            <div className="absolute top-1/4 right-12 w-8 h-8 opacity-20 animate-float-slow">
+              <svg className="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="absolute bottom-1/3 left-8 w-6 h-6 opacity-10 animate-float-medium-delayed">
+              <svg className="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
             </div>
           </div>
         </div>
@@ -515,7 +489,7 @@ export default function SignIn() {
                 const password = formData.get("password") as string;
                 const ipAddress = clientIP;
                 const userAgent = getUserAgent();
-                
+
                 // Client-side validation
                 if (!email || !password) {
                   setError({
@@ -527,19 +501,19 @@ export default function SignIn() {
                   setLoading(false);
                   return;
                 }
-                
+
                 // Prepare location string
                 let locationString = "Unknown";
                 if (locationData) {
                   locationString = `${locationData.city}, ${locationData.region}, ${locationData.country}`;
                 }
-                
+
                 try {
                   // Sign in with Convex Auth
                   formData.set("flow", "signIn");
-                  
+
                   await signIn("password", formData);
-                  
+
                   // Record successful login attempt IMMEDIATELY before redirecting
                   try {
                     await recordSuccessfulLogin({
@@ -558,18 +532,18 @@ export default function SignIn() {
                     // Continue to dashboard anyway, don't block user entry for logging failure
                     console.error('Failed to record successful login:', trackingError);
                   }
-                  
+
                   // Role-based redirect will be handled by useEffect watching currentUser
                   // No need to manually redirect here
                 } catch (error: any) {
                   console.error('Sign in error:', error);
-                  
+
                   // Parse error into user-friendly format
                   const friendlyError = parseAuthError(error);
-                  
+
                   // Determine failure reason for logging
                   let failureReasonForLog = error.message || "Authentication Failed";
-                  
+
                   // Record failed login attempt
                   try {
                     await recordFailedLogin({
@@ -589,7 +563,7 @@ export default function SignIn() {
                     // Don't block error display if tracking fails
                     console.error('Failed to record failed login:', trackingError);
                   }
-                  
+
                   // Display user-friendly error
                   setError(friendlyError);
                   setLoading(false);
@@ -680,8 +654,8 @@ export default function SignIn() {
               <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
                 Don't have an account?{" "}
                 <span className="text-zinc-400 dark:text-zinc-500">
-                    Please contact your admin
-                  </span>
+                  Please contact your admin
+                </span>
                 <Link className="hidden" href="/signup">
                   <span className="text-zinc-400 dark:text-zinc-500">
                     temporary signup here
