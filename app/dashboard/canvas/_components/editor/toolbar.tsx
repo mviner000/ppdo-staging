@@ -24,7 +24,9 @@ interface ToolbarProps {
   onUpdateElement?: (updates: Partial<CanvasElement>) => void;
   onAddText: () => void;
   pageSize?: 'A4' | 'Short' | 'Long';
+  orientation?: 'portrait' | 'landscape';
   onPageSizeChange?: (size: 'A4' | 'Short' | 'Long') => void;
+  onOrientationChange?: (orientation: 'portrait' | 'landscape') => void;
   onPrint?: () => void;
   activeSection: ActiveSection;
   headerBackgroundColor: string;
@@ -66,8 +68,10 @@ export default function Toolbar({
   selectedElement, 
   onUpdateElement, 
   onAddText, 
-  pageSize = 'A4', 
-  onPageSizeChange, 
+  pageSize = 'A4',
+  orientation = 'portrait',
+  onPageSizeChange,
+  onOrientationChange,
   onPrint,
   activeSection,
   headerBackgroundColor,
@@ -230,7 +234,7 @@ export default function Toolbar({
               #
             </Button>
             {showHexInput && (
-              <div className="absolute top-full mt-1 left-0 bg-white border border-stone-300 rounded shadow-lg p-2 flex items-center gap-1">
+              <div className="absolute top-full mt-1 left-0 bg-white border border-stone-300 rounded shadow-lg p-2 flex items-center gap-1 z-10">
                 <span className="text-xs text-stone-600">#</span>
                 <input
                   type="text"
@@ -276,6 +280,16 @@ export default function Toolbar({
             <SelectItem value="A4">A4</SelectItem>
             <SelectItem value="Short">Short (8.5 x 11")</SelectItem>
             <SelectItem value="Long">Long (8.5 x 13")</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={orientation} onValueChange={onOrientationChange}>
+          <SelectTrigger className="w-28 h-8 text-xs bg-white">
+            <SelectValue placeholder="Orientation" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="portrait">Portrait</SelectItem>
+            <SelectItem value="landscape">Landscape</SelectItem>
           </SelectContent>
         </Select>
 

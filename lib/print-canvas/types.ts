@@ -15,6 +15,17 @@ export interface ColumnDefinition {
 }
 
 /**
+ * Row marker for category or section headers
+ * Indicates where to insert a visual section/category header in the canvas
+ */
+export interface RowMarker {
+  index: number; // Position in items array where header should be inserted visually
+  type: 'category' | 'group';
+  label: string;
+  categoryId?: string;
+}
+
+/**
  * Configuration for table-to-canvas conversion
  */
 export interface ConversionConfig {
@@ -23,10 +34,12 @@ export interface ConversionConfig {
   columns: ColumnDefinition[];
   hiddenColumns: Set<string>;
   pageSize: 'A4' | 'Short' | 'Long';
+  orientation: 'portrait' | 'landscape';
   includeHeaders: boolean;
   includeTotals: boolean;
   title?: string;
   subtitle?: string;
+  rowMarkers?: RowMarker[]; // Optional markers for category/group headers
 }
 
 /**
@@ -80,7 +93,7 @@ export interface PrintDraft {
   timestamp: number;
   budgetYear: number;
   budgetParticular?: string;
-  
+
   filterState: {
     searchQuery: string;
     statusFilter: string[];
@@ -89,14 +102,14 @@ export interface PrintDraft {
     sortDirection: string | null;
     hiddenColumns: string[];
   };
-  
+
   canvasState: {
     pages: Page[];
     currentPageIndex: number;
     header: HeaderFooter;
     footer: HeaderFooter;
   };
-  
+
   tableSnapshot: {
     items: BudgetItem[];
     totals: BudgetTotals;

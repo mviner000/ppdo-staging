@@ -3,8 +3,7 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, X, FileDown, Printer, Save } from 'lucide-react';
-import { useAccentColor } from '@/contexts/AccentColorContext';
+import { ArrowLeft, X, Save } from 'lucide-react';
 
 interface PrintPreviewToolbarProps {
   isDirty: boolean;
@@ -12,8 +11,6 @@ interface PrintPreviewToolbarProps {
   lastSavedTime: string;
   onBack: () => void;
   onClose: () => void;
-  onExportPDF: () => void;
-  onPrint: () => void;
   onSaveDraft?: () => void;
 }
 
@@ -23,11 +20,8 @@ export function PrintPreviewToolbar({
   lastSavedTime,
   onBack,
   onClose,
-  onExportPDF,
-  onPrint,
   onSaveDraft,
 }: PrintPreviewToolbarProps) {
-  const { accentColorValue } = useAccentColor();
 
   return (
     <div className="h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-6">
@@ -78,28 +72,6 @@ export function PrintPreviewToolbar({
             {isSaving ? 'Saving...' : 'Save Draft'}
           </Button>
         )}
-
-        {/* Export PDF */}
-        <Button
-          onClick={onExportPDF}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          <FileDown className="w-4 h-4" />
-          Export PDF
-        </Button>
-
-        {/* Print */}
-        <Button
-          onClick={onPrint}
-          size="sm"
-          className="gap-2 text-white"
-          style={{ backgroundColor: accentColorValue }}
-        >
-          <Printer className="w-4 h-4" />
-          Print
-        </Button>
 
         <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
 

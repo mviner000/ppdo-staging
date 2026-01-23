@@ -4,7 +4,7 @@
 
 import React, { useRef, useState } from 'react';
 import { HeaderFooter, CanvasElement, ImageElement } from './types';
-import { PAGE_SIZES, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
+import { getPageDimensions, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
 import TextElementComponent from './text-element';
 import ImageElementComponent from './image-element';
 
@@ -12,6 +12,7 @@ interface HeaderFooterSectionProps {
   type: 'header' | 'footer';
   section: HeaderFooter;
   pageSize: 'A4' | 'Short' | 'Long';
+  orientation: 'portrait' | 'landscape';
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
@@ -28,6 +29,7 @@ export default function HeaderFooterSection({
   type,
   section,
   pageSize,
+  orientation,
   selectedElementId,
   onSelectElement,
   onUpdateElement,
@@ -55,7 +57,7 @@ export default function HeaderFooterSection({
   } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string } | null>(null);
 
-  const size = PAGE_SIZES[pageSize];
+  const size = getPageDimensions(pageSize, orientation);
   const sectionHeight = type === 'header' ? HEADER_HEIGHT : FOOTER_HEIGHT;
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string) => {

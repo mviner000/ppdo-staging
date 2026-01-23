@@ -2,9 +2,10 @@
 
 import { Page } from './types';
 
-export const createNewPage = (size: 'A4' | 'Short' | 'Long' = 'A4'): Page => ({
+export const createNewPage = (size: 'A4' | 'Short' | 'Long' = 'A4', orientation: 'portrait' | 'landscape' = 'portrait'): Page => ({
   id: Math.random().toString(36).substr(2, 9),
   size,
+  orientation,
   elements: [],
 });
 

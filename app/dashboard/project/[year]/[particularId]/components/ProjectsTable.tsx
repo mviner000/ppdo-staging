@@ -26,6 +26,7 @@ import { ProjectsTableBody } from "./ProjectsTable/ProjectsTableBody";
 import { ProjectsTableFooter } from "./ProjectsTable/ProjectsTableFooter";
 import { ProjectContextMenu } from "./ProjectsTable/ProjectContextMenu";
 import { ProjectBulkToggleDialog } from "./ProjectBulkToggleDialog";
+import { PrintPreviewModal } from "@/app/dashboard/project/[year]/components/PrintPreviewModal";
 
 // Types, Constants, and Utils
 import {
@@ -48,6 +49,11 @@ import {
   exportToCSV,
   createProjectExportConfig,
 } from "@/services";
+import {
+  flattenGroupedProjectsForPrint,
+  getProjectPrintColumns,
+} from "../utils/printAdapters";
+import { BudgetTotals, PrintDraft } from "@/lib/print-canvas/types";
 
 export function ProjectsTable({
   projects,
@@ -93,6 +99,7 @@ export function ProjectsTable({
   const [showHideAllWarning, setShowHideAllWarning] = useState(false);
   const [showBulkToggleDialog, setShowBulkToggleDialog] = useState(false);
   const [isBulkToggling, setIsBulkToggling] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   // ==================== STATE: DATA ====================
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -154,6 +161,27 @@ export function ProjectsTable({
   const totals = useMemo(() => {
     return calculateProjectTotals(filteredAndSortedProjects);
   }, [filteredAndSortedProjects]);
+
+  // Prepare print data with category row markers
+  const printData = useMemo(() => {
+    const groupedArray = groupedProjects.map(([_, group]) => group);
+    return flattenGroupedProjectsForPrint(groupedArray);
+  }, [groupedProjects]);
+
+  // Get print columns (respecting hidden columns)
+  const printColumns = useMemo(() => {
+    return getProjectPrintColumns(hiddenColumns);
+  }, [hiddenColumns]);
+
+  // Convert project totals to budget totals format for PrintPreviewModal
+  const printTotals: BudgetTotals = useMemo(() => ({
+    totalBudgetAllocated: totals.totalBudgetAllocated || 0,
+    obligatedBudget: totals.obligatedBudget || 0,
+    totalBudgetUtilized: totals.totalBudgetUtilized || 0,
+    projectCompleted: totals.projectCompleted || 0,
+    projectDelayed: totals.projectDelayed || 0,
+    projectsOnTrack: totals.projectsOngoing || 0,
+  }), [totals]);
 
   // Selection state
   const isAllSelected = filteredAndSortedProjects.length > 0 && 
@@ -477,6 +505,10 @@ export function ProjectsTable({
     setHiddenColumns(new Set());
   };
 
+  const handleOpenPrintPreview = () => {
+    setShowPrintPreview(true);
+  };
+
   const handleExportCSV = () => {
     try {
       exportToCSV(
@@ -584,7 +616,7 @@ export function ProjectsTable({
           onShowAllColumns={handleShowAllColumns}
           onHideAllColumns={handleHideAllColumns}
           onExportCSV={handleExportCSV}
-          onPrint={() => window.print()}
+          onPrint={handleOpenPrintPreview}
           onOpenTrash={onOpenTrash}
           onBulkTrash={handleBulkTrash}
           isAdmin={canManageBulkActions}
@@ -858,6 +890,26 @@ export function ProjectsTable({
           particularFullName={getParticularFullName(particularId)}
         />
       )}
+
+      {/* Print Preview Modal with Category Support */}
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        budgetItems={printData.flatItems as any}
+        totals={printTotals}
+        columns={printColumns}
+        hiddenColumns={hiddenColumns}
+        filterState={{
+          searchQuery,
+          statusFilter,
+          yearFilter: [],
+          sortField: sortField as string | null,
+          sortDirection: sortDirection as string | null,
+        }}
+        year={budgetItemYear || new Date().getFullYear()}
+        particular={getParticularFullName(particularId)}
+        rowMarkers={printData.rowMarkers}
+      />
     </>
   );
 }

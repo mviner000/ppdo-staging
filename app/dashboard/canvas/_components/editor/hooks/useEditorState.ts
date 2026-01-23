@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { loadGoogleFont } from '@/lib/fonts';
 import { Page, CanvasElement, TextElement, ImageElement, HeaderFooter } from '../types';
 import { createNewPage, generateId } from '../utils';
-import { PAGE_SIZES, HEADER_HEIGHT, FOOTER_HEIGHT } from '../constants';
+import { getPageDimensions, HEADER_HEIGHT, FOOTER_HEIGHT } from '../constants';
 
 type SectionType = 'header' | 'page' | 'footer';
 
@@ -38,7 +38,7 @@ export const useEditorState = (
 
   // Page operations
   const addPage = useCallback(() => {
-    const newPage = createNewPage(currentPage.size);
+    const newPage = createNewPage(currentPage.size, currentPage.orientation);
     const newPages = [...pages, newPage];
     setPages(newPages);
     setCurrentPageIndex(newPages.length - 1);
@@ -51,6 +51,7 @@ export const useEditorState = (
     const newPage: Page = {
       id: generateId(),
       size: currentPage.size,
+      orientation: currentPage.orientation,
       elements: currentPage.elements.map((el) => ({
         ...el,
         id: generateId(),
@@ -67,7 +68,7 @@ export const useEditorState = (
 
   const deletePage = useCallback(() => {
     if (pages.length === 1) {
-      const newPage = createNewPage(currentPage.size);
+      const newPage = createNewPage(currentPage.size, currentPage.orientation);
       setPages([newPage]);
       setCurrentPageIndex(0);
       setSelectedElementId(null);
@@ -105,6 +106,10 @@ export const useEditorState = (
     updateCurrentPage((page) => ({ ...page, size }));
   }, [updateCurrentPage]);
 
+  const changeOrientation = useCallback((orientation: 'portrait' | 'landscape') => {
+    updateCurrentPage((page) => ({ ...page, orientation }));
+  }, [updateCurrentPage]);
+
   const goToPreviousPage = useCallback(() => {
     if (currentPageIndex > 0) {
       setCurrentPageIndex(currentPageIndex - 1);
@@ -123,7 +128,7 @@ export const useEditorState = (
 
   // Element operations - now with section support
   const addText = useCallback((section: SectionType = 'page') => {
-    const size = PAGE_SIZES[currentPage.size];
+    const size = getPageDimensions(currentPage.size, currentPage.orientation);
     const elementWidth = 200;
     const elementHeight = section === 'footer' ? 20 : section === 'header' ? 24 : 30;
     const fontSize = section === 'footer' ? 12 : section === 'header' ? 14 : 16;
@@ -190,7 +195,7 @@ export const useEditorState = (
   }, [currentPage, updateCurrentPage]);
 
   const addImage = useCallback((src: string, section: SectionType = 'page') => {
-    const size = PAGE_SIZES[currentPage.size];
+    const size = getPageDimensions(currentPage.size, currentPage.orientation);
 
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
@@ -383,6 +388,7 @@ export const useEditorState = (
     deletePage,
     reorderPages,
     changePageSize,
+    changeOrientation,
     goToPreviousPage,
     goToNextPage,
     selectPage,

@@ -19,7 +19,7 @@ export type { TextElement, ImageElement, CanvasElement, Page } from './editor/ty
 export type ActiveSection = 'header' | 'page' | 'footer';
 
 export default function Editor() {
-  console.group('📍 STEP 6: Canvas Editor - Initialization');
+  console.group('📋 STEP 6: Canvas Editor - Initialization');
   
   const { isHydrated, savedPages, savedIndex, savedHeader, savedFooter } = useStorage();
   
@@ -59,6 +59,7 @@ export default function Editor() {
     deletePage,
     reorderPages,
     changePageSize,
+    changeOrientation,
     goToPreviousPage,
     goToNextPage,
     selectPage,
@@ -115,7 +116,9 @@ export default function Editor() {
             onUpdateElement={selectedElement ? (updates) => updateElement(selectedElement.id, updates) : undefined}
             onAddText={() => addText(activeSection)}
             pageSize={currentPage.size}
+            orientation={currentPage.orientation}
             onPageSizeChange={changePageSize}
+            onOrientationChange={changeOrientation}
             onPrint={() => printAllPages(pages, header, footer)}
             activeSection={activeSection}
             headerBackgroundColor={header.backgroundColor || '#ffffff'}

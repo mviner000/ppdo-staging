@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Page } from "../editor";
+import { getPageDimensions } from './constants';
 
 interface PagePanelProps {
   pages: Page[];
@@ -15,12 +16,6 @@ interface PagePanelProps {
   onAddPage: () => void;
   onReorderPages: (fromIndex: number, toIndex: number) => void;
 }
-
-const PAGE_SIZES = {
-  A4: { width: 595, height: 842 },
-  Short: { width: 612, height: 792 },
-  Long: { width: 612, height: 936 },
-};
 
 export default function PagePanel({
   pages,
@@ -69,7 +64,7 @@ export default function PagePanel({
       <div className="flex-1 overflow-y-auto p-2">
         <div className="space-y-2">
           {pages.map((page, index) => {
-            const size = PAGE_SIZES[page.size];
+            const size = getPageDimensions(page.size, page.orientation);
             const aspectRatio = size.height / size.width;
             const thumbnailWidth = 160;
             const thumbnailHeight = thumbnailWidth * aspectRatio;

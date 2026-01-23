@@ -29,7 +29,7 @@ const drawElementsOnCanvas = (
     if (element.visible === false) return;
 
     if (element.type === 'text') {
-      const displayText = pageNumber && totalPages 
+      const displayText = pageNumber && totalPages
         ? processDynamicText(element.text, pageNumber, totalPages)
         : element.text;
 
@@ -79,33 +79,42 @@ const drawElementsOnCanvas = (
     }
   });
 
-  return Promise.all(promises).then(() => {});
+  return Promise.all(promises).then(() => { });
 };
 
 export async function exportAsPDF(pages: Page[], header: HeaderFooter, footer: HeaderFooter) {
   toast.info('Generating PDF...');
-  
+
   try {
     const { jsPDF } = await import('jspdf');
-    
-    const firstPageSize = PAGE_SIZES[pages[0]?.size] || PAGE_SIZES.A4;
+
+    const firstPage = pages[0];
+    const firstPageSize = PAGE_SIZES[firstPage?.size] || PAGE_SIZES.A4;
+    const isFirstPageLandscape = firstPage?.orientation === 'landscape';
+
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: isFirstPageLandscape ? 'landscape' : 'portrait',
       unit: 'px',
-      format: [firstPageSize.width, firstPageSize.height],
+      format: isFirstPageLandscape
+        ? [firstPageSize.height, firstPageSize.width]
+        : [firstPageSize.width, firstPageSize.height],
       compress: true
     });
 
     for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
       const page = pages[pageIndex];
-      const pageSize = PAGE_SIZES[page.size] || PAGE_SIZES.A4;
-      
+      const isLandscape = page.orientation === 'landscape';
+      const baseSize = PAGE_SIZES[page.size] || PAGE_SIZES.A4;
+      const pageSize = isLandscape
+        ? { width: baseSize.height, height: baseSize.width }
+        : baseSize;
+
       // Create canvas
       const canvas = document.createElement('canvas');
       canvas.width = pageSize.width;
       canvas.height = pageSize.height;
       const ctx = canvas.getContext('2d');
-      
+
       if (!ctx) {
         throw new Error('Could not get canvas context');
       }
@@ -132,7 +141,7 @@ export async function exportAsPDF(pages: Page[], header: HeaderFooter, footer: H
 
       // Add page to PDF
       if (pageIndex > 0) {
-        pdf.addPage([pageSize.width, pageSize.height]);
+        pdf.addPage([pageSize.width, pageSize.height], isLandscape ? 'landscape' : 'portrait');
       }
 
       const imgData = canvas.toDataURL('image/png');
@@ -141,7 +150,7 @@ export async function exportAsPDF(pages: Page[], header: HeaderFooter, footer: H
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     pdf.save(`canvas-export-${timestamp}.pdf`);
-    
+
     toast.success('PDF exported successfully!');
   } catch (error) {
     console.error('Error exporting PDF:', error);

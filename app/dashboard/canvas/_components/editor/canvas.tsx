@@ -4,7 +4,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Page, CanvasElement, ImageElement, HeaderFooter } from './types';
-import { PAGE_SIZES, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
+import { getPageDimensions, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
 import TextElementComponent from './text-element';
 import ImageElementComponent from './image-element';
 import HeaderFooterSection from './header-footer-section';
@@ -42,10 +42,11 @@ export default function Canvas({
   activeSection,
   onActiveSectionChange,
 }: CanvasProps) {
-  console.group('📍 STEP 7: Canvas Component - Rendering');
+  console.group('📋 STEP 7: Canvas Component - Rendering');
   console.log('📄 Page data:', page);
   console.log('📄 Page elements count:', page?.elements?.length || 0);
   console.log('📄 Page size:', page?.size);
+  console.log('📄 Page orientation:', page?.orientation);
   console.log('📄 Page background:', page?.backgroundColor);
   console.log('📄 Header elements:', header?.elements?.length || 0);
   console.log('📄 Footer elements:', footer?.elements?.length || 0);
@@ -82,7 +83,7 @@ export default function Canvas({
   const [croppingElementId, setCroppingElementId] = useState<string | null>(null);
 
   const isEditingElementId = externalIsEditingElementId ?? localIsEditingElementId;
-  const size = PAGE_SIZES[page.size];
+  const size = getPageDimensions(page.size, page.orientation);
 
   const handleMouseDown = (e: React.MouseEvent, elementId: string) => {
     e.stopPropagation();
@@ -306,6 +307,7 @@ export default function Canvas({
         type="header"
         section={header}
         pageSize={page.size}
+        orientation={page.orientation}
         selectedElementId={selectedElementId}
         onSelectElement={onSelectElement}
         onUpdateElement={onUpdateElement}
@@ -382,6 +384,7 @@ export default function Canvas({
         type="footer"
         section={footer}
         pageSize={page.size}
+        orientation={page.orientation}
         selectedElementId={selectedElementId}
         onSelectElement={onSelectElement}
         onUpdateElement={onUpdateElement}

@@ -1,9 +1,9 @@
 // lib/print-canvas/tableToCanvas.ts
 
 import { Page, HeaderFooter, TextElement } from '@/app/dashboard/canvas/_components/editor/types';
-import { 
-  ConversionConfig, 
-  ConversionResult, 
+import {
+  ConversionConfig,
+  ConversionResult,
   DEFAULT_TABLE_STYLE,
   CellBounds,
   ColumnDefinition,
@@ -25,34 +25,9 @@ const HEADER_ROW_HEIGHT = 28;
 
 /**
  * Converts budget table data into canvas pages
+ * Supports row markers for category/group headers
  */
 export function convertTableToCanvas(config: ConversionConfig): ConversionResult {
-  console.group('📍 STEP 5: Table to Canvas Conversion - Started');
-  console.log('🔧 Config received:', config);
-  console.log('📊 Items to convert:', config.items?.length || 0);
-  console.log('📊 First item:', config.items?.[0]);
-  console.log('📊 Totals:', config.totals);
-  console.log('📊 Columns:', config.columns);
-  console.log('📊 Columns count:', config.columns?.length || 0);
-  console.log('🔍 Hidden columns:', config.hiddenColumns);
-  console.log('🔍 Hidden columns size:', config.hiddenColumns?.size || 0);
-  console.log('📄 Page size:', config.pageSize);
-  console.log('📋 Include headers:', config.includeHeaders);
-  console.log('📋 Include totals:', config.includeTotals);
-  console.log('📝 Title:', config.title);
-  console.log('📝 Subtitle:', config.subtitle);
-  
-  // Validate inputs
-  if (!config.items || config.items.length === 0) {
-    console.error('❌ CRITICAL: No items to convert!');
-  }
-  if (!config.columns || config.columns.length === 0) {
-    console.error('❌ CRITICAL: No columns defined!');
-  }
-  if (!config.totals) {
-    console.error('❌ CRITICAL: Totals object is missing!');
-  }
-
   const {
     items,
     totals,
@@ -63,45 +38,40 @@ export function convertTableToCanvas(config: ConversionConfig): ConversionResult
     includeTotals,
     title,
     subtitle,
+    rowMarkers = [],
   } = config;
 
-  const size = PAGE_SIZES[pageSize];
-  console.log('📐 Page dimensions:', size);
-  
+  const isLandscape = config.orientation === 'landscape';
+  const baseSize = PAGE_SIZES[pageSize as keyof typeof PAGE_SIZES] || PAGE_SIZES.A4;
+  const size = isLandscape
+    ? { width: baseSize.height, height: baseSize.width }
+    : baseSize;
+
   const availableHeight = size.height - HEADER_HEIGHT - FOOTER_HEIGHT - (MARGIN * 2);
-  console.log('📐 Available height for content:', availableHeight);
-  
+
   // Filter visible columns
   const visibleColumns = columns.filter(col => !hiddenColumns.has(col.key));
-  console.log('👁️ Visible columns:', visibleColumns);
-  console.log('👁️ Visible columns count:', visibleColumns.length);
-  
+
   const columnWidths = calculateColumnWidths(visibleColumns, size.width - (MARGIN * 2));
-  console.log('📏 Column widths calculated:', columnWidths);
-  
+
   // Create pages
   const pages: Page[] = [];
-  
+
   // Calculate rows per page
   const headerHeight = includeHeaders ? HEADER_ROW_HEIGHT : 0;
   const rowsPerPage = Math.floor((availableHeight - headerHeight) / ROW_HEIGHT);
-  console.log('📊 Rows per page:', rowsPerPage);
-  console.log('📊 Expected page count:', Math.ceil(items.length / rowsPerPage));
 
   // Create title page if title provided
   if (title) {
-    console.log('📄 Creating title page...');
-    const titlePage = createTitlePage(pageSize, title, subtitle);
+    const titlePage = createTitlePage(pageSize, title, subtitle, config.orientation);
     pages.push(titlePage);
-    console.log('✅ Title page created with', titlePage.elements.length, 'elements');
   }
 
-  // Paginate items
+  // Paginate items with category row support
   let rowStartIndex = 0;
   for (let i = 0; i < items.length; i += rowsPerPage) {
     const pageItems = items.slice(i, Math.min(i + rowsPerPage, items.length));
-    console.log(`📄 Creating data page ${pages.length + 1} with ${pageItems.length} rows...`);
-    
+
     const page = createDataPage(
       pageSize,
       pageItems,
@@ -109,36 +79,31 @@ export function convertTableToCanvas(config: ConversionConfig): ConversionResult
       columnWidths,
       includeHeaders,
       rowStartIndex,
-      i
+      i,
+      config.orientation,
+      rowMarkers
     );
-    
-    console.log(`✅ Data page created with ${page.elements.length} elements`);
+
     pages.push(page);
     rowStartIndex = i + pageItems.length;
   }
 
   // Add totals page if requested
   if (includeTotals && pages.length > 0) {
-    console.log('📊 Adding totals...');
     const lastPage = pages[pages.length - 1];
     const hasSpace = checkSpaceForTotals(lastPage);
-    
+
     if (hasSpace) {
-      console.log('✅ Adding totals to last page');
       addTotalsToPage(lastPage, totals, visibleColumns, columnWidths);
     } else {
-      console.log('📄 Creating separate totals page');
-      const totalsPage = createTotalsPage(pageSize, totals, visibleColumns, columnWidths);
+      const totalsPage = createTotalsPage(pageSize, totals, visibleColumns, columnWidths, config.orientation);
       pages.push(totalsPage);
     }
   }
 
   // Create header and footer
-  console.log('📄 Creating header and footer...');
   const header = createPrintHeader(title || 'Budget Tracking Report');
   const footer = createPrintFooter();
-  console.log('✅ Header elements:', header.elements.length);
-  console.log('✅ Footer elements:', footer.elements.length);
 
   const result = {
     pages,
@@ -149,15 +114,11 @@ export function convertTableToCanvas(config: ConversionConfig): ConversionResult
       totalRows: items.length,
       createdAt: Date.now(),
       pageSize,
+      orientation: config.orientation || 'portrait',
       columnCount: visibleColumns.length,
     },
   };
 
-  console.log('✅ Conversion complete!');
-  console.log('📊 Final result:', result);
-  console.log('📄 Total pages created:', pages.length);
-  console.groupEnd();
-  
   return result;
 }
 
@@ -179,7 +140,7 @@ function calculateColumnWidths(columns: ColumnDefinition[], totalWidth: number):
   };
 
   const totalWeight = columns.reduce((sum, col) => sum + (weights[col.key] || 1), 0);
-  
+
   return columns.map(col => {
     const weight = weights[col.key] || 1;
     return (totalWidth * weight) / totalWeight;
@@ -189,8 +150,11 @@ function calculateColumnWidths(columns: ColumnDefinition[], totalWidth: number):
 /**
  * Create title page
  */
-function createTitlePage(pageSize: string, title: string, subtitle?: string): Page {
-  const size = PAGE_SIZES[pageSize as keyof typeof PAGE_SIZES];
+function createTitlePage(pageSize: string, title: string, subtitle?: string, orientation: 'portrait' | 'landscape' = 'portrait'): Page {
+  const baseSize = PAGE_SIZES[pageSize as keyof typeof PAGE_SIZES];
+  const size = orientation === 'landscape'
+    ? { width: baseSize.height, height: baseSize.width }
+    : baseSize;
   const elements: TextElement[] = [];
 
   // Main title
@@ -263,14 +227,15 @@ function createTitlePage(pageSize: string, title: string, subtitle?: string): Pa
 
   return {
     id: `page-title-${Date.now()}`,
-    size: pageSize as any,
+    size: pageSize as 'A4' | 'Short' | 'Long',
+    orientation: orientation,
     elements,
     backgroundColor: '#ffffff',
   };
 }
 
 /**
- * Create data page with table rows
+ * Create data page with table rows and optional category markers
  */
 function createDataPage(
   pageSize: string,
@@ -279,9 +244,14 @@ function createDataPage(
   columnWidths: number[],
   includeHeaders: boolean,
   rowStartIndex: number,
-  globalRowIndex: number
+  globalRowIndex: number,
+  orientation: 'portrait' | 'landscape' = 'portrait',
+  rowMarkers: import('./types').RowMarker[] = []
 ): Page {
-  const size = PAGE_SIZES[pageSize as keyof typeof PAGE_SIZES];
+  const baseSize = PAGE_SIZES[pageSize as keyof typeof PAGE_SIZES];
+  const size = orientation === 'landscape'
+    ? { width: baseSize.height, height: baseSize.width }
+    : baseSize;
   const elements: TextElement[] = [];
   let currentY = MARGIN;
 
@@ -291,15 +261,26 @@ function createDataPage(
     currentY += HEADER_ROW_HEIGHT;
   }
 
-  // Add data rows
+  // Add data rows with category marker support
   items.forEach((item, index) => {
+    // Check if there's a category marker at this position
+    const markerAtThisIndex = rowMarkers.find(m => m.index === globalRowIndex + index);
+    
+    if (markerAtThisIndex) {
+      // Render category header
+      elements.push(...createCategoryHeaderRow(markerAtThisIndex.label, columnWidths, currentY));
+      currentY += ROW_HEIGHT + 4; // Extra spacing after category
+    }
+
+    // Render data row
     elements.push(...createTableRow(item, columns, columnWidths, currentY, index % 2 === 0));
     currentY += ROW_HEIGHT;
   });
 
   return {
     id: `page-data-${Date.now()}-${globalRowIndex}`,
-    size: pageSize as any,
+    size: pageSize as 'A4' | 'Short' | 'Long',
+    orientation: orientation,
     elements,
     backgroundColor: '#ffffff',
   };
@@ -343,6 +324,36 @@ function createTableHeaders(
 }
 
 /**
+ * Create a category header row (full-width, styled differently)
+ */
+function createCategoryHeaderRow(
+  categoryLabel: string,
+  columnWidths: number[],
+  y: number
+): TextElement[] {
+  const totalWidth = columnWidths.reduce((sum, w) => sum + w, 0);
+  
+  return [{
+    id: `category-header-${categoryLabel}-${Date.now()}`,
+    type: 'text',
+    text: categoryLabel,
+    x: MARGIN,
+    y: y + 4,
+    width: totalWidth,
+    height: ROW_HEIGHT - 8,
+    fontSize: 11,
+    fontFamily: 'Inter',
+    bold: true,
+    italic: false,
+    underline: false,
+    color: '#18181b',
+    shadow: false,
+    outline: false,
+    visible: true,
+  }];
+}
+
+/**
  * Create a single table row
  */
 function createTableRow(
@@ -357,7 +368,7 @@ function createTableRow(
 
   columns.forEach((col, index) => {
     const value = formatCellValue(item, col.key);
-    
+
     elements.push({
       id: `cell-${item.id}-${col.key}-${Date.now()}`,
       type: 'text',
@@ -388,24 +399,24 @@ function createTableRow(
  */
 function formatCellValue(item: BudgetItem, key: string): string {
   const value = (item as any)[key];
-  
+
   if (value === null || value === undefined) return '-';
-  
+
   // Currency formatting
   if (key.includes('Budget') || key.includes('budget')) {
     return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }
-  
+
   // Percentage formatting
   if (key === 'utilizationRate') {
     return `${value.toFixed(1)}%`;
   }
-  
+
   // Status formatting
   if (key === 'status') {
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
-  
+
   return String(value);
 }
 
@@ -416,16 +427,18 @@ function createTotalsPage(
   pageSize: string,
   totals: BudgetTotals,
   columns: ColumnDefinition[],
-  columnWidths: number[]
+  columnWidths: number[],
+  orientation: 'portrait' | 'landscape' = 'portrait'
 ): Page {
   const elements: TextElement[] = [];
   const y = MARGIN;
-  
+
   elements.push(...createTotalsRow(totals, columns, columnWidths, y));
-  
+
   return {
     id: `page-totals-${Date.now()}`,
-    size: pageSize as any,
+    size: pageSize as 'A4' | 'Short' | 'Long',
+    orientation: orientation,
     elements,
     backgroundColor: '#ffffff',
   };
@@ -442,7 +455,7 @@ function addTotalsToPage(
 ): void {
   const lastElement = page.elements[page.elements.length - 1];
   const y = lastElement ? lastElement.y + ROW_HEIGHT + 10 : MARGIN;
-  
+
   const totalsElements = createTotalsRow(totals, columns, columnWidths, y);
   page.elements.push(...totalsElements);
 }
@@ -461,14 +474,14 @@ function createTotalsRow(
 
   columns.forEach((col, index) => {
     let value = '';
-    
+
     if (col.key === 'particular') {
       value = 'TOTAL';
     } else if (col.key in totals) {
       const totalValue = (totals as any)[col.key];
       value = formatCellValue({ [col.key]: totalValue } as any, col.key);
     }
-    
+
     if (value) {
       elements.push({
         id: `total-${col.key}-${Date.now()}`,
@@ -501,11 +514,11 @@ function createTotalsRow(
  */
 function checkSpaceForTotals(page: Page): boolean {
   if (page.elements.length === 0) return true;
-  
+
   const lastElement = page.elements[page.elements.length - 1];
   const pageSize = PAGE_SIZES[page.size];
   const availableHeight = pageSize.height - HEADER_HEIGHT - FOOTER_HEIGHT - MARGIN;
-  
+
   return (lastElement.y + ROW_HEIGHT + ROW_HEIGHT) < availableHeight;
 }
 

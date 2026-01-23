@@ -44,6 +44,7 @@ export interface HeaderFooter {
 export interface Page {
   id: string;
   size: 'A4' | 'Short' | 'Long';
+  orientation: 'portrait' | 'landscape';
   elements: CanvasElement[];
   backgroundColor?: string;
 }

@@ -444,28 +444,7 @@ export function BudgetTrackingTable({
         />
       )}
 
-      {modalStates.showPrintPreview && (() => {
-        console.group('📍 STEP 2: Print Preview Modal - Rendering');
-        console.log('✅ Modal State - isOpen:', modalStates.showPrintPreview);
-        console.log('📊 Budget Items Count:', filteredAndSortedItems.length);
-        console.log('📊 Budget Items Sample (first 2):');
-        console.table(filteredAndSortedItems.slice(0, 2));
-        console.log('📊 Print Totals:', printTotals);
-        console.log('📊 Visible Columns:', getVisibleColumns(hiddenColumns));
-        console.log('📊 Visible Columns Count:', getVisibleColumns(hiddenColumns).length);
-        console.log('🔍 Filter State:', {
-          searchQuery,
-          statusFilter,
-          yearFilter,
-          sortField,
-          sortDirection,
-        });
-        console.log('🔍 Hidden Columns Set:', Array.from(hiddenColumns));
-        console.log('📅 Year Parameter:', year);
-        console.log('💾 Draft State:', draftState ? 'EXISTS' : 'NULL');
-        console.groupEnd();
-        return null;
-      })()}
+
 
       <PrintPreviewModal
         isOpen={modalStates.showPrintPreview}

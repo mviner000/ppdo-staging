@@ -16,19 +16,19 @@ const processDynamicText = (text: string, pageNumber: number, totalPages: number
 };
 
 const renderElements = (
-  elements: CanvasElement[], 
-  pageDiv: HTMLDivElement, 
-  pageNumber?: number, 
+  elements: CanvasElement[],
+  pageDiv: HTMLDivElement,
+  pageNumber?: number,
   totalPages?: number
 ) => {
   elements.forEach((element: CanvasElement) => {
     if (element.visible === false) return;
-    
+
     if (element.type === 'text') {
       const textDiv = document.createElement('div');
       textDiv.setAttribute('data-element-type', 'text');
       textDiv.setAttribute('data-element-id', element.id);
-      
+
       textDiv.style.cssText = `
         position: absolute;
         left: ${element.x}px;
@@ -62,10 +62,10 @@ const renderElements = (
         textDiv.style.fontFamily = 'sans-serif';
       }
 
-      const displayText = pageNumber && totalPages 
+      const displayText = pageNumber && totalPages
         ? processDynamicText(element.text, pageNumber, totalPages)
         : element.text;
-      
+
       textDiv.textContent = displayText;
       pageDiv.appendChild(textDiv);
     } else if (element.type === 'image') {
@@ -74,7 +74,7 @@ const renderElements = (
       imgDiv.alt = element.name || 'Image';
       imgDiv.setAttribute('data-element-type', 'image');
       imgDiv.setAttribute('data-element-id', element.id);
-      
+
       imgDiv.style.cssText = `
         position: absolute;
         left: ${element.x}px;
@@ -86,7 +86,7 @@ const renderElements = (
         margin: 0;
         padding: 0;
       `;
-      
+
       pageDiv.appendChild(imgDiv);
     }
   });
@@ -166,9 +166,25 @@ export function printAllPages(pages: Page[], header: HeaderFooter, footer: Heade
   const printContainer = document.createElement('div');
   printContainer.id = '__print-container';
   printContainer.style.cssText = 'position: fixed; left: -99999px; top: 0; width: 100%; z-index: -1; pointer-events: none;';
-  
+
   pages.forEach((page, pageIndex) => {
-    const pageSize = PAGE_SIZES[page.size] || PAGE_SIZES.A4;
+    const isLandscape = page.orientation === 'landscape';
+    const baseSize = PAGE_SIZES[page.size] || PAGE_SIZES.A4;
+    const pageSize = isLandscape
+      ? { width: baseSize.height, height: baseSize.width }
+      : baseSize;
+
+    // Set page orientation for the printer
+    if (pageIndex === 0 && printStyleElement) {
+      // Remove any existing orientation styles
+      let css = printStyleElement.textContent || '';
+      css = css.replace(/@media print\s*{\s*@page\s*{\s*size:\s*(portrait|landscape);\s*}\s*}/g, '');
+
+      // Add the current orientation style
+      const orientationStyle = `@media print { @page { size: ${isLandscape ? 'landscape' : 'portrait'}; } }`;
+      printStyleElement.textContent = css + '\n' + orientationStyle;
+    }
+
     const pageDiv = document.createElement('div');
     pageDiv.className = 'print-page';
     pageDiv.style.cssText = `
@@ -221,10 +237,10 @@ export function printAllPages(pages: Page[], header: HeaderFooter, footer: Heade
     `;
     renderElements(footer.elements, footerDiv, pageIndex + 1, pages.length);
     pageDiv.appendChild(footerDiv);
-    
+
     printContainer.appendChild(pageDiv);
   });
-  
+
   document.body.appendChild(printContainer);
   const images = printContainer.querySelectorAll('img');
   const imagePromises = Array.from(images).map((img) => {
@@ -248,13 +264,13 @@ export function printAllPages(pages: Page[], header: HeaderFooter, footer: Heade
           document.body.removeChild(container);
         }
       };
-      
+
       const afterPrintHandler = () => {
         cleanup();
         window.removeEventListener('afterprint', afterPrintHandler);
       };
       window.addEventListener('afterprint', afterPrintHandler);
-      
+
       setTimeout(cleanup, 2000);
     }, 500);
   });
