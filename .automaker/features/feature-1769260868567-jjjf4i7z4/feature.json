@@ -1,0 +1,28 @@
+{
+  "category": "Uncategorized",
+  "description": "Implement a high-quality WYSIWYG PDF export system for the canvas editor that captures exactly what the user sees on screen, using the latest jsPDF (v2.5.2) with html2canvas for pixel-perfect rasterization at 2x (Medium/144 DPI) and 4x (Ultra/288 DPI) quality levels. Create a PDFExportModal component that displays two quality options with visual cards showing scale, DPI, estimated file size, and descriptions, then renders each canvas page (including header, footer, and all styled elements with their exact fonts, colors, shadows, outlines, backgrounds, and template styling) by creating temporary off-screen DOM containers that replicate the visible canvas structure, capturing them with html2canvas at the selected scale multiplier, and adding the resulting high-resolution images to jsPDF pages. Generate PDF filenames automatically using the format '{sanitized_title}{YYYY-MM-DD}{HH-MM-SS}.pdf' (e.g., 'budget_tracking_2026_2025-01-24_14-30-25.pdf'), include PDF metadata (title, author, subject, keywords, creator), show a progress bar during export, and ensure true WYSIWYG output by: (1) preserving all CSS styles (font-family, font-size, font-weight, text-decoration, color, text-shadow, -webkit-text-stroke), (2) maintaining exact element positioning (absolute positioning with x, y coordinates), (3) rendering all images with crossOrigin='anonymous' for CORS compliance, (4) waiting for all images to load before capturing, (5) applying the same background colors to header/footer/page sections, (6) handling both text and image elements with their complete styling, and (7) capturing the entire page including any applied templates with their logos, watermarks, and background elements exactly as displayed on the canvas, then cleaning up temporary DOM elements and triggering the browser download with proper success/error toast notifications.",
+  "title": "Implement WYSIWYG PDF export with quality options",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "claude-sonnet",
+  "thinkingLevel": "medium",
+  "reasoningEffort": "none",
+  "branchName": "rapidv1",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "workMode": "custom",
+  "titleGenerating": false,
+  "status": "backlog",
+  "id": "feature-1769260868567-jjjf4i7z4",
+  "descriptionHistory": [
+    {
+      "description": "Implement a high-quality WYSIWYG PDF export system for the canvas editor that captures exactly what the user sees on screen, using the latest jsPDF (v2.5.2) with html2canvas for pixel-perfect rasterization at 2x (Medium/144 DPI) and 4x (Ultra/288 DPI) quality levels. Create a PDFExportModal component that displays two quality options with visual cards showing scale, DPI, estimated file size, and descriptions, then renders each canvas page (including header, footer, and all styled elements with their exact fonts, colors, shadows, outlines, backgrounds, and template styling) by creating temporary off-screen DOM containers that replicate the visible canvas structure, capturing them with html2canvas at the selected scale multiplier, and adding the resulting high-resolution images to jsPDF pages. Generate PDF filenames automatically using the format '{sanitized_title}{YYYY-MM-DD}{HH-MM-SS}.pdf' (e.g., 'budget_tracking_2026_2025-01-24_14-30-25.pdf'), include PDF metadata (title, author, subject, keywords, creator), show a progress bar during export, and ensure true WYSIWYG output by: (1) preserving all CSS styles (font-family, font-size, font-weight, text-decoration, color, text-shadow, -webkit-text-stroke), (2) maintaining exact element positioning (absolute positioning with x, y coordinates), (3) rendering all images with crossOrigin='anonymous' for CORS compliance, (4) waiting for all images to load before capturing, (5) applying the same background colors to header/footer/page sections, (6) handling both text and image elements with their complete styling, and (7) capturing the entire page including any applied templates with their logos, watermarks, and background elements exactly as displayed on the canvas, then cleaning up temporary DOM elements and triggering the browser download with proper success/error toast notifications.",
+      "timestamp": "2026-01-24T13:21:08.764Z",
+      "source": "initial"
+    }
+  ]
+}

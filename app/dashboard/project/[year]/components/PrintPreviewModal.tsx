@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { PrintPreviewToolbar } from './PrintPreviewToolbar';
 import { ConfirmationModal } from './ConfirmationModal';
 import { TemplateSelector } from './TemplateSelector';
@@ -16,6 +16,9 @@ import Toolbar from '@/app/(extra)/canvas/_components/editor/toolbar';
 import Canvas from '@/app/(extra)/canvas/_components/editor/canvas';
 import PagePanel from '@/app/(extra)/canvas/_components/editor/page-panel';
 import BottomPageControls from '@/app/(extra)/canvas/_components/editor/bottom-page-controls';
+import { HorizontalRuler, VerticalRuler } from '@/app/(extra)/canvas/_components/editor/ruler';
+import { useRulerState } from '@/app/(extra)/canvas/_components/editor/hooks/useRulerState';
+import { getPageDimensions, RULER_WIDTH, RULER_HEIGHT, HEADER_HEIGHT, FOOTER_HEIGHT } from '@/app/(extra)/canvas/_components/editor/constants';
 
 // Custom hooks
 import { usePrintPreviewState } from './hooks/usePrintPreviewState';
@@ -62,6 +65,22 @@ export function PrintPreviewModal({
 }: PrintPreviewModalProps) {
   // State management
   const state = usePrintPreviewState();
+
+  // Ruler state
+  const {
+    rulerState,
+    toggleRulerVisibility,
+    updateMargin,
+    updateIndent,
+    addTabStop,
+    updateTabStop,
+    removeTabStop,
+  } = useRulerState();
+
+  // Scroll tracking for rulers
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
 
   // Viewer/Editor mode state (default to viewer mode)
   const [isEditorMode, setIsEditorMode] = useState(false);
@@ -255,6 +274,21 @@ export function PrintPreviewModal({
     [state]
   );
 
+  // Keyboard shortcut for ruler toggle (Ctrl+Shift+R)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        toggleRulerVisibility();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, toggleRulerVisibility]);
+
   // Initialize when modal opens or template is selected
   useEffect(() => {
     if (!isOpen) {
@@ -405,10 +439,68 @@ export function PrintPreviewModal({
           onApplyTemplate={() => setShowLiveTemplateSelector(true)}
           isEditorMode={isEditorMode}
           onEditorModeChange={setIsEditorMode}
+          rulerVisible={rulerState.visible}
+          onToggleRuler={toggleRulerVisibility}
         />
+
+        {/* Horizontal Ruler - Fixed below toolbar (Google Docs style) */}
+        {rulerState.visible && (
+          <div className="sticky top-0 z-30 bg-stone-200 border-b border-stone-300 flex">
+            {/* Vertical ruler corner space */}
+            {rulerState.showVertical && (
+              <div
+                className="flex-shrink-0 bg-stone-200 border-r border-stone-300"
+                style={{ width: RULER_WIDTH, height: RULER_HEIGHT }}
+              />
+            )}
+            {/* Horizontal ruler - centered with canvas */}
+            <div
+              className="flex-1 overflow-hidden flex justify-center"
+              style={{ height: RULER_HEIGHT }}
+            >
+              <div style={{ transform: `translateX(${-scrollLeft}px)` }}>
+                <HorizontalRuler
+                  width={getPageDimensions(state.currentPage.size, state.currentPage.orientation).width}
+                  rulerState={rulerState}
+                  onMarginChange={updateMargin}
+                  onIndentChange={updateIndent}
+                  onTabStopAdd={addTabStop}
+                  onTabStopUpdate={updateTabStop}
+                  onTabStopRemove={removeTabStop}
+                  scrollLeft={0}
+                />
+              </div>
+            </div>
+            {/* Right sidebar placeholder space */}
+            <div className="w-64 flex-shrink-0 bg-stone-200" style={{ height: RULER_HEIGHT }} />
+          </div>
+        )}
 
         {/* Main Layout */}
         <div className="flex flex-1 overflow-hidden">
+          {/* Vertical Ruler - Fixed on far left (Google Docs style) */}
+          {rulerState.visible && rulerState.showVertical && (
+            <div
+              className="flex-shrink-0 bg-stone-100 border-r border-stone-300 overflow-hidden"
+              style={{ width: RULER_WIDTH }}
+            >
+              <div
+                style={{
+                  transform: `translateY(${-scrollTop}px)`,
+                  marginTop: 16, // Match pt-4 padding
+                }}
+              >
+                <VerticalRuler
+                  height={getPageDimensions(state.currentPage.size, state.currentPage.orientation).height}
+                  rulerState={rulerState}
+                  onMarginChange={updateMargin}
+                  scrollTop={0}
+                  showHeaderFooter={true}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Canvas Area */}
           <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 min-w-0">
             {/* Canvas Toolbar - Always visible but content changes based on mode */}
@@ -441,7 +533,15 @@ export function PrintPreviewModal({
             </div>
 
             {/* Canvas Scroll Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-auto flex items-start justify-center pt-4 pb-16 px-8">
+            <div
+              ref={canvasScrollRef}
+              className="flex-1 overflow-y-auto overflow-x-auto flex items-start justify-center pt-4 pb-16 px-8"
+              onScroll={(e) => {
+                const target = e.target as HTMLDivElement;
+                setScrollLeft(target.scrollLeft);
+                setScrollTop(target.scrollTop);
+              }}
+            >
               <Canvas
                 page={state.currentPage}
                 selectedElementId={isEditorMode ? state.selectedElementId : null}

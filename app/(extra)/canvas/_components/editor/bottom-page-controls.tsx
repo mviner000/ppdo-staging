@@ -2,11 +2,15 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Copy, Trash2, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import LayerPanel from './layer-panel';
+import TableStylePanel from './table-style-panel';
 import { CanvasElement } from './types';
+import { applyTableStyle } from './utils/applyTableStyle';
+import { TABLE_STYLES_MAP } from './constants/table-styles';
+import { toast } from 'sonner';
 
 interface BottomPageControlsProps {
   currentPageIndex: number;
@@ -46,12 +50,49 @@ export default function BottomPageControls({
 }: BottomPageControlsProps) {
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false);
   const [internalSelectedGroupId, setInternalSelectedGroupId] = useState<string | null>(null);
+  const [isTableStylePanelOpen, setIsTableStylePanelOpen] = useState(false);
+  const [appliedTableStyles, setAppliedTableStyles] = useState<Map<string, string>>(new Map());
 
   const selectedGroupId = externalSelectedGroupId ?? internalSelectedGroupId;
   const setSelectedGroupId = externalOnSelectGroup ?? setInternalSelectedGroupId;
 
   const isFirst = currentPageIndex === 0;
   const isLast = currentPageIndex === totalPages - 1;
+
+  // Auto-show/hide table style panel based on group selection
+  useEffect(() => {
+    if (selectedGroupId && isEditorMode) {
+      // Check if the selected group is actually a table group (starts with "table-group-")
+      const isTableGroup = selectedGroupId.startsWith('table-group-');
+      setIsTableStylePanelOpen(isTableGroup);
+    } else {
+      setIsTableStylePanelOpen(false);
+    }
+  }, [selectedGroupId, isEditorMode]);
+
+  // Handle table style application
+  const handleApplyTableStyle = (styleId: string) => {
+    if (!selectedGroupId) return;
+
+    const style = TABLE_STYLES_MAP.get(styleId);
+    if (!style) {
+      toast.error('Style not found');
+      return;
+    }
+
+    try {
+      // Apply the style to all elements in the group
+      applyTableStyle(elements, selectedGroupId, style, onUpdateElement);
+
+      // Track which style was applied to this group
+      setAppliedTableStyles(prev => new Map(prev).set(selectedGroupId, styleId));
+
+      toast.success(`Applied "${style.name}" style`);
+    } catch (error) {
+      console.error('Failed to apply table style:', error);
+      toast.error('Failed to apply table style. Please try again.');
+    }
+  };
 
   return (
     <>
@@ -129,20 +170,30 @@ export default function BottomPageControls({
       </div>
 
       {isEditorMode && (
-        <LayerPanel
-          isOpen={isLayerPanelOpen}
-          onClose={() => setIsLayerPanelOpen(false)}
-          elements={elements}
-          selectedElementId={selectedElementId}
-          onSelectElement={(id) => {
-            onSelectElement(id);
-            setSelectedGroupId(null);
-          }}
-          selectedGroupId={selectedGroupId}
-          onSelectGroup={setSelectedGroupId}
-          onUpdateElement={onUpdateElement}
-          onReorderElements={onReorderElements}
-        />
+        <>
+          <LayerPanel
+            isOpen={isLayerPanelOpen}
+            onClose={() => setIsLayerPanelOpen(false)}
+            elements={elements}
+            selectedElementId={selectedElementId}
+            onSelectElement={(id) => {
+              onSelectElement(id);
+              setSelectedGroupId(null);
+            }}
+            selectedGroupId={selectedGroupId}
+            onSelectGroup={setSelectedGroupId}
+            onUpdateElement={onUpdateElement}
+            onReorderElements={onReorderElements}
+          />
+
+          <TableStylePanel
+            isOpen={isTableStylePanelOpen}
+            selectedGroupId={selectedGroupId}
+            appliedStyleId={selectedGroupId ? appliedTableStyles.get(selectedGroupId) : undefined}
+            onApplyStyle={handleApplyTableStyle}
+            onClose={() => setIsTableStylePanelOpen(false)}
+          />
+        </>
       )}
     </>
   );

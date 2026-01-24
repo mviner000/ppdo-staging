@@ -1,0 +1,37 @@
+{
+  "category": "Uncategorized",
+  "description": "Create a dynamic document ruler feature similar to Google Docs and Microsoft Word that appears along the top (horizontal) and optionally the left (vertical) of the canvas, accurately reflecting the current page size, orientation, and zoom level. The ruler must support draggable markers for margins, indents (first-line, hanging, left/right), and tab stops, with real-time visual feedback and instant application to selected text or page layout. Changes to page size (e.g., A4, Letter, Long), orientation (portrait/landscape), or zoom should automatically rescale the ruler and its units (inches/cm). The ruler must be toggleable via a toolbar button and a keyboard shortcut (Ctrl + Shift + R), persist its visibility state per session, and remain fully synchronized with canvas scrolling, resizing, and text selection for a precise, professional document-editing experience.",
+  "title": "Add dynamic document ruler with draggable margins and tab stops",
+  "images": [],
+  "imagePaths": [
+    {
+      "path": "C:\\ppdo\\ppdo-next\\.automaker\\features\\feature-1769257986116-u0hvodzbh\\images\\pasted-image-2026-01-24T12-48-11-359Z-1769258891403.png",
+      "filename": "pasted-image-2026-01-24T12-48-11-359Z-1769258891403.png",
+      "mimeType": "image/png"
+    }
+  ],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "claude-opus",
+  "thinkingLevel": "none",
+  "reasoningEffort": "none",
+  "branchName": "rapidv1",
+  "priority": 3,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "workMode": "current",
+  "titleGenerating": false,
+  "status": "in_progress",
+  "id": "feature-1769257986116-u0hvodzbh",
+  "descriptionHistory": [
+    {
+      "description": "Create a dynamic document ruler feature similar to Google Docs and Microsoft Word that appears along the top (horizontal) and optionally the left (vertical) of the canvas, accurately reflecting the current page size, orientation, and zoom level. The ruler must support draggable markers for margins, indents (first-line, hanging, left/right), and tab stops, with real-time visual feedback and instant application to selected text or page layout. Changes to page size (e.g., A4, Letter, Long), orientation (portrait/landscape), or zoom should automatically rescale the ruler and its units (inches/cm). The ruler must be toggleable via a toolbar button and a keyboard shortcut (Ctrl + Shift + R), persist its visibility state per session, and remain fully synchronized with canvas scrolling, resizing, and text selection for a precise, professional document-editing experience.",
+      "timestamp": "2026-01-24T12:33:06.255Z",
+      "source": "initial"
+    }
+  ],
+  "startedAt": "2026-01-24T12:50:49.985Z",
+  "updatedAt": "2026-01-24T12:43:09.690Z",
+  "justFinishedAt": "2026-01-24T12:43:09.690Z"
+}

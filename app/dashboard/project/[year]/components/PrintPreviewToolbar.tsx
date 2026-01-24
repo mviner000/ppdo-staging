@@ -5,7 +5,7 @@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, X, Save, Palette } from 'lucide-react';
+import { ArrowLeft, X, Save, Palette, Ruler } from 'lucide-react';
 
 interface PrintPreviewToolbarProps {
   isDirty: boolean;
@@ -17,6 +17,8 @@ interface PrintPreviewToolbarProps {
   onApplyTemplate?: () => void;
   isEditorMode: boolean;
   onEditorModeChange: (enabled: boolean) => void;
+  rulerVisible?: boolean;
+  onToggleRuler?: () => void;
 }
 
 export function PrintPreviewToolbar({
@@ -29,6 +31,8 @@ export function PrintPreviewToolbar({
   onApplyTemplate,
   isEditorMode,
   onEditorModeChange,
+  rulerVisible = false,
+  onToggleRuler,
 }: PrintPreviewToolbarProps) {
 
   return (
@@ -80,6 +84,20 @@ export function PrintPreviewToolbar({
         </div>
 
         <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+        {/* Ruler Toggle Button */}
+        {onToggleRuler && (
+          <Button
+            onClick={onToggleRuler}
+            variant="outline"
+            size="sm"
+            className={`gap-2 ${rulerVisible ? 'bg-stone-200' : ''}`}
+            title="Toggle Ruler (Ctrl+Shift+R)"
+          >
+            <Ruler className="w-4 h-4" />
+            Ruler
+          </Button>
+        )}
 
         {/* Apply Template Button - Only in editor mode */}
         {isEditorMode && onApplyTemplate && (

@@ -1,0 +1,11 @@
+{
+  "id": "evt-1769258589758-4159963d",
+  "trigger": "feature_success",
+  "timestamp": "2026-01-24T12:43:09.758Z",
+  "projectPath": "C:\\ppdo\\ppdo-next",
+  "projectName": "ppdo-next",
+  "featureId": "feature-1769257986116-u0hvodzbh",
+  "featureName": "",
+  "error": "Feature completed in 601s",
+  "passes": true
+}

@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Bold, Italic, Underline, Plus, Printer, FileDown, X } from 'lucide-react';
+import { Bold, Italic, Underline, Plus, Printer, FileDown, X, Ruler } from 'lucide-react';
 import { CanvasElement, Page, HeaderFooter } from './types';
 
 type ActiveSection = 'header' | 'page' | 'footer';
@@ -44,6 +44,8 @@ interface ToolbarProps {
   header: HeaderFooter;
   footer: HeaderFooter;
   isEditorMode?: boolean;
+  rulerVisible?: boolean;
+  onToggleRuler?: () => void;
 }
 
 const FONT_FAMILIES = [
@@ -90,6 +92,8 @@ export default function Toolbar({
   header,
   footer,
   isEditorMode = true,
+  rulerVisible = false,
+  onToggleRuler,
 }: ToolbarProps) {
   const isDisabled = !selectedElement || !onUpdateElement;
   const isTextElement = selectedElement?.type === 'text';
@@ -320,6 +324,22 @@ export default function Toolbar({
                 <SelectItem value="landscape">Landscape</SelectItem>
               </SelectContent>
             </Select>
+
+            {onToggleRuler && (
+              <>
+                <Separator orientation="vertical" className="h-5" />
+                <Button
+                  onClick={onToggleRuler}
+                  size="sm"
+                  variant="outline"
+                  className={`gap-1.5 h-8 text-xs ${rulerVisible ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Toggle Ruler (Ctrl+Shift+R)"
+                >
+                  <Ruler className="w-3.5 h-3.5" />
+                  Ruler
+                </Button>
+              </>
+            )}
 
             {isTextElement && (
               <>

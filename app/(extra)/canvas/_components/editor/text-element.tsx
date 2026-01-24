@@ -69,6 +69,7 @@ export default function TextElementComponent({
       fontStyle: element.italic ? 'italic' : 'normal',
       textDecoration: element.underline ? 'underline' : 'none',
       color: element.color,
+      backgroundColor: element.backgroundColor,
       textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
       WebkitTextStroke: element.outline ? '0.5px rgba(0,0,0,0.5)' : 'none',
     };

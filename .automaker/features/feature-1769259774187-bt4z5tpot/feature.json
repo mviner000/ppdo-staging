@@ -1,0 +1,31 @@
+{
+  "category": "Uncategorized",
+  "description": "Add a Table Styling Panel that automatically appears when a table group is selected, providing one-click application of pre-defined Microsoft Word–style table designs to the entire table group, and hides when the selection is cleared.\n\nthe guide is located in \"C:\\ppdo\\ppdo-next\\guide_md\\table-styling-panel-implementation.md\"\n\ndo this without breaking existing functions or changing any styles",
+  "title": "Update Table Styling Panel with Auto-Show on Selection",
+  "images": [],
+  "imagePaths": [],
+  "textFilePaths": [],
+  "skipTests": true,
+  "model": "claude-sonnet",
+  "thinkingLevel": "medium",
+  "reasoningEffort": "none",
+  "branchName": "rapidv1",
+  "priority": 2,
+  "planningMode": "skip",
+  "requirePlanApproval": false,
+  "dependencies": [],
+  "workMode": "current",
+  "titleGenerating": false,
+  "status": "waiting_approval",
+  "id": "feature-1769259774187-bt4z5tpot",
+  "descriptionHistory": [
+    {
+      "description": "Add a Table Styling Panel that automatically appears when a table group is selected, providing one-click application of pre-defined Microsoft Word–style table designs to the entire table group, and hides when the selection is cleared.\n\nthe guide is located in \"C:\\ppdo\\ppdo-next\\guide_md\\table-styling-panel-implementation.md\"\n\ndo this without breaking existing functions or changing any styles",
+      "timestamp": "2026-01-24T13:02:54.465Z",
+      "source": "initial"
+    }
+  ],
+  "startedAt": "2026-01-24T13:03:02.940Z",
+  "updatedAt": "2026-01-24T13:13:19.753Z",
+  "justFinishedAt": "2026-01-24T13:13:19.753Z"
+}

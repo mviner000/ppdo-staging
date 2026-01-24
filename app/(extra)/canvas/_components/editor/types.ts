@@ -12,6 +12,7 @@ export interface TextElement {
   italic: boolean;
   underline: boolean;
   color: string;
+  backgroundColor?: string;
   shadow: boolean;
   outline: boolean;
   width: number;
@@ -60,4 +61,38 @@ export interface EditorState {
   isEditingElementId: string | null;
   header: HeaderFooter;
   footer: HeaderFooter;
+}
+
+// Ruler types
+export type TabStopType = 'left' | 'center' | 'right' | 'decimal';
+export type RulerUnit = 'inches' | 'cm' | 'pixels';
+
+export interface TabStop {
+  id: string;
+  position: number; // Position in pixels from left edge
+  type: TabStopType;
+}
+
+export interface IndentSettings {
+  firstLine: number;   // First line indent in pixels
+  hanging: number;     // Hanging indent in pixels (left side)
+  left: number;        // Left indent in pixels
+  right: number;       // Right indent in pixels
+}
+
+export interface MarginSettings {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export interface RulerState {
+  visible: boolean;
+  showVertical: boolean;
+  unit: RulerUnit;
+  margins: MarginSettings;
+  indents: IndentSettings;
+  tabStops: TabStop[];
+  zoom: number;
 }
