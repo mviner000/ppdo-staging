@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { Eye, EyeOff, AlertCircle, Quote } from "lucide-react";
+import Image from "next/image";
 
 interface LocationData {
   city: string;
@@ -357,7 +358,7 @@ export default function SignIn() {
           <div
             className="absolute inset-0 z-0 transition-transform duration-10000 ease-out group-hover:scale-110"
             style={{
-              backgroundImage: `url('/Capitol.jpg')`,
+              backgroundImage: `url('/outline_b1.jpg')`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -374,31 +375,31 @@ export default function SignIn() {
           {/* Content Container */}
           <div className="relative z-20 flex flex-col w-full h-full p-10 lg:p-12">
             {/* Branding Section */}
-            <div className="flex flex-col space-y-6 animate-fade-in-up">
+            <div className="flex flex-col space-y-6 animate-fade-in-up justify-center items-center">
               <div className="flex items-center gap-4 p-4 rounded-2xl w-fit">
-                <img src="/logo.png" alt="Logo" className="h-14 w-auto object-contain drop-shadow-lg" />
-                <img src="/y.png" alt="Y Logo" className="h-14 w-auto object-contain drop-shadow-lg" />
+                <Image src="/logo.png" alt="Logo" sizes="24" width={24} height={24} className="h-24 w-auto object-contain drop-shadow-lg" />
+                <Image src="/y.png" alt="Y Logo" sizes="24" width={24} height={24} className="h-24 w-auto object-contain drop-shadow-lg" />
               </div>
 
               <div className="space-y-1">
-                <p className="text-zinc-400 text-xs font-semibold tracking-[0.3em] uppercase">
+                {/* <p className="text-zinc-400 text-xs font-semibold tracking-[0.3em] uppercase">
                   Republic of the Philippines
                 </p>
                 <h3 className="text-white text-xl font-bold tracking-tight">
                   PROVINCE OF TARLAC
-                </h3>
+                </h3> */}
               </div>
             </div>
 
             {/* Hero Text */}
             <div className="mt-auto mb-10 space-y-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight">
+              {/* <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight">
                 Bawat Oras, <br />
                 <span className="text-emerald-400">Damayan.</span>
               </h2>
               <p className="text-zinc-300 text-lg max-w-sm font-medium leading-relaxed">
                 Digitizing Tarlac to build a more responsive and unified future for every Tarlaqueño.
-              </p>
+              </p> */}
             </div>
 
             {/* Glassmorphic Quote Card */}

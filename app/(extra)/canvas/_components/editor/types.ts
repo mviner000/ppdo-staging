@@ -18,6 +18,8 @@ export interface TextElement {
   height: number;
   locked?: boolean;
   visible?: boolean;
+  groupId?: string;
+  groupName?: string;
 }
 
 export interface ImageElement {
@@ -32,6 +34,8 @@ export interface ImageElement {
   locked?: boolean;
   visible?: boolean;
   name?: string;
+  groupId?: string;
+  groupName?: string;
 }
 
 export type CanvasElement = TextElement | ImageElement;

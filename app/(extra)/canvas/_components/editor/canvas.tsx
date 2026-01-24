@@ -26,6 +26,7 @@ interface CanvasProps {
   activeSection: ActiveSection;
   onActiveSectionChange: (section: ActiveSection) => void;
   onImageDropped?: (image: any) => void;
+  selectedGroupId?: string | null;
 }
 
 export default function Canvas({
@@ -43,6 +44,7 @@ export default function Canvas({
   activeSection,
   onActiveSectionChange,
   onImageDropped,
+  selectedGroupId = null,
 }: CanvasProps) {
   console.group('📋 STEP 7: Canvas Component - Rendering');
   console.log('📄 Page data:', page);
@@ -132,13 +134,32 @@ export default function Canvas({
     if (draggedElementId && canvasRef.current && isEditingElementId !== draggedElementId && !croppingElementId) {
       const element = page.elements.find((el) => el.id === draggedElementId);
       if (element?.locked) return;
-      
+
       const rect = canvasRef.current.getBoundingClientRect();
       if (element) {
         const bodyHeight = size.height - HEADER_HEIGHT - FOOTER_HEIGHT;
         const newX = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, size.width - element.width));
         const newY = Math.max(0, Math.min(e.clientY - rect.top - dragOffset.y, bodyHeight - element.height));
-        onUpdateElement(draggedElementId, { x: newX, y: newY });
+
+        // Check if element belongs to a group
+        if (element.groupId) {
+          // Find all elements in the same group
+          const groupElements = page.elements.filter(el => el.groupId === element.groupId && !el.locked);
+
+          // Calculate movement delta
+          const deltaX = newX - element.x;
+          const deltaY = newY - element.y;
+
+          // Update all elements in the group
+          groupElements.forEach(groupEl => {
+            const groupNewX = Math.max(0, Math.min(groupEl.x + deltaX, size.width - groupEl.width));
+            const groupNewY = Math.max(0, Math.min(groupEl.y + deltaY, bodyHeight - groupEl.height));
+            onUpdateElement(groupEl.id, { x: groupNewX, y: groupNewY });
+          });
+        } else {
+          // Single element movement (not grouped)
+          onUpdateElement(draggedElementId, { x: newX, y: newY });
+        }
       }
     }
 
@@ -334,6 +355,31 @@ export default function Canvas({
 
   const bodyHeight = size.height - HEADER_HEIGHT - FOOTER_HEIGHT;
 
+  // Calculate group bounding box for outline
+  const getGroupBounds = (groupId: string) => {
+    const groupElements = page.elements.filter(el => el.groupId === groupId && el.visible !== false);
+    if (groupElements.length === 0) return null;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    groupElements.forEach(el => {
+      minX = Math.min(minX, el.x);
+      minY = Math.min(minY, el.y);
+      maxX = Math.max(maxX, el.x + el.width);
+      maxY = Math.max(maxY, el.y + el.height);
+    });
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  };
+
   return (
     <div className="relative bg-white shadow-lg">
       <HeaderFooterSection
@@ -351,6 +397,7 @@ export default function Canvas({
         totalPages={totalPages}
         isActive={activeSection === 'header'}
         onActivate={() => onActiveSectionChange('header')}
+        selectedGroupId={selectedGroupId}
       />
 
       <div
@@ -414,6 +461,26 @@ export default function Canvas({
           }
           return null;
         })}
+
+        {/* Group outline */}
+        {selectedGroupId && activeSection === 'page' && (() => {
+          const bounds = getGroupBounds(selectedGroupId);
+          if (!bounds) return null;
+
+          return (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: `${bounds.x}px`,
+                top: `${bounds.y}px`,
+                width: `${bounds.width}px`,
+                height: `${bounds.height}px`,
+                border: '1px solid #3b82f6',
+                boxSizing: 'border-box',
+              }}
+            />
+          );
+        })()}
       </div>
 
       <HeaderFooterSection
@@ -431,6 +498,7 @@ export default function Canvas({
         totalPages={totalPages}
         isActive={activeSection === 'footer'}
         onActivate={() => onActiveSectionChange('footer')}
+        selectedGroupId={selectedGroupId}
       />
 
       {contextMenu && (

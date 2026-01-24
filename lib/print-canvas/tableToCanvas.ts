@@ -255,9 +255,13 @@ function createDataPage(
   const elements: TextElement[] = [];
   let currentY = MARGIN;
 
+  // Create unique group ID for this page's table data
+  const groupId = `table-group-${Date.now()}-${globalRowIndex}`;
+  const groupName = `Table (Page Data ${globalRowIndex + 1})`;
+
   // Add headers if requested
   if (includeHeaders) {
-    elements.push(...createTableHeaders(columns, columnWidths, currentY));
+    elements.push(...createTableHeaders(columns, columnWidths, currentY, groupId, groupName));
     currentY += HEADER_ROW_HEIGHT;
   }
 
@@ -265,15 +269,15 @@ function createDataPage(
   items.forEach((item, index) => {
     // Check if there's a category marker at this position
     const markerAtThisIndex = rowMarkers.find(m => m.index === globalRowIndex + index);
-    
+
     if (markerAtThisIndex) {
       // Render category header
-      elements.push(...createCategoryHeaderRow(markerAtThisIndex.label, columnWidths, currentY));
+      elements.push(...createCategoryHeaderRow(markerAtThisIndex.label, columnWidths, currentY, groupId, groupName));
       currentY += ROW_HEIGHT + 4; // Extra spacing after category
     }
 
     // Render data row
-    elements.push(...createTableRow(item, columns, columnWidths, currentY, index % 2 === 0));
+    elements.push(...createTableRow(item, columns, columnWidths, currentY, index % 2 === 0, groupId, groupName));
     currentY += ROW_HEIGHT;
   });
 
@@ -292,7 +296,9 @@ function createDataPage(
 function createTableHeaders(
   columns: ColumnDefinition[],
   columnWidths: number[],
-  y: number
+  y: number,
+  groupId?: string,
+  groupName?: string
 ): TextElement[] {
   const elements: TextElement[] = [];
   let currentX = MARGIN;
@@ -315,6 +321,8 @@ function createTableHeaders(
       shadow: false,
       outline: false,
       visible: true,
+      groupId,
+      groupName,
     });
 
     currentX += columnWidths[index];
@@ -329,10 +337,12 @@ function createTableHeaders(
 function createCategoryHeaderRow(
   categoryLabel: string,
   columnWidths: number[],
-  y: number
+  y: number,
+  groupId?: string,
+  groupName?: string
 ): TextElement[] {
   const totalWidth = columnWidths.reduce((sum, w) => sum + w, 0);
-  
+
   return [{
     id: `category-header-${categoryLabel}-${Date.now()}`,
     type: 'text',
@@ -350,6 +360,8 @@ function createCategoryHeaderRow(
     shadow: false,
     outline: false,
     visible: true,
+    groupId,
+    groupName,
   }];
 }
 
@@ -361,7 +373,9 @@ function createTableRow(
   columns: ColumnDefinition[],
   columnWidths: number[],
   y: number,
-  isEven: boolean
+  isEven: boolean,
+  groupId?: string,
+  groupName?: string
 ): TextElement[] {
   const elements: TextElement[] = [];
   let currentX = MARGIN;
@@ -386,6 +400,8 @@ function createTableRow(
       shadow: false,
       outline: false,
       visible: true,
+      groupId,
+      groupName,
     });
 
     currentX += columnWidths[index];
@@ -433,7 +449,11 @@ function createTotalsPage(
   const elements: TextElement[] = [];
   const y = MARGIN;
 
-  elements.push(...createTotalsRow(totals, columns, columnWidths, y));
+  // Create unique group ID for totals page
+  const groupId = `table-group-totals-${Date.now()}`;
+  const groupName = 'Table (Totals)';
+
+  elements.push(...createTotalsRow(totals, columns, columnWidths, y, groupId, groupName));
 
   return {
     id: `page-totals-${Date.now()}`,
@@ -456,7 +476,11 @@ function addTotalsToPage(
   const lastElement = page.elements[page.elements.length - 1];
   const y = lastElement ? lastElement.y + ROW_HEIGHT + 10 : MARGIN;
 
-  const totalsElements = createTotalsRow(totals, columns, columnWidths, y);
+  // Use the same groupId as other elements on this page
+  const existingGroupId = lastElement?.groupId;
+  const existingGroupName = lastElement?.groupName;
+
+  const totalsElements = createTotalsRow(totals, columns, columnWidths, y, existingGroupId, existingGroupName);
   page.elements.push(...totalsElements);
 }
 
@@ -467,7 +491,9 @@ function createTotalsRow(
   totals: BudgetTotals,
   columns: ColumnDefinition[],
   columnWidths: number[],
-  y: number
+  y: number,
+  groupId?: string,
+  groupName?: string
 ): TextElement[] {
   const elements: TextElement[] = [];
   let currentX = MARGIN;
@@ -500,6 +526,8 @@ function createTotalsRow(
         shadow: false,
         outline: false,
         visible: true,
+        groupId,
+        groupName,
       });
     }
 

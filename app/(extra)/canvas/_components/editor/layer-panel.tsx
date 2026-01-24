@@ -4,7 +4,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CanvasElement } from '../editor';
-import { X, Eye, EyeOff, Lock, Unlock, GripVertical, Type, ImageIcon } from 'lucide-react';
+import { X, Eye, EyeOff, Lock, Unlock, GripVertical, Type, ImageIcon, ChevronDown, ChevronRight, Layers3 } from 'lucide-react';
 
 interface LayerPanelProps {
   isOpen: boolean;
@@ -14,6 +14,8 @@ interface LayerPanelProps {
   onSelectElement: (id: string | null) => void;
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
   onReorderElements: (fromIndex: number, toIndex: number) => void;
+  selectedGroupId?: string | null;
+  onSelectGroup?: (groupId: string | null) => void;
 }
 
 export default function LayerPanel({
@@ -24,6 +26,8 @@ export default function LayerPanel({
   onSelectElement,
   onUpdateElement,
   onReorderElements,
+  selectedGroupId = null,
+  onSelectGroup = () => {},
 }: LayerPanelProps) {
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
@@ -31,6 +35,7 @@ export default function LayerPanel({
   const [draggedLayerIndex, setDraggedLayerIndex] = useState<number | null>(null);
   const [dragOverLayerIndex, setDragOverLayerIndex] = useState<number | null>(null);
   const [isPositioned, setIsPositioned] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,6 +129,25 @@ export default function LayerPanel({
   const handleLayerClick = (elementId: string, element: CanvasElement) => {
     if (element.visible === false) return;
     onSelectElement(elementId);
+    onSelectGroup(null);
+  };
+
+  const toggleGroupCollapse = (e: React.MouseEvent, groupId: string) => {
+    e.stopPropagation();
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGroupClick = (groupId: string) => {
+    onSelectElement(null);
+    onSelectGroup(groupId);
   };
 
   const getElementLabel = (element: CanvasElement & { section: string }, index: number): string => {
@@ -136,6 +160,24 @@ export default function LayerPanel({
       return `${sectionLabel}${element.name || 'Image'}`;
     }
     return `${sectionLabel}Element ${index + 1}`;
+  };
+
+  const groupElementsByGroupId = (elements: (CanvasElement & { section: 'header' | 'page' | 'footer' })[]) => {
+    const groups: Map<string, (CanvasElement & { section: 'header' | 'page' | 'footer' })[]> = new Map();
+    const ungrouped: (CanvasElement & { section: 'header' | 'page' | 'footer' })[] = [];
+
+    elements.forEach(element => {
+      if (element.groupId) {
+        if (!groups.has(element.groupId)) {
+          groups.set(element.groupId, []);
+        }
+        groups.get(element.groupId)!.push(element);
+      } else {
+        ungrouped.push(element);
+      }
+    });
+
+    return { groups, ungrouped };
   };
 
   if (!isOpen) return null;
@@ -240,72 +282,178 @@ export default function LayerPanel({
               </div>
             )}
 
-            {pageElements.length > 0 && (
-              <div>
-                <div className="px-2 py-1 text-[10px] font-semibold text-stone-500 uppercase tracking-wide">
-                  Page Content
-                </div>
-                <div className="space-y-1">
-                  {pageElements.map((element, reversedIndex) => {
-                    const isSelected = element.id === selectedElementId;
-                    const isHidden = element.visible === false;
-                    const isLocked = element.locked === true;
-                    const actualIndex = reversedElements.findIndex(el => el.id === element.id);
+{pageElements.length > 0 && (() => {
+              const { groups, ungrouped } = groupElementsByGroupId(pageElements);
 
-                    return (
-                      <div
-                        key={element.id}
-                        draggable
-                        onDragStart={(e) => handleLayerDragStart(e, actualIndex)}
-                        onDragOver={(e) => handleLayerDragOver(e, actualIndex)}
-                        onDragLeave={handleLayerDragLeave}
-                        onDrop={(e) => handleLayerDrop(e, actualIndex)}
-                        onDragEnd={handleLayerDragEnd}
-                        onClick={() => handleLayerClick(element.id, element)}
-                        className={`
-                          flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-all
-                          ${isSelected ? 'bg-blue-100 border border-blue-300' : 'hover:bg-stone-100 border border-transparent'}
-                          ${isHidden ? 'opacity-50' : ''}
-                          ${isLocked && !isHidden ? 'bg-stone-50' : ''}
-                        `}
-                      >
-                        <GripVertical className="w-3 h-3 text-stone-400 cursor-grab flex-shrink-0" />
-                        {element.type === 'text' ? (
-                          <Type className="w-4 h-4 text-stone-500 flex-shrink-0" />
-                        ) : (
-                          <ImageIcon className="w-4 h-4 text-stone-500 flex-shrink-0" />
-                        )}
-                        <span className={`flex-1 truncate text-xs ${isHidden ? 'text-stone-400' : 'text-stone-700'}`}>
-                          {getElementLabel(element, reversedIndex)}
-                        </span>
-                        <button
-                          onClick={(e) => toggleVisibility(e, element.id, element.visible)}
-                          className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
-                          title={isHidden ? 'Show' : 'Hide'}
-                        >
-                          {isHidden ? (
-                            <EyeOff className="w-3.5 h-3.5 text-stone-400" />
-                          ) : (
-                            <Eye className="w-3.5 h-3.5 text-stone-500" />
+              return (
+                <div>
+                  <div className="px-2 py-1 text-[10px] font-semibold text-stone-500 uppercase tracking-wide">
+                    Page Content
+                  </div>
+                  <div className="space-y-1">
+                    {/* Render groups */}
+                    {Array.from(groups.entries()).map(([groupId, groupElements]) => {
+                      const isCollapsed = collapsedGroups.has(groupId);
+                      const groupName = groupElements[0]?.groupName || `Group ${groupId}`;
+                      const hasSelected = groupElements.some(el => el.id === selectedElementId);
+
+                      return (
+                        <div key={groupId} className="space-y-1">
+                          {/* Group header */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => toggleGroupCollapse(e, groupId)}
+                              className="p-0.5 hover:bg-stone-200 rounded flex-shrink-0"
+                            >
+                              {isCollapsed ? (
+                                <ChevronRight className="w-3 h-3 text-stone-500" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3 text-stone-500" />
+                              )}
+                            </button>
+                            <div
+                              onClick={() => handleGroupClick(groupId)}
+                              className={`
+                                flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-all flex-1
+                                ${selectedGroupId === groupId ? 'bg-blue-100 border border-blue-300' : hasSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-stone-100 border border-transparent'}
+                                bg-stone-50
+                              `}
+                            >
+                              <Layers3 className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                              <span className="flex-1 truncate text-xs font-medium text-stone-700">
+                                {groupName} ({groupElements.length})
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Group elements */}
+                          {!isCollapsed && (
+                            <div className="ml-4 space-y-1">
+                              {groupElements.map((element, reversedIndex) => {
+                                const isSelected = element.id === selectedElementId;
+                                const isHidden = element.visible === false;
+                                const isLocked = element.locked === true;
+                                const actualIndex = reversedElements.findIndex(el => el.id === element.id);
+
+                                return (
+                                  <div
+                                    key={element.id}
+                                    draggable
+                                    onDragStart={(e) => handleLayerDragStart(e, actualIndex)}
+                                    onDragOver={(e) => handleLayerDragOver(e, actualIndex)}
+                                    onDragLeave={handleLayerDragLeave}
+                                    onDrop={(e) => handleLayerDrop(e, actualIndex)}
+                                    onDragEnd={handleLayerDragEnd}
+                                    onClick={() => handleLayerClick(element.id, element)}
+                                    className={`
+                                      flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-all
+                                      ${isSelected ? 'bg-blue-100 border border-blue-300' : 'hover:bg-stone-100 border border-transparent'}
+                                      ${isHidden ? 'opacity-50' : ''}
+                                      ${isLocked && !isHidden ? 'bg-stone-50' : ''}
+                                    `}
+                                  >
+                                    <GripVertical className="w-3 h-3 text-stone-400 cursor-grab flex-shrink-0" />
+                                    {element.type === 'text' ? (
+                                      <Type className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                                    ) : (
+                                      <ImageIcon className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                                    )}
+                                    <span className={`flex-1 truncate text-xs ${isHidden ? 'text-stone-400' : 'text-stone-700'}`}>
+                                      {getElementLabel(element, reversedIndex)}
+                                    </span>
+                                    <button
+                                      onClick={(e) => toggleVisibility(e, element.id, element.visible)}
+                                      className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
+                                      title={isHidden ? 'Show' : 'Hide'}
+                                    >
+                                      {isHidden ? (
+                                        <EyeOff className="w-3.5 h-3.5 text-stone-400" />
+                                      ) : (
+                                        <Eye className="w-3.5 h-3.5 text-stone-500" />
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={(e) => toggleLock(e, element.id, element.locked)}
+                                      className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
+                                      title={isLocked ? 'Unlock' : 'Lock'}
+                                    >
+                                      {isLocked ? (
+                                        <Lock className="w-3.5 h-3.5 text-stone-500" />
+                                      ) : (
+                                        <Unlock className="w-3.5 h-3.5 text-stone-400" />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
-                        </button>
-                        <button
-                          onClick={(e) => toggleLock(e, element.id, element.locked)}
-                          className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
-                          title={isLocked ? 'Unlock' : 'Lock'}
+                        </div>
+                      );
+                    })}
+
+                    {/* Render ungrouped elements */}
+                    {ungrouped.map((element, reversedIndex) => {
+                      const isSelected = element.id === selectedElementId;
+                      const isHidden = element.visible === false;
+                      const isLocked = element.locked === true;
+                      const actualIndex = reversedElements.findIndex(el => el.id === element.id);
+
+                      return (
+                        <div
+                          key={element.id}
+                          draggable
+                          onDragStart={(e) => handleLayerDragStart(e, actualIndex)}
+                          onDragOver={(e) => handleLayerDragOver(e, actualIndex)}
+                          onDragLeave={handleLayerDragLeave}
+                          onDrop={(e) => handleLayerDrop(e, actualIndex)}
+                          onDragEnd={handleLayerDragEnd}
+                          onClick={() => handleLayerClick(element.id, element)}
+                          className={`
+                            flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-all
+                            ${isSelected ? 'bg-blue-100 border border-blue-300' : 'hover:bg-stone-100 border border-transparent'}
+                            ${isHidden ? 'opacity-50' : ''}
+                            ${isLocked && !isHidden ? 'bg-stone-50' : ''}
+                          `}
                         >
-                          {isLocked ? (
-                            <Lock className="w-3.5 h-3.5 text-stone-500" />
+                          <GripVertical className="w-3 h-3 text-stone-400 cursor-grab flex-shrink-0" />
+                          {element.type === 'text' ? (
+                            <Type className="w-4 h-4 text-stone-500 flex-shrink-0" />
                           ) : (
-                            <Unlock className="w-3.5 h-3.5 text-stone-400" />
+                            <ImageIcon className="w-4 h-4 text-stone-500 flex-shrink-0" />
                           )}
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <span className={`flex-1 truncate text-xs ${isHidden ? 'text-stone-400' : 'text-stone-700'}`}>
+                            {getElementLabel(element, reversedIndex)}
+                          </span>
+                          <button
+                            onClick={(e) => toggleVisibility(e, element.id, element.visible)}
+                            className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
+                            title={isHidden ? 'Show' : 'Hide'}
+                          >
+                            {isHidden ? (
+                              <EyeOff className="w-3.5 h-3.5 text-stone-400" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5 text-stone-500" />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => toggleLock(e, element.id, element.locked)}
+                            className="p-1 hover:bg-stone-200 rounded transition-colors flex-shrink-0"
+                            title={isLocked ? 'Unlock' : 'Lock'}
+                          >
+                            {isLocked ? (
+                              <Lock className="w-3.5 h-3.5 text-stone-500" />
+                            ) : (
+                              <Unlock className="w-3.5 h-3.5 text-stone-400" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {footerElements.length > 0 && (
               <div>

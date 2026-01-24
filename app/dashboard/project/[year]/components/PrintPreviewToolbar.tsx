@@ -3,6 +3,8 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ArrowLeft, X, Save, Palette } from 'lucide-react';
 
 interface PrintPreviewToolbarProps {
@@ -13,6 +15,8 @@ interface PrintPreviewToolbarProps {
   onClose: () => void;
   onSaveDraft?: () => void;
   onApplyTemplate?: () => void;
+  isEditorMode: boolean;
+  onEditorModeChange: (enabled: boolean) => void;
 }
 
 export function PrintPreviewToolbar({
@@ -23,6 +27,8 @@ export function PrintPreviewToolbar({
   onClose,
   onSaveDraft,
   onApplyTemplate,
+  isEditorMode,
+  onEditorModeChange,
 }: PrintPreviewToolbarProps) {
 
   return (
@@ -61,8 +67,22 @@ export function PrintPreviewToolbar({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Apply Template Button */}
-        {onApplyTemplate && (
+        {/* Editor Mode Toggle */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+          <Label htmlFor="editor-mode" className="text-xs font-medium cursor-pointer">
+            Editor Mode
+          </Label>
+          <Switch
+            id="editor-mode"
+            checked={isEditorMode}
+            onCheckedChange={onEditorModeChange}
+          />
+        </div>
+
+        <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+        {/* Apply Template Button - Only in editor mode */}
+        {isEditorMode && onApplyTemplate && (
           <Button
             onClick={onApplyTemplate}
             variant="outline"
@@ -74,8 +94,8 @@ export function PrintPreviewToolbar({
           </Button>
         )}
 
-        {/* Save Draft Button */}
-        {onSaveDraft && (
+        {/* Save Draft Button - Only in editor mode */}
+        {isEditorMode && onSaveDraft && (
           <Button
             onClick={onSaveDraft}
             variant="outline"

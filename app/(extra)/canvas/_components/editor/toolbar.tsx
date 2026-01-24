@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { loadGoogleFont } from '@/lib/fonts';
 import { exportAsPDF } from '@/lib/export-pdf';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Bold, Italic, Underline, Plus, Printer, FileDown } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Bold, Italic, Underline, Plus, Printer, FileDown, X } from 'lucide-react';
 import { CanvasElement, Page, HeaderFooter } from './types';
 
 type ActiveSection = 'header' | 'page' | 'footer';
@@ -38,6 +43,7 @@ interface ToolbarProps {
   pages: Page[];
   header: HeaderFooter;
   footer: HeaderFooter;
+  isEditorMode?: boolean;
 }
 
 const FONT_FAMILIES = [
@@ -64,10 +70,10 @@ const FONT_SIZES = [
   { value: '48', label: '48px' },
 ];
 
-export default function Toolbar({ 
-  selectedElement, 
-  onUpdateElement, 
-  onAddText, 
+export default function Toolbar({
+  selectedElement,
+  onUpdateElement,
+  onAddText,
   pageSize = 'A4',
   orientation = 'portrait',
   onPageSizeChange,
@@ -83,6 +89,7 @@ export default function Toolbar({
   pages,
   header,
   footer,
+  isEditorMode = true,
 }: ToolbarProps) {
   const isDisabled = !selectedElement || !onUpdateElement;
   const isTextElement = selectedElement?.type === 'text';
@@ -208,196 +215,231 @@ export default function Toolbar({
   return (
     <div className="w-full bg-stone-100">
       <div className="flex items-center gap-2 px-4 py-2">
-        <div className={`px-2 py-1 rounded text-xs font-semibold border ${getSectionColor()}`}>
-          Editing: {getSectionLabel()}
-        </div>
-
-        <Separator orientation="vertical" className="h-5" />
-
-        <div className="flex items-center gap-1.5">
-          <label className="text-xs text-stone-600 whitespace-nowrap">Background:</label>
-          <input
-            type="color"
-            value={getCurrentBackgroundColor()}
-            onChange={(e) => handleBackgroundColorChange(e.target.value)}
-            className="w-7 h-7 border border-stone-300 rounded cursor-pointer bg-white"
-            title="Background color"
-          />
-          <div className="relative">
-            <Button
-              onClick={() => setShowHexInput(!showHexInput)}
-              size="sm"
-              variant="outline"
-              className="h-7 px-2 text-xs bg-white"
-              title="Enter hex code"
-            >
-              #
-            </Button>
-            {showHexInput && (
-              <div className="absolute top-full mt-1 left-0 bg-white border border-stone-300 rounded shadow-lg p-2 flex items-center gap-1 z-10">
-                <span className="text-xs text-stone-600">#</span>
-                <input
-                  type="text"
-                  value={hexInput}
-                  onChange={(e) => setHexInput(e.target.value)}
-                  onKeyDown={handleHexKeyDown}
-                  placeholder="FFFFFF"
-                  maxLength={6}
-                  className="w-20 px-1 py-0.5 text-xs border border-stone-300 rounded uppercase"
-                  autoFocus
-                />
-                <Button
-                  onClick={handleHexSubmit}
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                >
-                  OK
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <Separator orientation="vertical" className="h-5" />
-
-        <Button
-          onClick={onAddText}
-          size="sm"
-          variant="outline"
-          className="gap-1.5 h-8 text-xs bg-white"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Text
-        </Button>
-
-        <Separator orientation="vertical" className="h-5" />
-
-        <Select value={pageSize} onValueChange={onPageSizeChange}>
-          <SelectTrigger className="w-28 h-8 text-xs bg-white">
-            <SelectValue placeholder="Page Size" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="A4">A4</SelectItem>
-            <SelectItem value="Short">Short (8.5 x 11")</SelectItem>
-            <SelectItem value="Long">Long (8.5 x 13")</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={orientation} onValueChange={onOrientationChange}>
-          <SelectTrigger className="w-28 h-8 text-xs bg-white">
-            <SelectValue placeholder="Orientation" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="portrait">Portrait</SelectItem>
-            <SelectItem value="landscape">Landscape</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {isTextElement && (
+        {isEditorMode && (
           <>
-            <Separator orientation="vertical" className="h-5" />
-
-            <Select value={textElement?.fontFamily || 'font-sans'} onValueChange={handleFontFamilyChange} disabled={isDisabled}>
-              <SelectTrigger className="w-28 h-8 text-xs bg-white">
-                <SelectValue placeholder="Font" />
-              </SelectTrigger>
-              <SelectContent>
-                {FONT_FAMILIES.map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
-                    {font.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedElement?.fontSize.toString() || '16'} onValueChange={handleFontSizeChange} disabled={isDisabled}>
-              <SelectTrigger className="w-24 h-8 text-xs bg-white">
-                <SelectValue placeholder="Size" />
-              </SelectTrigger>
-              <SelectContent>
-                {FONT_SIZES.map((size) => (
-                  <SelectItem key={size.value} value={size.value}>
-                    {size.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className={`px-2 py-1 rounded text-xs font-semibold border ${getSectionColor()}`}>
+              Editing: {getSectionLabel()}
+            </div>
 
             <Separator orientation="vertical" className="h-5" />
 
-            <Button
-              onClick={toggleBold}
-              size="sm"
-              variant="outline"
-              disabled={isDisabled}
-              className={`w-8 h-8 p-0 ${selectedElement?.bold ? 'bg-stone-200' : 'bg-white'}`}
-              title="Bold"
-            >
-              <Bold className="w-3.5 h-3.5" />
-            </Button>
-
-            <Button
-              onClick={toggleItalic}
-              size="sm"
-              variant="outline"
-              disabled={isDisabled}
-              className={`w-8 h-8 p-0 ${selectedElement?.italic ? 'bg-stone-200' : 'bg-white'}`}
-              title="Italic"
-            >
-              <Italic className="w-3.5 h-3.5" />
-            </Button>
-
-            <Button
-              onClick={toggleUnderline}
-              size="sm"
-              variant="outline"
-              disabled={isDisabled}
-              className={`w-8 h-8 p-0 ${selectedElement?.underline ? 'bg-stone-200' : 'bg-white'}`}
-              title="Underline"
-            >
-              <Underline className="w-3.5 h-3.5" />
-            </Button>
-
-            <Separator orientation="vertical" className="h-5" />
-
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs text-stone-600">Color:</label>
-              <input
-                type="color"
-                value={selectedElement?.color || '#000000'}
-                onChange={(e) => onUpdateElement?.({ color: e.target.value })}
-                disabled={isDisabled}
-                className="w-7 h-7 border border-stone-300 rounded cursor-pointer bg-white"
-              />
+            <div className="flex items-center gap-2 bg-white rounded-md border border-stone-300 px-2.5 py-1.5 shadow-sm">
+              <label className="text-xs text-stone-600 font-medium whitespace-nowrap">Background</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="color"
+                  value={getCurrentBackgroundColor()}
+                  onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                  className="w-8 h-8 border-2 border-stone-200 rounded-md cursor-pointer transition-all hover:border-stone-400"
+                  title="Pick background color"
+                />
+                <Popover open={showHexInput} onOpenChange={setShowHexInput}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-2.5 text-xs font-mono hover:bg-stone-100"
+                      title="Enter hex code"
+                    >
+                      {getCurrentBackgroundColor().toUpperCase()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-3 z-50" align="start" side="bottom" sideOffset={4}>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-stone-700">Hex Color</label>
+                        <Button
+                          onClick={() => {
+                            setShowHexInput(false);
+                            setHexInput('');
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 w-5 p-0 hover:bg-stone-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-stone-500 font-mono">#</span>
+                        <input
+                          type="text"
+                          value={hexInput}
+                          onChange={(e) => setHexInput(e.target.value)}
+                          onKeyDown={handleHexKeyDown}
+                          placeholder="FFFFFF"
+                          maxLength={6}
+                          className="w-2.5 flex-1 px-2 py-1.5 text-sm font-mono border border-stone-300 rounded-md uppercase focus:outline-none focus:ring-2 focus:ring-[#4FBA76]"
+                          autoFocus
+                        />
+                      </div>
+                      <Button
+                        onClick={handleHexSubmit}
+                        size="sm"
+                        className="h-8 w-full text-xs bg-[#4FBA76] hover:bg-[#45a869] text-white"
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             <Separator orientation="vertical" className="h-5" />
 
             <Button
-              onClick={toggleShadow}
+              onClick={onAddText}
               size="sm"
               variant="outline"
-              disabled={isDisabled}
-              className={`text-xs h-8 px-2.5 ${selectedElement?.shadow ? 'bg-stone-200' : 'bg-white'}`}
-              title="Shadow"
+              className="gap-1.5 h-8 text-xs bg-white"
             >
-              Shadow
+              <Plus className="w-3.5 h-3.5" />
+              Add Text
             </Button>
 
-            <Button
-              onClick={toggleOutline}
-              size="sm"
-              variant="outline"
-              disabled={isDisabled}
-              className={`text-xs h-8 px-2.5 ${selectedElement?.outline ? 'bg-stone-200' : 'bg-white'}`}
-              title="Outline"
-            >
-              Outline
-            </Button>
+            <Separator orientation="vertical" className="h-5" />
+
+            <Select value={pageSize} onValueChange={onPageSizeChange}>
+              <SelectTrigger className="w-28 h-8 text-xs bg-white">
+                <SelectValue placeholder="Page Size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">A4</SelectItem>
+                <SelectItem value="Short">Short (8.5 x 11")</SelectItem>
+                <SelectItem value="Long">Long (8.5 x 13")</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={orientation} onValueChange={onOrientationChange}>
+              <SelectTrigger className="w-28 h-8 text-xs bg-white">
+                <SelectValue placeholder="Orientation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="portrait">Portrait</SelectItem>
+                <SelectItem value="landscape">Landscape</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {isTextElement && (
+              <>
+                <Separator orientation="vertical" className="h-5" />
+
+                <Select value={textElement?.fontFamily || 'font-sans'} onValueChange={handleFontFamilyChange} disabled={isDisabled}>
+                  <SelectTrigger className="w-28 h-8 text-xs bg-white">
+                    <SelectValue placeholder="Font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_FAMILIES.map((font) => (
+                      <SelectItem key={font.value} value={font.value}>
+                        {font.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedElement?.fontSize.toString() || '16'} onValueChange={handleFontSizeChange} disabled={isDisabled}>
+                  <SelectTrigger className="w-24 h-8 text-xs bg-white">
+                    <SelectValue placeholder="Size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_SIZES.map((size) => (
+                      <SelectItem key={size.value} value={size.value}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Separator orientation="vertical" className="h-5" />
+
+                <Button
+                  onClick={toggleBold}
+                  size="sm"
+                  variant="outline"
+                  disabled={isDisabled}
+                  className={`w-8 h-8 p-0 ${selectedElement?.bold ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Bold"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </Button>
+
+                <Button
+                  onClick={toggleItalic}
+                  size="sm"
+                  variant="outline"
+                  disabled={isDisabled}
+                  className={`w-8 h-8 p-0 ${selectedElement?.italic ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Italic"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </Button>
+
+                <Button
+                  onClick={toggleUnderline}
+                  size="sm"
+                  variant="outline"
+                  disabled={isDisabled}
+                  className={`w-8 h-8 p-0 ${selectedElement?.underline ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Underline"
+                >
+                  <Underline className="w-3.5 h-3.5" />
+                </Button>
+
+                <Separator orientation="vertical" className="h-5" />
+
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-stone-600">Color:</label>
+                  <input
+                    type="color"
+                    value={selectedElement?.color || '#000000'}
+                    onChange={(e) => onUpdateElement?.({ color: e.target.value })}
+                    disabled={isDisabled}
+                    className="w-7 h-7 border border-stone-300 rounded cursor-pointer bg-white"
+                  />
+                </div>
+
+                <Separator orientation="vertical" className="h-5" />
+
+                <Button
+                  onClick={toggleShadow}
+                  size="sm"
+                  variant="outline"
+                  disabled={isDisabled}
+                  className={`text-xs h-8 px-2.5 ${selectedElement?.shadow ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Shadow"
+                >
+                  Shadow
+                </Button>
+
+                <Button
+                  onClick={toggleOutline}
+                  size="sm"
+                  variant="outline"
+                  disabled={isDisabled}
+                  className={`text-xs h-8 px-2.5 ${selectedElement?.outline ? 'bg-stone-200' : 'bg-white'}`}
+                  title="Outline"
+                >
+                  Outline
+                </Button>
+              </>
+            )}
+
+            <Separator orientation="vertical" className="h-5 ml-auto" />
           </>
         )}
 
-        <Separator orientation="vertical" className="h-5 ml-auto" />
+        {!isEditorMode && (
+          <>
+            <span className="text-xs text-stone-600 font-medium">
+              SIZE: <span className="text-stone-700">{pageSize === 'Short' ? 'Short (8.5×11")' : pageSize === 'Long' ? 'Long (8.5×13")' : pageSize}</span>
+              {' '}<span className="text-stone-400">|</span>{' '}
+              ORIENTATION: <span className="text-stone-700 capitalize">{orientation}</span>
+            </span>
+
+            <Separator orientation="vertical" className="h-5 ml-auto" />
+          </>
+        )}
 
         <Button
           onClick={handleExportPDF}
@@ -410,15 +452,17 @@ export default function Toolbar({
           {isExporting ? 'Exporting...' : 'Export as PDF'}
         </Button>
 
-        <Button
-          onClick={onPrint}
-          size="sm"
-          variant="outline"
-          className="gap-1.5 h-8 text-xs bg-white"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print
-        </Button>
+        {isEditorMode && (
+          <Button
+            onClick={onPrint}
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-8 text-xs bg-white"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Print
+          </Button>
+        )}
       </div>
     </div>
   );

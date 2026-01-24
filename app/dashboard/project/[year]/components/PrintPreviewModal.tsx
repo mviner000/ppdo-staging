@@ -22,7 +22,6 @@ import { usePrintPreviewState } from './hooks/usePrintPreviewState';
 import { usePrintPreviewActions } from './hooks/usePrintPreviewActions';
 import { usePrintPreviewDraft } from './hooks/usePrintPreviewDraft';
 import { convertTableToCanvas } from '@/lib/print-canvas/tableToCanvas';
-import { applyTemplateToPages } from '@/lib/canvas-utils';
 import { mergeTemplateWithCanvas } from '@/lib/canvas-utils/mergeTemplate';
 import { toast } from 'sonner';
 
@@ -64,6 +63,9 @@ export function PrintPreviewModal({
   // State management
   const state = usePrintPreviewState();
 
+  // Viewer/Editor mode state (default to viewer mode)
+  const [isEditorMode, setIsEditorMode] = useState(false);
+
   // Loading state for template application
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
   const [templateToApply, setTemplateToApply] = useState<CanvasTemplate | null | undefined>(null);
@@ -81,7 +83,7 @@ export function PrintPreviewModal({
       console.group('🎨 INITIALIZING PRINT PREVIEW');
       console.log('Template:', template);
       console.log('Template Page Background:', template?.page?.backgroundColor);
-      
+
       try {
         // Convert table to canvas pages using template's page settings
         const result = convertTableToCanvas({
@@ -107,29 +109,29 @@ export function PrintPreviewModal({
         let finalFooter = result.footer;
 
         if (template) {
-          console.log('🎨 Applying template to pages...');
-          
-          // Apply template styling to all pages
-          finalPages = applyTemplateToPages(result.pages, template);
-          
-          // Use template's header and footer
-          finalHeader = {
-            elements: template.header.elements,
-            backgroundColor: template.header.backgroundColor || '#ffffff',
-          };
-          
-          finalFooter = {
-            elements: template.footer.elements,
-            backgroundColor: template.footer.backgroundColor || '#ffffff',
-          };
-          
-          console.log('✅ Template applied');
-          console.log('📄 First page background AFTER template:', finalPages[0]?.backgroundColor);
+          console.log('🎨 Merging template with generated canvas...');
+
+          // Use smart merge logic to combine template with generated content
+          const merged = mergeTemplateWithCanvas(
+            result.pages,
+            result.header,
+            result.footer,
+            template
+          );
+
+          finalPages = merged.pages;
+          finalHeader = merged.header;
+          finalFooter = merged.footer;
+
+          console.log('✅ Template merged');
+          console.log('📄 First page background AFTER merge:', finalPages[0]?.backgroundColor);
           console.log('📄 Header background:', finalHeader.backgroundColor);
           console.log('📄 Footer background:', finalFooter.backgroundColor);
-          
+          console.log('📄 Header elements:', finalHeader.elements.length);
+          console.log('📄 Footer elements:', finalFooter.elements.length);
+
           state.setAppliedTemplate(template);
-          
+
           toast.success(
             `Applied template "${template.name}" to ${finalPages.length} page(s)`
           );
@@ -148,7 +150,7 @@ export function PrintPreviewModal({
         state.setCurrentPageIndex(0);
         state.setIsDirty(false);
         state.setHasInitialized(true);
-        
+
         console.log('✅ Initialization complete');
         console.groupEnd();
       } catch (error) {
@@ -268,14 +270,6 @@ export function PrintPreviewModal({
     console.log('  - isOpen:', isOpen);
     console.log('  - hasInitialized:', state.hasInitialized);
     console.log('  - existingDraft:', !!existingDraft);
-    console.log('  - templateToApply:', templateToApply);
-
-    // Show template selector on first open (if no existing draft and not initialized)
-    if (!existingDraft && !state.hasInitialized && templateToApply === null) {
-      console.log('📋 Showing template selector...');
-      state.setShowTemplateSelector(true);
-      return;
-    }
 
     // Initialize from existing draft
     if (existingDraft && !state.hasInitialized) {
@@ -303,23 +297,22 @@ export function PrintPreviewModal({
       return;
     }
 
-    // Initialize from table data with template
-    if (!state.hasInitialized && templateToApply !== null) {
-      console.log('🎯 Initializing with template:', templateToApply?.name || 'none');
-      
-      // Show loading state
-      setIsLoadingTemplate(true);
-      
-      // Small delay to ensure smooth UI
+    // Initialize from table data (NEW FLOW: Load data first, then show template selector)
+    if (!existingDraft && !state.hasInitialized) {
+      console.log('📊 Loading table data...');
+
+      // Load table data immediately without template
+      initializeFromTableData(undefined);
+
+      // After data loads, show template selector modal
       setTimeout(() => {
-        initializeFromTableData(templateToApply || undefined);
-        setIsLoadingTemplate(false);
-      }, 500);
+        console.log('📋 Showing template selector after data load...');
+        setShowLiveTemplateSelector(true);
+      }, 600);
     }
   }, [
     isOpen,
     existingDraft,
-    templateToApply,
     state.hasInitialized,
     initializeFromTableData,
     state,
@@ -410,13 +403,15 @@ export function PrintPreviewModal({
           onClose={handleClose}
           onSaveDraft={handleSaveDraft}
           onApplyTemplate={() => setShowLiveTemplateSelector(true)}
+          isEditorMode={isEditorMode}
+          onEditorModeChange={setIsEditorMode}
         />
 
         {/* Main Layout */}
         <div className="flex flex-1 overflow-hidden">
           {/* Canvas Area */}
           <div className="flex-1 flex flex-col overflow-hidden bg-stone-50 min-w-0">
-            {/* Canvas Toolbar */}
+            {/* Canvas Toolbar - Always visible but content changes based on mode */}
             <div className="sticky top-0 z-10 bg-stone-100 border-b border-stone-300 shadow-sm">
               <Toolbar
                 selectedElement={state.selectedElement}
@@ -441,6 +436,7 @@ export function PrintPreviewModal({
                 pages={state.pages}
                 header={state.header}
                 footer={state.footer}
+                isEditorMode={isEditorMode}
               />
             </div>
 
@@ -448,18 +444,19 @@ export function PrintPreviewModal({
             <div className="flex-1 overflow-y-auto overflow-x-auto flex items-start justify-center pt-4 pb-16 px-8">
               <Canvas
                 page={state.currentPage}
-                selectedElementId={state.selectedElementId}
-                onSelectElement={state.setSelectedElementId}
-                onUpdateElement={actions.updateElement}
-                onDeleteElement={actions.deleteElement}
-                isEditingElementId={state.isEditingElementId}
-                onEditingChange={state.setIsEditingElementId}
+                selectedElementId={isEditorMode ? state.selectedElementId : null}
+                onSelectElement={isEditorMode ? state.setSelectedElementId : () => {}}
+                onUpdateElement={isEditorMode ? actions.updateElement : () => {}}
+                onDeleteElement={isEditorMode ? actions.deleteElement : () => {}}
+                isEditingElementId={isEditorMode ? state.isEditingElementId : null}
+                onEditingChange={isEditorMode ? state.setIsEditingElementId : () => {}}
                 header={state.header}
                 footer={state.footer}
                 pageNumber={state.currentPageIndex + 1}
                 totalPages={state.pages.length}
                 activeSection={state.activeSection}
-                onActiveSectionChange={state.setActiveSection}
+                onActiveSectionChange={isEditorMode ? state.setActiveSection : () => {}}
+                selectedGroupId={state.selectedGroupId}
               />
             </div>
 
@@ -484,11 +481,14 @@ export function PrintPreviewModal({
                     Math.min(state.pages.length - 1, prev + 1)
                   )
                 }
+                isEditorMode={isEditorMode}
+                selectedGroupId={state.selectedGroupId}
+                onSelectGroup={state.setSelectedGroupId}
               />
             </div>
           </div>
 
-          {/* Right Sidebar */}
+          {/* Right Sidebar - Always visible */}
           <div className="w-64 border-l border-stone-200 bg-zinc-50 flex-shrink-0 overflow-y-auto">
             <PagePanel
               pages={state.pages}
@@ -496,6 +496,8 @@ export function PrintPreviewModal({
               onPageSelect={state.setCurrentPageIndex}
               onAddPage={() => {}}
               onReorderPages={() => {}}
+              header={state.header}
+              footer={state.footer}
             />
           </div>
         </div>

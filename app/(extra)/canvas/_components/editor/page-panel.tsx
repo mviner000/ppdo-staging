@@ -6,8 +6,8 @@ import React from "react"
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Copy, Trash2 } from 'lucide-react';
-import { Page } from "../editor";
-import { getPageDimensions } from './constants';
+import { Page, HeaderFooter } from './types';
+import { getPageDimensions, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -23,6 +23,8 @@ interface PagePanelProps {
   onReorderPages: (fromIndex: number, toIndex: number) => void;
   onDuplicatePage?: (index: number) => void;
   onDeletePage?: (index: number) => void;
+  header?: HeaderFooter;
+  footer?: HeaderFooter;
 }
 
 export default function PagePanel({
@@ -33,6 +35,8 @@ export default function PagePanel({
   onReorderPages,
   onDuplicatePage,
   onDeletePage,
+  header,
+  footer,
 }: PagePanelProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -114,7 +118,7 @@ export default function PagePanel({
                     )}
 
                     <div
-                      className="absolute top-0 left-0 bg-white border border-stone-200"
+                      className="absolute top-0 left-0 border border-stone-200"
                       style={{
                         width: `${size.width}px`,
                         height: `${size.height}px`,
@@ -122,53 +126,180 @@ export default function PagePanel({
                         transformOrigin: 'top left',
                       }}
                     >
-                      {page.elements.map((element) => {
-                        // Skip hidden elements in thumbnail
-                        if (element.visible === false) return null;
-                        
-                        if (element.type === 'text') {
-                          return (
-                            <div
-                              key={element.id}
-                              className="absolute pointer-events-none"
-                              style={{
-                                left: `${element.x}px`,
-                                top: `${element.y}px`,
-                                width: `${element.width}px`,
-                                height: `${element.height}px`,
-                                fontSize: `${element.fontSize}px`,
-                                fontFamily: element.fontFamily,
-                                fontWeight: element.bold ? 'bold' : 'normal',
-                                fontStyle: element.italic ? 'italic' : 'normal',
-                                textDecoration: element.underline ? 'underline' : 'none',
-                                color: element.color,
-                                textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
-                                WebkitTextStroke: element.outline ? '1px black' : 'none',
-                                overflow: 'hidden',
-                                wordWrap: 'break-word',
-                              }}
-                            >
-                              {element.text}
-                            </div>
-                          );
-                        } else if (element.type === 'image') {
-                          return (
-                            <img
-                              key={element.id}
-                              src={element.src || "/placeholder.svg"}
-                              alt=""
-                              className="absolute pointer-events-none object-contain"
-                              style={{
-                                left: `${element.x}px`,
-                                top: `${element.y}px`,
-                                width: `${element.width}px`,
-                                height: `${element.height}px`,
-                              }}
-                            />
-                          );
-                        }
-                        return null;
-                      })}
+                      {/* Header Section */}
+                      <div
+                        className="absolute top-0 left-0 right-0"
+                        style={{
+                          height: `${HEADER_HEIGHT}px`,
+                          backgroundColor: header?.backgroundColor || '#ffffff',
+                        }}
+                      >
+                        {/* Render header elements if provided */}
+                        {header?.elements.map((element) => {
+                          // Skip hidden elements in thumbnail
+                          if (element.visible === false) return null;
+
+                          if (element.type === 'text') {
+                            return (
+                              <div
+                                key={element.id}
+                                className="absolute pointer-events-none"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                  fontSize: `${element.fontSize}px`,
+                                  fontFamily: element.fontFamily,
+                                  fontWeight: element.bold ? 'bold' : 'normal',
+                                  fontStyle: element.italic ? 'italic' : 'normal',
+                                  textDecoration: element.underline ? 'underline' : 'none',
+                                  color: element.color,
+                                  textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
+                                  WebkitTextStroke: element.outline ? '1px black' : 'none',
+                                  overflow: 'hidden',
+                                  wordWrap: 'break-word',
+                                }}
+                              >
+                                {element.text}
+                              </div>
+                            );
+                          } else if (element.type === 'image') {
+                            return (
+                              <img
+                                key={element.id}
+                                src={element.src || "/placeholder.svg"}
+                                alt=""
+                                className="absolute pointer-events-none object-contain"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                }}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+
+                      {/* Main Body Section */}
+                      <div
+                        className="absolute left-0 right-0"
+                        style={{
+                          top: `${HEADER_HEIGHT}px`,
+                          height: `${size.height - HEADER_HEIGHT - FOOTER_HEIGHT}px`,
+                          backgroundColor: page.backgroundColor || '#ffffff',
+                        }}
+                      >
+                        {/* Render page elements */}
+                        {page.elements.map((element) => {
+                          // Skip hidden elements in thumbnail
+                          if (element.visible === false) return null;
+
+                          if (element.type === 'text') {
+                            return (
+                              <div
+                                key={element.id}
+                                className="absolute pointer-events-none"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                  fontSize: `${element.fontSize}px`,
+                                  fontFamily: element.fontFamily,
+                                  fontWeight: element.bold ? 'bold' : 'normal',
+                                  fontStyle: element.italic ? 'italic' : 'normal',
+                                  textDecoration: element.underline ? 'underline' : 'none',
+                                  color: element.color,
+                                  textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
+                                  WebkitTextStroke: element.outline ? '1px black' : 'none',
+                                  overflow: 'hidden',
+                                  wordWrap: 'break-word',
+                                }}
+                              >
+                                {element.text}
+                              </div>
+                            );
+                          } else if (element.type === 'image') {
+                            return (
+                              <img
+                                key={element.id}
+                                src={element.src || "/placeholder.svg"}
+                                alt=""
+                                className="absolute pointer-events-none object-contain"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                }}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+
+                      {/* Footer Section */}
+                      <div
+                        className="absolute bottom-0 left-0 right-0"
+                        style={{
+                          height: `${FOOTER_HEIGHT}px`,
+                          backgroundColor: footer?.backgroundColor || '#ffffff',
+                        }}
+                      >
+                        {/* Render footer elements if provided */}
+                        {footer?.elements.map((element) => {
+                          // Skip hidden elements in thumbnail
+                          if (element.visible === false) return null;
+
+                          if (element.type === 'text') {
+                            return (
+                              <div
+                                key={element.id}
+                                className="absolute pointer-events-none"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                  fontSize: `${element.fontSize}px`,
+                                  fontFamily: element.fontFamily,
+                                  fontWeight: element.bold ? 'bold' : 'normal',
+                                  fontStyle: element.italic ? 'italic' : 'normal',
+                                  textDecoration: element.underline ? 'underline' : 'none',
+                                  color: element.color,
+                                  textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
+                                  WebkitTextStroke: element.outline ? '1px black' : 'none',
+                                  overflow: 'hidden',
+                                  wordWrap: 'break-word',
+                                }}
+                              >
+                                {element.text}
+                              </div>
+                            );
+                          } else if (element.type === 'image') {
+                            return (
+                              <img
+                                key={element.id}
+                                src={element.src || "/placeholder.svg"}
+                                alt=""
+                                className="absolute pointer-events-none object-contain"
+                                style={{
+                                  left: `${element.x}px`,
+                                  top: `${element.y}px`,
+                                  width: `${element.width}px`,
+                                  height: `${element.height}px`,
+                                }}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
                     </div>
 
                     <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-white/90 rounded text-xs font-medium text-stone-600 border border-stone-200">
