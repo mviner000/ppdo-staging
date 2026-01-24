@@ -72,6 +72,7 @@ export function GenericPrintPreviewModal({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<number | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isEditorMode, setIsEditorMode] = useState(true);
 
   // 🔧 Initialize canvas from adapter data or existing draft
   useEffect(() => {
@@ -340,6 +341,8 @@ export function GenericPrintPreviewModal({
           onBack={handleClose}
           onClose={handleClose}
           onSaveDraft={handleSaveDraft}
+          isEditorMode={isEditorMode}
+          onEditorModeChange={setIsEditorMode}
         />
 
         {/* Canvas Editor Area */}
