@@ -8,18 +8,18 @@ import { api } from "@/convex/_generated/api";
 import { useAccentColor } from "@/contexts/AccentColorContext";
 
 // Components
-import { Modal } from "./Modal";
-import { ConfirmationModal } from "./ConfirmationModal";
+import { Modal } from "./BudgetModal";
+import { ConfirmationModal } from "./BudgetConfirmationModal";
 import { BudgetItemForm } from "./BudgetItemForm";
 import BudgetShareModal from "./BudgetShareModal";
-import { BudgetTableToolbar } from "./BudgetTableToolbar";
+import { BudgetTableToolbar } from "./table/BudgetTableToolbar";
 import { BudgetTableHeader } from "./table/BudgetTableHeader";
 import { BudgetTableRow } from "./table/BudgetTableRow";
 import { BudgetTableTotalsRow } from "./table/BudgetTableTotalsRow";
 import { BudgetTableEmptyState } from "./table/BudgetTableEmptyState";
 import { BudgetContextMenu } from "./table/BudgetContextMenu";
 import { BudgetBulkToggleDialog } from "./BudgetBulkToggleDialog";
-import { PrintPreviewModal } from "./PrintPreviewModal";
+import { PrintPreviewModal } from "../../../../../components/ppdo/table/print-preview/PrintPreviewModal";
 import { TrashBinModal } from "@/components/TrashBinModal";
 
 // Hooks

@@ -24,8 +24,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { TrashBinModal } from "@/components/TrashBinModal";
-import { Modal } from "@/app/dashboard/project/[year]/components/Modal";
-import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/ConfirmationModal";
+import { Modal } from "@/app/dashboard/project/[year]/components/BudgetModal";
+import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/BudgetConfirmationModal";
 
 // Helper function to get full name from particular ID
 const getParticularFullName = (particular: string): string => {

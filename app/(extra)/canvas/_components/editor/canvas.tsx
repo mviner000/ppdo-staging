@@ -8,8 +8,8 @@ import { getPageDimensions, HEADER_HEIGHT, FOOTER_HEIGHT } from './constants';
 import TextElementComponent from './text-element';
 import ImageElementComponent from './image-element';
 import HeaderFooterSection from './header-footer-section';
-import { TableResizeOverlay } from '@/app/dashboard/project/[year]/components/table-resize/TableResizeOverlay';
-import { TableBorderOverlay } from '@/app/dashboard/project/[year]/components/table-borders/TableBorderOverlay';
+import { TableResizeOverlay } from '@/components/ppdo/table/print-preview/table-resize/TableResizeOverlay';
+import { TableBorderOverlay } from '@/components/ppdo/table/print-preview/table-borders/TableBorderOverlay';
 
 type ActiveSection = 'header' | 'page' | 'footer';
 

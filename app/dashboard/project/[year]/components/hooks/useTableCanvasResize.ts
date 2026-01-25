@@ -18,14 +18,14 @@ import {
   KEYBOARD_RESIZE_STEP_LARGE,
   KEYBOARD_RESIZE_STEP_SMALL,
   getMaxTableWidth,
-} from '../table-resize/constants';
+} from '../../../../../../components/ppdo/table/print-preview/table-resize/constants';
 import {
   ResizingColumnState,
   ResizingRowState,
   HoveredHandle,
   UseTableCanvasResizeReturn,
   UseTableCanvasResizeOptions,
-} from '../table-resize/types';
+} from '../../../../../../components/ppdo/table/print-preview/table-resize/types';
 
 /**
  * Hook for managing table column and row resizing in canvas

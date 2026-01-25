@@ -11,8 +11,8 @@ import { toast } from "sonner";
 import { useAccentColor } from "@/contexts/AccentColorContext";
 
 // UI Components
-import { Modal } from "@/app/dashboard/project/[year]/components/Modal";
-import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/ConfirmationModal";
+import { Modal } from "@/app/dashboard/project/[year]/components/BudgetModal";
+import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/BudgetConfirmationModal";
 import { ActivityLogSheet } from "@/components/ActivityLogSheet";
 
 // Local Components
@@ -26,7 +26,7 @@ import { ProjectsTableBody } from "./ProjectsTable/ProjectsTableBody";
 import { ProjectsTableFooter } from "./ProjectsTable/ProjectsTableFooter";
 import { ProjectContextMenu } from "./ProjectsTable/ProjectContextMenu";
 import { ProjectBulkToggleDialog } from "./ProjectBulkToggleDialog";
-import { PrintPreviewModal } from "@/app/dashboard/project/[year]/components/PrintPreviewModal";
+import { PrintPreviewModal } from "@/components/ppdo/table/print-preview/PrintPreviewModal";
 
 // Types, Constants, and Utils
 import {

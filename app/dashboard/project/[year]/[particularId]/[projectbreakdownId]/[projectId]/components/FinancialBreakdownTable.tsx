@@ -7,8 +7,8 @@ import { flattenFinancialBreakdown } from "../data";
 import { FinancialBreakdownItemForm } from "./FinancialBreakdownItemForm";
 import { FinancialBreakdownItem } from "./types";
 import { useAccentColor } from "@/contexts/AccentColorContext";
-import { Modal } from "@/app/dashboard/project/[year]/components/Modal";
-import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/ConfirmationModal";
+import { Modal } from "@/app/dashboard/project/[year]/components/BudgetModal";
+import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/BudgetConfirmationModal";
 
 
 interface FinancialBreakdownTableProps {

@@ -7,12 +7,12 @@ import { api } from "@/convex/_generated/api";
 
 import Header from "@/components/layout/Header";
 import Navbar from "@/components/layout/Navbar";
-import PPDOBanner from "@/components/ppdo/PPDOBanner";
-import PPDOFeatures from "@/components/ppdo/PPDOFeatures";
+import PPDOBanner from "@/components/ppdo/static/PPDOBanner";
+import PPDOFeatures from "@/components/ppdo/static/PPDOFeatures";
 import GovernorMessage from "@/components/layout/GovernorMessage";
-import PPDOAbout from "@/components/ppdo/PPDOAbout";
+import PPDOAbout from "@/components/ppdo/static/PPDOAbout";
 import Officials from "@/components/officials/Officials";
-import PPDOActivities from "@/components/ppdo/PPDOActivities";
+import PPDOActivities from "@/components/ppdo/static/PPDOActivities";
 import Footer from "@/components/layout/Footer";
 import FadeIn from "@/components/ui/FadeIn";
 

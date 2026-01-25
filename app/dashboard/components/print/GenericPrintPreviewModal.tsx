@@ -8,8 +8,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { PrintPreviewToolbar } from '@/app/dashboard/project/[year]/components/PrintPreviewToolbar';
-import { ConfirmationModal } from '@/app/dashboard/project/[year]/components/ConfirmationModal';
+import { PrintPreviewToolbar } from '@/components/ppdo/table/print-preview/PrintPreviewToolbar';
+import { ConfirmationModal } from '@/app/dashboard/project/[year]/components/BudgetConfirmationModal';
 import { convertTableToCanvas } from '@/lib/print-canvas/tableToCanvas';
 import { printAllPages } from '@/lib/print';
 import { PrintDraft, ColumnDefinition, BudgetTotals, RowMarker } from '@/lib/print-canvas/types';
