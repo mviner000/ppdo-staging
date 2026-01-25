@@ -1,10 +1,14 @@
 // app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/types/breakdown.types.ts
 
+import { Id } from "@/convex/_generated/dataModel";
+
 export interface Breakdown {
-  _id: string;
+  _id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns">;
+  _creationTime: number;
   projectName: string;
   implementingOffice: string;
-  projectId?: string;
+  projectId?: Id<"projects">;
+  trustFundId?: Id<"trustFunds">;
   projectTitle?: string;
   allocatedBudget?: number;
   obligatedBudget?: number;

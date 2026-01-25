@@ -8,8 +8,6 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { useAccentColor } from "@/contexts/AccentColorContext";
-import { Table } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/app/dashboard/project/[year]/components/BudgetModal";
 import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/BudgetConfirmationModal";
 import { TrustFundForm } from "./TrustFundForm";
@@ -102,7 +100,6 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
   };
 
   const handleStatusChange = async (itemId: string, newStatus: string) => {
-    // Add to updating set
     setUpdatingStatusIds(prev => new Set(prev).add(itemId));
     
     try {
@@ -116,7 +113,6 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
       toast.error("Failed to update status");
       console.error(error);
     } finally {
-      // Remove from updating set
       setUpdatingStatusIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(itemId);
@@ -171,7 +167,9 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
 
   return (
     <>
-      <Card className="rounded-lg border print-area">
+      {/* Main Table Container - UPDATED: Match budget styling */}
+      <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        
         {/* Toolbar */}
         <TrustFundTableToolbar
           searchQuery={searchQuery}
@@ -182,7 +180,7 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
           hiddenColumns={hiddenColumns}
           onToggleColumn={handleToggleColumn}
           onShowAllColumns={() => setHiddenColumns(new Set())}
-          onHideAllColumns={() => setHiddenColumns(new Set(['projectTitle', 'officeInCharge', 'status', 'dateReceived', 'received', 'obligatedPR', 'utilized', 'balance', 'remarks']))}
+          onHideAllColumns={() => setHiddenColumns(new Set(['projectTitle', 'officeInCharge', 'status', 'dateReceived', 'received', 'obligatedPR', 'utilized', 'utilizationRate', 'balance', 'remarks']))}
           onExportCSV={handleExportCSV}
           onPrint={() => setShowPrintModal(true)}
           isAdmin={isAdmin}
@@ -192,48 +190,64 @@ export function TrustFundsTable({ data, onAdd, onEdit, onDelete, onOpenTrash, ye
           accentColor={accentColorValue}
         />
 
-        {/* Table */}
-        <CardContent className="p-0">
-          <div className="relative max-h-[600px] overflow-auto">
-            <Table className="w-full text-sm" style={{ tableLayout: 'auto' }}>
-              <TrustFundsTableColgroup
-                isAdmin={isAdmin}
-                hiddenColumns={hiddenColumns}
-                columnWidths={columnWidths}
-              />
+        {/* Print Header (hidden on screen, visible in print) */}
+        <div className="hidden print-only p-4 border-b border-zinc-900">
+          <h2 className="text-xl font-bold text-zinc-900 mb-2">
+            Trust Funds {year}
+          </h2>
+          <p className="text-sm text-zinc-700">
+            Generated on:{" "}
+            {new Date().toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
 
-              <TrustFundsTableHeader
-                isAdmin={isAdmin}
-                hiddenColumns={hiddenColumns}
-                columnWidths={columnWidths}
-                allSelected={allSelected}
-                onToggleAll={toggleAll}
-                onSort={handleSort}
-                onResizeStart={handleResizeStart}
-              />
+        {/* Table - UPDATED: Match budget structure */}
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto relative">
+          <table className="w-full">
+            <TrustFundsTableColgroup
+              isAdmin={isAdmin}
+              hiddenColumns={hiddenColumns}
+              columnWidths={columnWidths}
+            />
 
-              <TrustFundsTableBody
-                data={filteredAndSortedData}
-                isAdmin={isAdmin}
-                selected={selected}
-                hiddenColumns={hiddenColumns}
-                columnWidths={columnWidths}
-                totals={totals}
-                updatingStatusIds={updatingStatusIds}
-                onToggleSelection={toggleOne}
-                onContextMenu={handleContextMenu}
-                onStatusChange={handleStatusChange}
-                onPin={handlePin}
-                onViewLog={handleViewLog}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                canEdit={!!onEdit}
-                canDelete={!!onDelete}
-              />
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+            <TrustFundsTableHeader
+              isAdmin={isAdmin}
+              hiddenColumns={hiddenColumns}
+              columnWidths={columnWidths}
+              allSelected={allSelected}
+              onToggleAll={toggleAll}
+              onSort={handleSort}
+              onResizeStart={handleResizeStart}
+            />
+
+            <TrustFundsTableBody
+              data={filteredAndSortedData}
+              year={year}
+              isAdmin={isAdmin}
+              selected={selected}
+              hiddenColumns={hiddenColumns}
+              columnWidths={columnWidths}
+              totals={totals}
+              updatingStatusIds={updatingStatusIds}
+              onToggleSelection={toggleOne}
+              onContextMenu={handleContextMenu}
+              onStatusChange={handleStatusChange}
+              onPin={handlePin}
+              onViewLog={handleViewLog}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canEdit={!!onEdit}
+              canDelete={!!onDelete}
+            />
+          </table>
+        </div>
+      </div>
 
       {/* Context Menu */}
       <TrustFundContextMenu

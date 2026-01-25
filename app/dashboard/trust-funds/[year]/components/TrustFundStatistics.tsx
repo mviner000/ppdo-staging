@@ -46,47 +46,27 @@ export default function TrustFundStatistics({
 
   const utilizationRate = useMemo(() => {
     if (totalReceived === 0) return 0;
-    return ((totalUtilized / totalReceived) * 100).toFixed(2);
+    return ((totalUtilized / totalReceived) * 100).toFixed(1);
   }, [totalReceived, totalUtilized]);
 
-  // Define all possible statuses with their display configuration
+  // Define all possible statuses with their display configuration - UPDATED: All gray colors like budget
   const statusConfig = [
-    { 
-      key: 'not_available' as const, 
-      label: '- N/A',
-      dotColor: 'bg-zinc-300',
-      visible: false // Hidden by default
-    },
     { 
       key: 'not_yet_started' as const, 
       label: 'Not Yet Started',
-      dotColor: 'bg-zinc-400',
-      visible: true
+      dotColor: 'bg-zinc-500'
     },
     { 
       key: 'ongoing' as const, 
       label: 'Ongoing',
-      dotColor: 'bg-zinc-500',
-      visible: true
+      dotColor: 'bg-zinc-600'
     },
     { 
       key: 'completed' as const, 
       label: 'Completed',
-      dotColor: 'bg-zinc-600',
-      visible: true
+      dotColor: 'bg-zinc-700'
     },
-    // { 
-    //   key: 'active' as const, 
-    //   label: 'Active',
-    //   dotColor: 'bg-zinc-700',
-    //   visible: false // Hidden by default
-    // },
   ];
-
-  // Filter visible statuses based on showAllStatuses state
-  const visibleStatuses = showAllStatuses 
-    ? statusConfig 
-    : statusConfig.filter(s => s.visible);
 
   // Create the sub-description list for Total Projects
   const projectBreakdown = (
@@ -111,7 +91,7 @@ export default function TrustFundStatistics({
         </DropdownMenu>
       </div>
 
-      {visibleStatuses.map((status) => {
+      {statusConfig.map((status) => {
         const count = statusCounts[status.key];
         return (
           <div key={status.key} className="flex justify-between items-center">
@@ -138,7 +118,7 @@ export default function TrustFundStatistics({
       aria-label="Trust fund statistics"
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 no-print"
     >
-      {/* Column 1: Received & Utilized (stacked vertically) */}
+      {/* Column 1: Total Received & Total Utilized (stacked vertically) */}
       <div className="flex flex-col gap-4">
         <StatCard
           label="Total Trust Funds Received"
@@ -150,7 +130,7 @@ export default function TrustFundStatistics({
         />
       </div>
 
-      {/* Column 2: Balance & Utilization Rate (stacked vertically) */}
+      {/* Column 2: Total Balance & Average Utilization Rate (stacked vertically) */}
       <div className="flex flex-col gap-4">
         <StatCard
           label="Total Available Balance"

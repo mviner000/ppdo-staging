@@ -1,4 +1,13 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/page.tsx
+// app/dashboard/trust-funds/[year]/[trustfundbreakdownId]/page.tsx
+
+/**
+ * Trust Fund Breakdown Page (Container Component)
+ *
+ * Implements the "Container/Presenter" architecture where:
+ * - This container handles data fetching and mutations
+ * - Shared UI components handle presentation
+ * - No recalculate status button (Trust Fund status is managed manually on parent page)
+ */
 
 "use client";
 
@@ -19,10 +28,9 @@ import { BreakdownHeader } from "@/components/ppdo/breakdown/shared/BreakdownHea
 import { EntityOverviewCards } from "@/components/ppdo/breakdown/shared/EntityOverviewCards";
 import { BreakdownStatsAccordion } from "@/components/ppdo/breakdown/shared/BreakdownStatsAccordion";
 
-// Local Components
-import { BreakdownHistoryTable } from "./components/BreakdownHistoryTable";
-import { BreakdownForm } from "./components/BreakdownForm";
-import { StatusChainCard } from "./components/StatusChainCard";
+// Reusable Project Components (Table & Form work with IBaseBreakdown)
+import { BreakdownHistoryTable } from "@/app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/BreakdownHistoryTable";
+import { BreakdownForm } from "@/app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/BreakdownForm";
 
 // Shared Components
 import { TrashBinModal } from "@/components/TrashBinModal";
@@ -32,19 +40,38 @@ import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/Bud
 // Shared Hooks
 import { useEntityStats, useEntityMetadata } from "@/lib/hooks/useEntityStats";
 
-// Utils & Hooks
-import { extractProjectId, getParticularFullName, getStatusColor } from "./utils/page-helpers";
-import { Breakdown } from "./types/breakdown.types";
+// Types
+import { Breakdown } from "@/app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/types/breakdown.types";
 
-export default function ProjectBreakdownPage() {
+// Utility function to extract Trust Fund ID from slug
+function extractTrustFundId(slug: string): string {
+  const parts = slug.split("-");
+  return parts[parts.length - 1];
+}
+
+// Utility function to get status color
+function getStatusColor(status?: string): string {
+  if (!status) return "";
+  switch (status.toLowerCase()) {
+    case "completed":
+      return "text-green-700 dark:text-green-300";
+    case "delayed":
+      return "text-red-700 dark:text-red-300";
+    case "ongoing":
+      return "text-blue-700 dark:text-blue-300";
+    default:
+      return "";
+  }
+}
+
+export default function TrustFundBreakdownPage() {
   const params = useParams();
   const { setCustomBreadcrumbs } = useBreadcrumb();
-  
+
   // Extract Params
   const year = params.year as string;
-  const particularId = decodeURIComponent(params.particularId as string);
-  const slugWithId = params.projectbreakdownId as string;
-  const projectId = extractProjectId(slugWithId);
+  const slugWithId = params.trustfundbreakdownId as string;
+  const trustFundId = extractTrustFundId(slugWithId);
 
   // Local State
   const [showTrashModal, setShowTrashModal] = useState(false);
@@ -53,22 +80,16 @@ export default function ProjectBreakdownPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(null);
   const [showHeader, setShowHeader] = useState(false);
-  const [isRecalculating, setIsRecalculating] = useState(false);
 
   // Queries
-  const project = useQuery(
-    api.projects.get,
-    projectId ? { id: projectId as Id<"projects"> } : "skip"
-  );
-  
-  const parentBudgetItem = useQuery(
-    api.budgetItems.get,
-    project?.budgetItemId ? { id: project.budgetItemId } : "skip"
+  const trustFund = useQuery(
+    api.trustFunds.get,
+    trustFundId ? { id: trustFundId as Id<"trustFunds"> } : "skip"
   );
 
   const breakdownHistory = useQuery(
-    api.govtProjects.getProjectBreakdowns,
-    project ? { projectId: projectId as Id<"projects"> } : "skip"
+    api.trustFundBreakdowns.getBreakdowns,
+    trustFund ? { trustFundId: trustFundId as Id<"trustFunds"> } : "skip"
   );
 
   const departments = useQuery(api.departments.list, { includeInactive: false });
@@ -76,64 +97,47 @@ export default function ProjectBreakdownPage() {
   // Hooks - Using shared hooks for statistics
   const stats = useEntityStats(breakdownHistory as Breakdown[] | undefined);
   const metadata = useEntityMetadata(breakdownHistory as Breakdown[] | undefined);
-  const particularFullName = getParticularFullName(particularId);
 
-  // Effects
+  // Effects - Breadcrumbs
   useEffect(() => {
-    if (project) {
+    if (trustFund) {
       setCustomBreadcrumbs([
         { label: "Home", href: "/dashboard" },
-        { label: "Project", href: "/dashboard/project" },
-        { label: `${year}`, href: `/dashboard/project/${year}` },
-        { label: particularFullName, href: `/dashboard/project/${year}/${encodeURIComponent(particularId)}` },
-        { label: project.implementingOffice || "Loading..." },
+        { label: "Trust Funds", href: "/dashboard/trust-funds" },
+        { label: `${year}`, href: `/dashboard/trust-funds/${year}` },
+        { label: trustFund.projectTitle || "Loading..." },
       ]);
     }
     return () => setCustomBreadcrumbs(null);
-  }, [project, particularFullName, particularId, year, setCustomBreadcrumbs]);
+  }, [trustFund, year, setCustomBreadcrumbs]);
 
   // Mutations
-  const createBreakdown = useMutation(api.govtProjects.createProjectBreakdown);
-  const updateBreakdown = useMutation(api.govtProjects.updateProjectBreakdown);
-  const deleteBreakdown = useMutation(api.govtProjects.moveToTrash);
-  const recalculateProject = useMutation(api.govtProjects.recalculateProject);
+  const createBreakdown = useMutation(api.trustFundBreakdowns.createBreakdown);
+  const updateBreakdown = useMutation(api.trustFundBreakdowns.updateBreakdown);
+  const deleteBreakdown = useMutation(api.trustFundBreakdowns.moveToTrash);
 
   // Handlers
-  const handleRecalculate = async () => {
-    if (!project) return;
-    setIsRecalculating(true);
-    try {
-      const result = await recalculateProject({ projectId: projectId as Id<"projects"> });
-      toast.success("Status recalculated successfully!", {
-        description: `Project status: ${result.status}, Breakdowns: ${result.breakdownsCount}`,
-      });
-    } catch (error) {
-      console.error("Recalculation error:", error);
-      toast.error("Failed to recalculate status");
-    } finally {
-      setIsRecalculating(false);
-    }
-  };
-
   const handlePrint = () => window.print();
 
   const handleAdd = async (breakdownData: Omit<Breakdown, "_id">) => {
     try {
-      if (!project) {
-        toast.error("Project not found");
+      if (!trustFund) {
+        toast.error("Trust Fund not found");
         return;
       }
       await createBreakdown({
         ...breakdownData,
-        projectId: projectId as Id<"projects">,
+        trustFundId: trustFundId as Id<"trustFunds">,
         reportDate: breakdownData.reportDate || Date.now(),
         reason: "Created via dashboard form",
-      } as any); // Cast to any to satisfy specific Convex args if types slightly mismatch
-      
+      } as any);
+
       toast.success("Breakdown record created successfully!");
       setShowAddModal(false);
     } catch (error: any) {
-      toast.error("Failed to create breakdown record", { description: error.message });
+      toast.error("Failed to create breakdown record", {
+        description: error.message,
+      });
     }
   };
 
@@ -144,17 +148,17 @@ export default function ProjectBreakdownPage() {
         return;
       }
       await updateBreakdown({
-        breakdownId: selectedBreakdown._id as Id<"govtProjectBreakdowns">,
+        id: selectedBreakdown._id as Id<"trustFundBreakdowns">,
         ...breakdownData,
-        projectId: projectId as Id<"projects">,
-        reason: "Updated via dashboard edit form",
       } as any);
 
       toast.success("Breakdown record updated successfully!");
       setShowEditModal(false);
       setSelectedBreakdown(null);
     } catch (error: any) {
-      toast.error("Failed to update breakdown record", { description: error.message });
+      toast.error("Failed to update breakdown record", {
+        description: error.message,
+      });
     }
   };
 
@@ -162,7 +166,7 @@ export default function ProjectBreakdownPage() {
     try {
       if (!selectedBreakdown) return;
       await deleteBreakdown({
-        breakdownId: selectedBreakdown._id as Id<"govtProjectBreakdowns">,
+        id: selectedBreakdown._id as Id<"trustFundBreakdowns">,
         reason: "Moved to trash via dashboard confirmation",
       });
       toast.success("Breakdown record moved to trash!");
@@ -181,49 +185,38 @@ export default function ProjectBreakdownPage() {
   const handleDelete = (id: string) => {
     const breakdown = breakdownHistory?.find((b) => b._id === id);
     if (breakdown) {
-      setSelectedBreakdown(breakdown);
+      setSelectedBreakdown(breakdown as Breakdown);
       setShowDeleteModal(true);
     }
   };
 
   return (
     <>
-      {/* Shared Header Component with recalculate button for Projects */}
+      {/* Shared Header Component - NO recalculate button for Trust Funds */}
       <BreakdownHeader
-        backUrl={`/dashboard/project/${year}/${encodeURIComponent(particularId)}`}
-        backLabel="Back to Projects"
-        entityName={project?.particulars}
-        entityType="project"
-        implementingOffice={project?.implementingOffice}
+        backUrl={`/dashboard/trust-funds/${year}`}
+        backLabel="Back to Trust Funds"
+        entityName={trustFund?.projectTitle}
+        entityType="trustfund"
+        implementingOffice={trustFund?.officeInCharge}
         year={year}
         subtitle={`Historical breakdown and progress tracking for ${year}`}
         showHeader={showHeader}
         setShowHeader={setShowHeader}
-        showRecalculateButton={true}
-        isRecalculating={isRecalculating}
-        onRecalculate={handleRecalculate}
+        showRecalculateButton={false} // Key difference from Projects
         showActivityLog={true}
       />
 
-      {showHeader && project && parentBudgetItem && (
-        <StatusChainCard 
-          breakdownCount={breakdownHistory?.length || 0}
-          stats={stats}
-          projectStatus={project.status}
-          parentStatus={parentBudgetItem.status}
-        />
-      )}
-
       {/* Shared Entity Overview Cards */}
-      {showHeader && project && (
+      {showHeader && trustFund && (
         <EntityOverviewCards
-          entityType="project"
-          implementingOffice={project.implementingOffice}
-          totalBudget={project.totalBudgetAllocated}
-          statusText={project.status}
-          statusColor={getStatusColor(project.status)}
+          entityType="trustfund"
+          implementingOffice={trustFund.officeInCharge}
+          totalBudget={trustFund.received}
+          statusText={trustFund.status}
+          statusColor={getStatusColor(trustFund.status)}
           year={year}
-          remarks={project.remarks}
+          remarks={trustFund.remarks}
           breakdownCounts={
             stats
               ? {
@@ -240,18 +233,21 @@ export default function ProjectBreakdownPage() {
       {showHeader && stats && (
         <BreakdownStatsAccordion
           stats={stats}
-          entityType="project"
+          entityType="trustfund"
           uniqueOffices={metadata.uniqueOffices}
           uniqueLocations={metadata.uniqueLocations}
           getStatusColor={getStatusColor}
         />
       )}
 
+      {/* Breakdown Table - Reused from Project */}
       <div className="mb-6">
         {breakdownHistory === undefined ? (
           <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-zinc-300 border-t-transparent dark:border-zinc-700 dark:border-t-transparent"></div>
-            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">Loading breakdown history...</p>
+            <p className="mt-4 text-sm text-sm text-zinc-600 dark:text-zinc-400">
+              Loading breakdown history...
+            </p>
           </div>
         ) : (
           <BreakdownHistoryTable
@@ -266,12 +262,17 @@ export default function ProjectBreakdownPage() {
       </div>
 
       {/* Modals */}
-      {showAddModal && project && (
-        <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Breakdown Record" size="xl">
+      {showAddModal && trustFund && (
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Add Breakdown Record"
+          size="xl"
+        >
           <BreakdownForm
-            defaultProjectName={project.particulars}
-            defaultImplementingOffice={project.implementingOffice}
-            projectId={projectId}
+            defaultProjectName={trustFund.projectTitle}
+            defaultImplementingOffice={trustFund.officeInCharge}
+            projectId={trustFundId} // Using same prop name for compatibility
             onSave={handleAdd}
             onCancel={() => setShowAddModal(false)}
           />
@@ -279,17 +280,23 @@ export default function ProjectBreakdownPage() {
       )}
 
       {showEditModal && selectedBreakdown && (
-        <Modal 
-          isOpen={showEditModal} 
-          onClose={() => { setShowEditModal(false); setSelectedBreakdown(null); }} 
-          title="Edit Breakdown Record" 
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedBreakdown(null);
+          }}
+          title="Edit Breakdown Record"
           size="xl"
         >
           <BreakdownForm
             breakdown={selectedBreakdown}
-            projectId={projectId}
+            projectId={trustFundId}
             onSave={handleUpdate}
-            onCancel={() => { setShowEditModal(false); setSelectedBreakdown(null); }}
+            onCancel={() => {
+              setShowEditModal(false);
+              setSelectedBreakdown(null);
+            }}
           />
         </Modal>
       )}
@@ -297,7 +304,10 @@ export default function ProjectBreakdownPage() {
       {showDeleteModal && selectedBreakdown && (
         <ConfirmationModal
           isOpen={showDeleteModal}
-          onClose={() => { setShowDeleteModal(false); setSelectedBreakdown(null); }}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedBreakdown(null);
+          }}
           onConfirm={handleConfirmDelete}
           title="Move to Trash"
           message={`Are you sure you want to move this breakdown record for ${selectedBreakdown.implementingOffice} to trash?`}
@@ -306,7 +316,11 @@ export default function ProjectBreakdownPage() {
         />
       )}
 
-      <TrashBinModal isOpen={showTrashModal} onClose={() => setShowTrashModal(false)} type="breakdown" />
+      <TrashBinModal
+        isOpen={showTrashModal}
+        onClose={() => setShowTrashModal(false)}
+        type="breakdown"
+      />
     </>
   );
 }

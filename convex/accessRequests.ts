@@ -179,21 +179,44 @@ export const updateStatus = mutation({
       updatedAt: Date.now(),
     });
 
+    const now = Date.now();
+
     // CRITICAL: If approved, grant actual access to the budget page
     if (args.status === "approved") {
       // Check if user already has access
       const existingAccess = await ctx.db
         .query("budgetSharedAccess")
+        .withIndex("userIdAndActive", (q) =>
+          q.eq("userId", request.userId).eq("isActive", true)
+        )
+        .first();
+
+      if (!existingAccess) {
+        // Grant access with viewer level by default
+        await ctx.db.insert("budgetSharedAccess", {
+          userId: request.userId,
+          accessLevel: "viewer",
+          grantedBy: userId,
+          grantedAt: now,
+          isActive: true,
+          notes: `Access granted via request approval. Request ID: ${args.requestId}`,
+        });
+      }
+    }
+
+    // TRUST FUND ACCESS APPROVAL
+    if (args.status === "approved" && request.accessType === "trustFund") {
+      // Check if user already has trust fund access
+      const existingAccess = await ctx.db
+        .query("trustFundSharedAccess")
         .withIndex("userIdAndActive", (q) => 
           q.eq("userId", request.userId).eq("isActive", true)
         )
         .first();
 
-      const now = Date.now();
-
       if (!existingAccess) {
         // Grant access with viewer level by default
-        await ctx.db.insert("budgetSharedAccess", {
+        await ctx.db.insert("trustFundSharedAccess", {
           userId: request.userId,
           accessLevel: "viewer",
           grantedBy: userId,

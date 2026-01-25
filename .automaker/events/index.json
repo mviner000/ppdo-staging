@@ -2,6 +2,37 @@
   "version": 1,
   "events": [
     {
+      "id": "evt-1769355204604-5170ea19",
+      "trigger": "auto_mode_complete",
+      "timestamp": "2026-01-25T15:33:24.604Z"
+    },
+    {
+      "id": "evt-1769355204429-38024dcc",
+      "trigger": "feature_success",
+      "timestamp": "2026-01-25T15:33:24.429Z",
+      "featureName": "Implement container/presenter architecture with shared breakdown components",
+      "featureId": "feature-1769349314023-evjc9f78q"
+    },
+    {
+      "id": "evt-1769354437982-82b2e165",
+      "trigger": "feature_success",
+      "timestamp": "2026-01-25T15:20:37.982Z",
+      "featureName": "Refactor breakdown architecture into shared framework",
+      "featureId": "feature-1769349214297-pyl7z7ghx"
+    },
+    {
+      "id": "evt-1769349314245-1d9b852b",
+      "trigger": "feature_created",
+      "timestamp": "2026-01-25T13:55:14.245Z",
+      "featureId": "feature-1769349314023-evjc9f78q"
+    },
+    {
+      "id": "evt-1769349214514-aa74094d",
+      "trigger": "feature_created",
+      "timestamp": "2026-01-25T13:53:34.514Z",
+      "featureId": "feature-1769349214297-pyl7z7ghx"
+    },
+    {
       "id": "evt-1769339509654-eade4105",
       "trigger": "feature_success",
       "timestamp": "2026-01-25T11:11:49.654Z",

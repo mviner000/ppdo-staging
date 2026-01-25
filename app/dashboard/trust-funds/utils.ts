@@ -119,6 +119,20 @@ export const printTable = (orientation: 'portrait' | 'landscape'): void => {
   }, 100);
 };
 
+/**
+ * Creates a URL-safe slug from trust fund data
+ * Format: {slugified-project-title}-{id}
+ * Example: "construction-of-school-building-abc123"
+ */
+export const createTrustFundSlug = (projectTitle: string, id: string): string => {
+  const slug = projectTitle
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${slug}-${id}`;
+};
+
 // 👇 Calculate totals including utilization rate
 export const calculateTotals = (data: TrustFund[]) => {
   const totals = data.reduce(

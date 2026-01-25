@@ -25,49 +25,51 @@ export function TrustFundsTableTotalRow({
   const isColumnVisible = (columnId: string) => !hiddenColumns.has(columnId);
 
   return (
-    <TableRow className="bg-zinc-100 dark:bg-zinc-900 font-bold border-t-2 border-zinc-300 dark:border-zinc-700">
-      {isAdmin && <TableCell className="px-2" />}
+    <TableRow className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 font-semibold">
+      {isAdmin && <TableCell className="px-3 py-4" />}
       
       {isColumnVisible("projectTitle") && (
-        <TableCell className="px-3 font-bold">TOTAL</TableCell>
+        <TableCell className="px-4 sm:px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100">
+          TOTAL
+        </TableCell>
       )}
       
-      {isColumnVisible("officeInCharge") && <TableCell className="px-3" />}
-      {isColumnVisible("status") && <TableCell className="px-3" />}
-      {isColumnVisible("dateReceived") && <TableCell className="px-3" />}
+      {isColumnVisible("officeInCharge") && <TableCell className="px-4 sm:px-6 py-4" />}
+      {isColumnVisible("status") && <TableCell className="px-4 sm:px-6 py-4" />}
+      {isColumnVisible("dateReceived") && <TableCell className="px-4 sm:px-6 py-4" />}
       
       {isColumnVisible("received") && (
-        <TableCell className="px-3 text-right tabular-nums font-bold">
+        <TableCell className="px-4 sm:px-6 py-4 text-right text-sm text-zinc-900 dark:text-zinc-100 tabular-nums">
           {formatCurrency(totals.received)}
         </TableCell>
       )}
       
       {isColumnVisible("obligatedPR") && (
-        <TableCell className="px-3 text-right tabular-nums font-bold">
+        <TableCell className="px-4 sm:px-6 py-4 text-right text-sm text-zinc-900 dark:text-zinc-100 tabular-nums">
           {formatCurrency(totals.obligatedPR)}
         </TableCell>
       )}
       
       {isColumnVisible("utilized") && (
-        <TableCell className="px-3 text-right tabular-nums font-bold">
+        <TableCell className="px-4 sm:px-6 py-4 text-right text-sm text-zinc-900 dark:text-zinc-100 tabular-nums">
           {formatCurrency(totals.utilized)}
         </TableCell>
       )}
       
       {isColumnVisible("utilizationRate") && (
-        <TableCell className="px-3 text-center tabular-nums font-bold text-zinc-900 dark:text-zinc-100">
+        <TableCell className="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
           {formatPercentage(totals.utilizationRate)}
         </TableCell>
       )}
       
       {isColumnVisible("balance") && (
-        <TableCell className="px-3 text-right tabular-nums font-bold">
+        <TableCell className="px-4 sm:px-6 py-4 text-right text-sm text-zinc-900 dark:text-zinc-100 tabular-nums">
           {formatCurrency(totals.balance)}
         </TableCell>
       )}
       
-      {isColumnVisible("remarks") && <TableCell className="px-3" />}
-      <TableCell className="px-3 no-print" />
+      {isColumnVisible("remarks") && <TableCell className="px-4 sm:px-6 py-4" />}
+      <TableCell className="px-4 sm:px-6 py-4 no-print" />
     </TableRow>
   );
 }

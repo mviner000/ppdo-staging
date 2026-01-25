@@ -2,7 +2,7 @@
 
 "use client";
 
-import { ArrowUpDown, GripVertical } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortField } from "../../../types";
@@ -29,23 +29,34 @@ export function TrustFundsTableHeader({
 }: TrustFundsTableHeaderProps) {
   const isColumnVisible = (columnId: string) => !hiddenColumns.has(columnId);
 
+  const SortIcon = ({ field }: { field: SortField }) => {
+    // For now, always show neutral icon - can be enhanced with actual sort state
+    return <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />;
+  };
+
   return (
     <TableHeader className="sticky top-0 z-30 bg-white dark:bg-zinc-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-border">
-      <TableRow className="h-10 border-b-0 hover:bg-transparent">
+      <TableRow className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-950">
         {isAdmin && (
-          <TableHead className="px-2 text-center bg-white dark:bg-zinc-950 border-b">
-            <Checkbox checked={allSelected} onCheckedChange={onToggleAll} />
+          <TableHead className="w-10 px-3 py-4 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-20">
+            <Checkbox 
+              checked={allSelected} 
+              onCheckedChange={onToggleAll}
+              aria-label="Select all"
+            />
           </TableHead>
         )}
 
         {isColumnVisible("projectTitle") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("projectTitle")}
           >
-            <div className="relative flex items-center gap-1 pr-4">
-              PROJECT TITLE
-              <ArrowUpDown className="h-3 w-3 opacity-40" />
+            <div className="relative flex items-center gap-2 pr-4">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Project Title
+              </span>
+              <SortIcon field="projectTitle" />
               <button
                 className="absolute right-0 cursor-col-resize text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
                 onMouseDown={(e) => onResizeStart('projectTitle', e)}
@@ -59,19 +70,21 @@ export function TrustFundsTableHeader({
 
         {isColumnVisible("officeInCharge") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("officeInCharge")}
           >
-            <div className="flex items-center gap-1">
-              OFFICE IN-CHARGE
-              <ArrowUpDown className="h-3 w-3 opacity-40" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Office In-Charge
+              </span>
+              <SortIcon field="officeInCharge" />
             </div>
           </TableHead>
         )}
 
         {isColumnVisible("status") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("status")}
             style={{ 
               width: `${STATUS_COLUMN_WIDTH}px`,
@@ -79,78 +92,93 @@ export function TrustFundsTableHeader({
               maxWidth: `${STATUS_COLUMN_WIDTH}px`
             }}
           >
-            <div className="flex items-center gap-1">
-              STATUS
-              <ArrowUpDown className="h-3 w-3 opacity-40" />
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Status
+              </span>
+              <SortIcon field="status" />
             </div>
           </TableHead>
         )}
 
         {isColumnVisible("dateReceived") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("dateReceived")}
           >
-            <div className="flex items-center gap-1">
-              DATE RECEIVED
-              <ArrowUpDown className="h-3 w-3 opacity-40" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Date Received
+              </span>
+              <SortIcon field="dateReceived" />
             </div>
           </TableHead>
         )}
 
         {isColumnVisible("received") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("received")}
           >
-            <div className="flex w-full items-center justify-end gap-1">
-              RECEIVED
-              <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
+            <div className="flex w-full items-center justify-end gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Received
+              </span>
+              <SortIcon field="received" />
             </div>
           </TableHead>
         )}
 
         {isColumnVisible("obligatedPR") && (
-          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right bg-white dark:bg-zinc-950 border-b">
-            OBLIGATED PR
+          <TableHead className="px-4 sm:px-6 py-4 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+              Obligated PR
+            </span>
           </TableHead>
         )}
 
         {isColumnVisible("utilized") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("utilized")}
           >
-            <div className="flex w-full items-center justify-end gap-1">
-              UTILIZED
-              <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
+            <div className="flex w-full items-center justify-end gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Utilized
+              </span>
+              <SortIcon field="utilized" />
             </div>
           </TableHead>
         )}
 
-        {/* ✅ Utilization Rate Column */}
         {isColumnVisible("utilizationRate") && (
-          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center bg-white dark:bg-zinc-950 border-b">
-            UTILIZATION %
+          <TableHead className="px-4 sm:px-6 py-4 text-center sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+              Utilization %
+            </span>
           </TableHead>
         )}
 
         {isColumnVisible("balance") && (
           <TableHead
-            className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-right cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 bg-white dark:bg-zinc-950 border-b transition-colors"
+            className="px-4 sm:px-6 py-4 text-right sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             onClick={() => onSort("balance")}
           >
-            <div className="flex w-full items-center justify-end gap-1">
-              BALANCE
-              <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
+            <div className="flex w-full items-center justify-end gap-2">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Balance
+              </span>
+              <SortIcon field="balance" />
             </div>
           </TableHead>
         )}
 
         {isColumnVisible("remarks") && (
-          <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium bg-white dark:bg-zinc-950 border-b">
-            <div className="relative flex items-center gap-1 pr-4">
-              REMARKS
+          <TableHead className="px-4 sm:px-6 py-4 text-left sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+            <div className="relative flex items-center gap-2 pr-4">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                Remarks
+              </span>
               <button
                 className="absolute right-0 cursor-col-resize text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-0.5"
                 onMouseDown={(e) => onResizeStart('remarks', e)}
@@ -162,8 +190,10 @@ export function TrustFundsTableHeader({
           </TableHead>
         )}
 
-        <TableHead className="px-3 uppercase text-[11px] tracking-wide text-muted-foreground font-medium text-center no-print bg-white dark:bg-zinc-950 border-b">
-          ACTIONS
+        <TableHead className="px-4 sm:px-6 py-4 text-center no-print sticky top-0 bg-zinc-50 dark:bg-zinc-950 z-10">
+          <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+            Actions
+          </span>
         </TableHead>
       </TableRow>
     </TableHeader>

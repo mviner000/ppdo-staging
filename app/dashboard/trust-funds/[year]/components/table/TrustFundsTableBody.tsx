@@ -9,6 +9,7 @@ import { TrustFundsTableTotalRow } from "./TrustFundsTableTotalRow";
 
 interface TrustFundsTableBodyProps {
   data: TrustFund[];
+  year: number;
   isAdmin: boolean;
   selected: string[];
   hiddenColumns: Set<string>;
@@ -34,6 +35,7 @@ interface TrustFundsTableBodyProps {
 
 export function TrustFundsTableBody({
   data,
+  year,
   isAdmin,
   selected,
   hiddenColumns,
@@ -68,6 +70,7 @@ export function TrustFundsTableBody({
         <TrustFundsTableRow
           key={item.id}
           item={item}
+          year={year}
           isAdmin={isAdmin}
           isSelected={selected.includes(item.id)}
           hiddenColumns={hiddenColumns}

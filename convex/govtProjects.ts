@@ -1,5 +1,6 @@
 // convex/govtProjects.ts
 // 🆕 ENHANCED: Now validates implementing agencies and updates usage counts
+// 🆕 REFACTORED: Now uses shared breakdown base helpers
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -7,6 +8,13 @@ import { logGovtProjectActivity, logBulkGovtProjectActivity } from "./lib/govtPr
 import { recalculateProjectMetrics } from "./lib/projectAggregation";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import {
+  validateImplementingOffice,
+  validateBreakdownStatus,
+  calculateFinancials,
+  softDeleteBreakdown,
+  restoreBreakdown,
+} from "./lib/breakdownBase";
 
 // Reusable status validator
 const statusValidator = v.union(
@@ -48,23 +56,8 @@ export const createProjectBreakdown = mutation({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
-        // Validate implementing agency exists and is active
-        const agency = await ctx.db
-          .query("implementingAgencies")
-          .withIndex("code", (q) => q.eq("code", args.implementingOffice))
-          .first();
-        
-        if (!agency) {
-          throw new Error(
-            `Implementing agency "${args.implementingOffice}" does not exist. Please add it in Implementing Agencies management first.`
-          );
-        }
-
-        if (!agency.isActive) {
-          throw new Error(
-            `Implementing agency "${args.implementingOffice}" is inactive and cannot be used. Please activate it first.`
-          );
-        }
+        // 🆕 REFACTORED: Use shared validation helper
+        await validateImplementingOffice(ctx, args.implementingOffice);
 
         const now = Date.now();
         const { reason, ...breakdownData } = args;
@@ -153,20 +146,11 @@ export const updateProjectBreakdown = mutation({
       throw new Error("Breakdown not found");
     }
 
-    // Handle Implementing Office Change
+    // 🆕 REFACTORED: Handle Implementing Office Change using shared helper
     const newImplementingOffice = args.implementingOffice;
     if (newImplementingOffice && newImplementingOffice !== previousBreakdown.implementingOffice) {
-      const agency = await ctx.db
-        .query("implementingAgencies")
-        .withIndex("code", (q) => q.eq("code", newImplementingOffice))
-        .first();
-      
-      if (!agency) {
-        throw new Error(`Implementing agency "${newImplementingOffice}" does not exist.`);
-      }
-      if (!agency.isActive) {
-        throw new Error(`Implementing agency "${newImplementingOffice}" is inactive.`);
-      }
+      // Validate new office
+      await validateImplementingOffice(ctx, newImplementingOffice);
 
       // Decrement old agency usage
       await ctx.runMutation(internal.implementingAgencies.updateUsageCount, {
@@ -304,20 +288,10 @@ export const bulkCreateBreakdowns = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Validate all implementing agencies first
+    // 🆕 REFACTORED: Validate all implementing agencies first using shared helper
     const uniqueAgencies = new Set(args.breakdowns.map(b => b.implementingOffice));
     for (const agencyCode of uniqueAgencies) {
-      const agency = await ctx.db
-        .query("implementingAgencies")
-        .withIndex("code", (q) => q.eq("code", agencyCode))
-        .first();
-      
-      if (!agency) {
-        throw new Error(`Implementing agency "${agencyCode}" does not exist.`);
-      }
-      if (!agency.isActive) {
-        throw new Error(`Implementing agency "${agencyCode}" is inactive.`);
-      }
+      await validateImplementingOffice(ctx, agencyCode);
     }
 
     const now = Date.now();
@@ -479,7 +453,7 @@ export const bulkUpdateBreakdowns = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Validate any NEW implementing agencies
+    // 🆕 REFACTORED: Validate any NEW implementing agencies using shared helper
     const newAgencies = new Set(
       args.updates
         .map(u => u.implementingOffice)
@@ -487,17 +461,7 @@ export const bulkUpdateBreakdowns = mutation({
     );
 
     for (const agencyCode of newAgencies) {
-      const agency = await ctx.db
-        .query("implementingAgencies")
-        .withIndex("code", (q) => q.eq("code", agencyCode))
-        .first();
-      
-      if (!agency) {
-        throw new Error(`Implementing agency "${agencyCode}" does not exist.`);
-      }
-      if (!agency.isActive) {
-        throw new Error(`Implementing agency "${agencyCode}" is inactive.`);
-      }
+      await validateImplementingOffice(ctx, agencyCode);
     }
 
     const now = Date.now();
@@ -772,19 +736,17 @@ export const moveToTrash = mutation({
     const breakdown = await ctx.db.get(args.breakdownId);
     if (!breakdown) throw new Error("Breakdown not found");
 
-    // Mark as deleted
-    await ctx.db.patch(args.breakdownId, {
-      isDeleted: true,
-      deletedAt: Date.now(),
-      deletedBy: userId
-    });
+    // 🆕 REFACTORED: Use shared soft delete helper
+    await softDeleteBreakdown(
+      ctx,
+      "govtProjectBreakdowns",
+      args.breakdownId,
+      userId,
+      args.reason
+    );
 
-    // Decrement usage count (since it's no longer "active")
-    await ctx.runMutation(internal.implementingAgencies.updateUsageCount, {
-      code: breakdown.implementingOffice,
-      usageContext: "breakdown",
-      delta: -1,
-    });
+    // ✅ IMPORTANT: DO NOT decrement usage count for soft delete
+    // The record still exists, just hidden from normal queries
 
     // ✅ RECALCULATE PARENT PROJECT
     // Since this is now "deleted", recalculation will exclude its budget figures from the parent totals
@@ -818,19 +780,11 @@ export const restoreFromTrash = mutation({
     const breakdown = await ctx.db.get(args.breakdownId);
     if (!breakdown) throw new Error("Breakdown not found");
 
-    // Mark as active
-    await ctx.db.patch(args.breakdownId, {
-      isDeleted: false,
-      deletedAt: undefined,
-      deletedBy: undefined
-    });
+    // 🆕 REFACTORED: Use shared restore helper
+    await restoreBreakdown(ctx, "govtProjectBreakdowns", args.breakdownId, userId);
 
-    // Increment usage count back
-    await ctx.runMutation(internal.implementingAgencies.updateUsageCount, {
-      code: breakdown.implementingOffice,
-      usageContext: "breakdown",
-      delta: 1,
-    });
+    // ✅ IMPORTANT: DO NOT increment usage count for restore
+    // The record already existed, we're just making it visible again
 
     // ✅ RECALCULATE PARENT PROJECT
     // Recalculation will now include this breakdown's budget figures again
