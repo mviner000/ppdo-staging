@@ -25,5 +25,5 @@ export interface TrustFundsTableProps {
   onEdit?: (id: string, data: any) => void;
   onDelete?: (id: string) => void;
   onOpenTrash?: () => void;
-  year?: number;
+  year: number;
 }
