@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/office-selector/CreateNewSection.tsx
+// components/ppdo/table/implementing-office/components/CreateNewSection.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
-import { SelectionMode } from "../../types/office-selector.types";
+import { SelectionMode } from "../types";
 
 interface CreateNewSectionProps {
   searchQuery: string;

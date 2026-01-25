@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/ImplementingOfficeSelector.tsx
+// components/ppdo/table/implementing-office/ImplementingOfficeSelector.tsx
 
 "use client";
 
@@ -16,13 +16,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ImplementingOfficeSelectorProps } from "../types/office-selector.types";
-import { useOfficeSelector } from "../hooks/useOfficeSelector";
-import { ModeSelector } from "./office-selector/ModeSelector";
-import { OfficeItemList } from "./office-selector/OfficeItemList";
-import { CreateNewSection } from "./office-selector/CreateNewSection";
-import { CreateOfficeDialog } from "./office-selector/CreateOfficeDialog";
-import { SelectedOfficeInfo } from "./office-selector/SelectedOfficeInfo";
+import { ImplementingOfficeSelectorProps } from "./types";
+import { useOfficeSelector } from "./hooks/useOfficeSelector";
+import { ModeSelector } from "./components/ModeSelector";
+import { OfficeItemList } from "./components/OfficeItemList";
+import { CreateNewSection } from "./components/CreateNewSection";
+import { CreateOfficeDialog } from "./components/CreateOfficeDialog";
+import { SelectedOfficeInfo } from "./components/SelectedOfficeInfo";
 
 export function ImplementingOfficeSelector({
   value,

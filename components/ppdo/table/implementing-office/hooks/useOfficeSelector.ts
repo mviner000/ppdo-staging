@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/hooks/useOfficeSelector.ts
+// components/ppdo/table/implementing-office/hooks/useOfficeSelector.ts
 
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
@@ -9,14 +9,14 @@ import {
   CreateDialogState, 
   SelectedOfficeItem,
   NormalizedOfficeItem 
-} from "../types/office-selector.types";
+} from "../types";
 import { 
   normalizeDepartment, 
   filterOfficeItems, 
   canCreateNewCode, 
   getCodeValidationError 
-} from "../utils/office-selector.utils";
-import { ITEMS_PER_PAGE } from "../constants/office-selector.constants";
+} from "../utils";
+import { ITEMS_PER_PAGE } from "../constants";
 
 interface UseOfficeSelectorProps {
   value: string;

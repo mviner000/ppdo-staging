@@ -1,10 +1,10 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/office-selector/ModeSelector.tsx
+// components/ppdo/table/implementing-office/components/ModeSelector.tsx
 
 "use client";
 
 import { Users, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SelectionMode } from "../../types/office-selector.types";
+import { SelectionMode } from "../types";
 
 interface ModeSelectorProps {
   onSelectMode: (mode: SelectionMode) => void;

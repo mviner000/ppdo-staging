@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/office-selector/OfficeItemList.tsx
+// components/ppdo/table/implementing-office/components/OfficeItemList.tsx
 
 "use client";
 
@@ -10,7 +10,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { NormalizedOfficeItem, SelectionMode } from "../../types/office-selector.types";
+import { NormalizedOfficeItem, SelectionMode } from "../types";
 
 interface OfficeItemListProps {
   items: NormalizedOfficeItem[];

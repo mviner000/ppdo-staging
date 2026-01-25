@@ -1,7 +1,7 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/utils/office-selector.utils.ts
+// components/ppdo/table/implementing-office/utils.ts
 
-import { Agency, Department, NormalizedOfficeItem, SelectionMode } from "../types/office-selector.types";
-import { AGENCY_CODE_PATTERN, DEPARTMENT_CODE_PATTERN } from "../constants/office-selector.constants";
+import { Agency, Department, NormalizedOfficeItem, SelectionMode } from "./types";
+import { AGENCY_CODE_PATTERN, DEPARTMENT_CODE_PATTERN } from "./constants";
 
 /**
  * Normalizes department data to match office item structure

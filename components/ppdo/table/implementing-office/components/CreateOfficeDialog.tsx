@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/office-selector/CreateOfficeDialog.tsx
+// components/ppdo/table/implementing-office/components/CreateOfficeDialog.tsx
 
 "use client";
 

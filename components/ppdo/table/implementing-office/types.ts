@@ -1,4 +1,4 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/types/office-selector.types.ts
+// components/ppdo/table/implementing-office/types.ts
 
 import { Id } from "@/convex/_generated/dataModel";
 

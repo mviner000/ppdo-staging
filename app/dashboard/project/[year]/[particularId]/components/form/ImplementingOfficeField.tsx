@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ImplementingOfficeSelector } from "../ImplementingOfficeSelector";
+import { ImplementingOfficeSelector } from "@/components/ppdo/table/implementing-office";
 import { ProjectFormValues } from "./utils/formValidation";
 
 interface ImplementingOfficeFieldProps {
@@ -20,6 +20,7 @@ interface ImplementingOfficeFieldProps {
 export function ImplementingOfficeField({ form }: ImplementingOfficeFieldProps) {
   return (
     <FormField
+      control={form.control}
       name="implementingOffice"
       render={({ field }) => (
         <FormItem>

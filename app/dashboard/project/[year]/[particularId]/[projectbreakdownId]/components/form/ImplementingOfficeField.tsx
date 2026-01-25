@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ImplementingOfficeSelector } from "../ImplementingOfficeSelector";
+import { ImplementingOfficeSelector } from "@/components/ppdo/table/implementing-office";
 import { BreakdownFormValues } from "./utils/formValidation";
 
 interface ImplementingOfficeFieldProps {

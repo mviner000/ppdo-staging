@@ -1,9 +1,9 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/constants/office-selector.constants.ts
+// components/ppdo/table/implementing-office/constants.ts
 
 export const ITEMS_PER_PAGE = 20;
 
 export const AGENCY_CODE_PATTERN = /^[A-Z0-9_ ]+$/;
-export const DEPARTMENT_CODE_PATTERN = /^[A-Z0-9_]+$/;
+export const DEPARTMENT_CODE_PATTERN = /^[A-Z0-9_ ]+$/;
 
 export const SELECTION_MODES = {
   AGENCY: {

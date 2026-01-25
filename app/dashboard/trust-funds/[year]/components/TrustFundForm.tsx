@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TrustFund } from "@/types/trustFund.types";
-import { ImplementingOfficeSelector } from "@/app/dashboard/project/[year]/[particularId]/components/ImplementingOfficeSelector";
+import { ImplementingOfficeSelector } from "@/components/ppdo/table/implementing-office";
 
 const trustFundSchema = z.object({
   projectTitle: z.string().min(1, { message: "Project title is required" }),
@@ -147,6 +147,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
+          control={form.control}
           name="projectTitle"
           render={({ field }) => (
             <FormItem>
@@ -166,6 +167,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
         />
 
         <FormField
+          control={form.control}
           name="officeInCharge"
           render={({ field }) => (
             <FormItem>
@@ -187,6 +189,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField
+            control={form.control}
             name="status"
             render={({ field }) => (
               <FormItem>
@@ -207,7 +210,6 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
                     <SelectItem value="not_yet_started">Not Yet Started</SelectItem>
                     <SelectItem value="ongoing">Ongoing</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    {/* <SelectItem value="active">Active</SelectItem> */}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -216,6 +218,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
           />
 
           <FormField
+            control={form.control}
             name="dateReceived"
             render={({ field }) => (
               <FormItem>
@@ -236,6 +239,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
           />
 
           <FormField
+            control={form.control}
             name="year"
             render={({ field }) => (
               <FormItem>
@@ -265,6 +269,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
         </div>
 
         <FormField
+          control={form.control}
           name="received"
           render={({ field }) => (
             <FormItem>
@@ -304,6 +309,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
+            control={form.control}
             name="obligatedPR"
             render={({ field }) => (
               <FormItem>
@@ -343,6 +349,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
           />
 
           <FormField
+            control={form.control}
             name="utilized"
             render={({ field }) => (
               <FormItem>
@@ -397,6 +404,7 @@ export function TrustFundForm({ trustFund, onSave, onCancel, year }: TrustFundFo
         </div>
 
         <FormField
+          control={form.control}
           name="remarks"
           render={({ field }) => (
             <FormItem>

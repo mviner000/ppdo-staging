@@ -1,8 +1,8 @@
-// app/dashboard/project/[year]/[particularId]/[projectbreakdownId]/components/office-selector/SelectedOfficeInfo.tsx
+// components/ppdo/table/implementing-office/components/SelectedOfficeInfo.tsx
 
 "use client";
 
-import { SelectedOfficeItem } from "../../types/office-selector.types";
+import { SelectedOfficeItem } from "../types";
 
 interface SelectedOfficeInfoProps {
   selectedItem: SelectedOfficeItem | null;
