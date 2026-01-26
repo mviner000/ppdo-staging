@@ -15,6 +15,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   calculateFinancials,
   softDeleteBreakdown,
@@ -174,10 +175,8 @@ export const createBreakdown = mutation({
     fundSource: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const userId = identity.subject as Id<"users">;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
     // Validate Trust Fund exists
     const trustFund = await ctx.db.get(args.trustFundId);
@@ -276,10 +275,9 @@ export const bulkCreateBreakdowns = mutation({
     batchId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
-    const userId = identity.subject as Id<"users">;
     const batchId = args.batchId || `batch_${Date.now()}`;
 
     // Validate all implementing offices upfront
@@ -392,10 +390,8 @@ export const updateBreakdown = mutation({
     fundSource: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const userId = identity.subject as Id<"users">;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
     // Get current breakdown
     const current = await ctx.db.get(args.id);
@@ -500,10 +496,8 @@ export const moveToTrash = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const userId = identity.subject as Id<"users">;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
     // Get current breakdown
     const breakdown = await ctx.db.get(args.id);
@@ -541,10 +535,8 @@ export const restoreFromTrash = mutation({
     id: v.id("trustFundBreakdowns"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const userId = identity.subject as Id<"users">;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
     // Get current breakdown
     const breakdown = await ctx.db.get(args.id);
@@ -576,10 +568,8 @@ export const deleteBreakdown = mutation({
     id: v.id("trustFundBreakdowns"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const userId = identity.subject as Id<"users">;
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
 
     // Get current breakdown
     const breakdown = await ctx.db.get(args.id);

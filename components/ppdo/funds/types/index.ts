@@ -111,6 +111,7 @@ export interface FundStatistics {
 export interface StatusCounts {
     active?: number;
     not_yet_started: number;
+    on_process: number;
     ongoing: number;
     completed: number;
     not_available: number;

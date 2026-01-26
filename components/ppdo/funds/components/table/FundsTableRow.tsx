@@ -97,10 +97,10 @@ function StatusCell({ status, onStatusChange, isUpdating = false }: StatusCellPr
                                 -
                             </span>
                         </SelectItem>
-                        <SelectItem value="not_yet_started" className="text-xs">
+                        <SelectItem value="on_process" className="text-xs">
                             <span className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                                Not Yet Started
+                                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                On Process
                             </span>
                         </SelectItem>
                         <SelectItem value="ongoing" className="text-xs">

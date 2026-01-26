@@ -53,7 +53,8 @@ export const specialEducationFundTables = {
       v.union(
         v.literal("active"), // Legacy value - kept for backward compatibility
         v.literal("not_available"),
-        v.literal("not_yet_started"),
+        v.literal("not_yet_started"), // Legacy - hidden from UI, will be migrated to on_process
+        v.literal("on_process"),
         v.literal("ongoing"),
         v.literal("completed")
       )

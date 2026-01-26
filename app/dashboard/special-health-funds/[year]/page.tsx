@@ -52,6 +52,7 @@ export default function YearSpecialHealthFundsPage({ params }: PageProps) {
                 statusCounts: {
                     active: 0,
                     not_yet_started: 0,
+                    on_process: 0,
                     ongoing: 0,
                     completed: 0,
                     not_available: 0
@@ -76,6 +77,9 @@ export default function YearSpecialHealthFundsPage({ params }: PageProps) {
                     case 'not_yet_started':
                         acc.counts.not_yet_started++;
                         break;
+                    case 'on_process':
+                        acc.counts.on_process++;
+                        break;
                     case 'ongoing':
                         acc.counts.ongoing++;
                         break;
@@ -97,6 +101,7 @@ export default function YearSpecialHealthFundsPage({ params }: PageProps) {
                 counts: {
                     active: 0,
                     not_yet_started: 0,
+                    on_process: 0,
                     ongoing: 0,
                     completed: 0,
                     not_available: 0

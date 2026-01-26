@@ -47,7 +47,13 @@ export const STATUS_CONFIG = {
     not_yet_started: {
         label: "Not Yet Started",
         className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-        dotColor: "bg-zinc-400"
+        dotColor: "bg-zinc-400",
+        hidden: true // Legacy - hidden from UI, will be migrated to on_process
+    },
+    on_process: {
+        label: "On Process",
+        className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+        dotColor: "bg-amber-500"
     },
     ongoing: {
         label: "Ongoing",
@@ -64,6 +70,7 @@ export const STATUS_CONFIG = {
 export const STATUS_CLASSES = {
     not_available: "bg-zinc-100/50 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300",
     not_yet_started: "bg-zinc-100/50 text-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300",
+    on_process: "bg-amber-100/50 text-amber-700 dark:bg-amber-800/50 dark:text-amber-300",
     ongoing: "bg-zinc-200/50 text-zinc-800 dark:bg-zinc-700/50 dark:text-zinc-200",
     completed: "bg-zinc-300/50 text-zinc-900 dark:bg-zinc-600/50 dark:text-zinc-100",
     active: "bg-zinc-400/50 text-zinc-900 dark:bg-zinc-500/50 dark:text-zinc-100",

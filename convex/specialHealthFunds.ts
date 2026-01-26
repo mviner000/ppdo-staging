@@ -111,6 +111,7 @@ export const create = mutation({
             v.literal("active"),
             v.literal("not_available"),
             v.literal("not_yet_started"),
+            v.literal("on_process"),
             v.literal("ongoing"),
             v.literal("completed")
         ),
@@ -208,6 +209,7 @@ export const update = mutation({
             v.literal("active"),
             v.literal("not_available"),
             v.literal("not_yet_started"),
+            v.literal("on_process"),
             v.literal("ongoing"),
             v.literal("completed")
         ),
@@ -488,6 +490,7 @@ export const updateStatus = mutation({
             v.literal("active"),
             v.literal("not_available"),
             v.literal("not_yet_started"),
+            v.literal("on_process"),
             v.literal("ongoing"),
             v.literal("completed")
         ),

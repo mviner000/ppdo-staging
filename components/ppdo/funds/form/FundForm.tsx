@@ -34,7 +34,7 @@ const fundSchema = z.object({
     received: z.number().min(0, { message: "Must be 0 or greater" }),
     obligatedPR: z.number().min(0).optional(),
     utilized: z.number().min(0),
-    status: z.enum(["not_available", "not_yet_started", "ongoing", "completed", "active"]),
+    status: z.enum(["not_available", "not_yet_started", "on_process", "ongoing", "completed", "active"]),
     remarks: z.string().optional(),
     year: z.number().int().min(2000).max(2100).optional(),
 });
@@ -206,7 +206,7 @@ export function FundForm({ fund, onSave, onCancel, year }: FundFormProps) {
                                     </FormControl>
                                     <SelectContent>
                                         <SelectItem value="not_available">-</SelectItem>
-                                        <SelectItem value="not_yet_started">Not Yet Started</SelectItem>
+                                        <SelectItem value="on_process">On Process</SelectItem>
                                         <SelectItem value="ongoing">Ongoing</SelectItem>
                                         <SelectItem value="completed">Completed</SelectItem>
                                     </SelectContent>

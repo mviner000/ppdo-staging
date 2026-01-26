@@ -59,11 +59,12 @@ export function FundsStatistics({
     }, [totalReceived, totalUtilized]);
 
     // Define all possible statuses with their display configuration
+    // Note: not_yet_started is hidden from UI (legacy - will be migrated to on_process)
     const statusConfig = [
         {
-            key: 'not_yet_started' as const,
-            label: 'Not Yet Started',
-            dotColor: 'bg-zinc-500'
+            key: 'on_process' as const,
+            label: 'On Process',
+            dotColor: 'bg-amber-500'
         },
         {
             key: 'ongoing' as const,
