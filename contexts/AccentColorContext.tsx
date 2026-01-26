@@ -30,7 +30,7 @@ const legacyColorMap: Record<string, string> = {
 };
 
 // Default color
-const DEFAULT_COLOR = "#b45309";
+const DEFAULT_COLOR = "#15803D";
 
 // Helper to lighten a hex color
 const lightenColor = (hex: string, percent: number): string => {

@@ -10,6 +10,8 @@ import {
   Vault,
   Building2,
   FileText,
+  GraduationCap,
+  Heart,
 } from "lucide-react";
 
 export const defaultNavItems: NavItem[] = [
@@ -36,15 +38,26 @@ export const defaultNavItems: NavItem[] = [
     href: "/dashboard/trust-funds",
     category: "Department",
     icon: <Vault size={20} />,
+  },
+  {
+    name: "Special Education Funds",
+    href: "/dashboard/special-education-funds",
+    category: "Department",
+    icon: <GraduationCap size={20} />,
     isNew: true,
   },
-  
+  {
+    name: "Special Health Funds",
+    href: "/dashboard/special-health-funds",
+    category: "Department",
+    icon: <Heart size={20} />,
+    isNew: true,
+  },
   {
     name: "Particulars",
     href: "/dashboard/particulars",
     category: "Department",
     icon: <FileText size={20} />,
-    isNew: true,
   },
   { 
     name: "Office", 
