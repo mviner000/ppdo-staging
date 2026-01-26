@@ -113,12 +113,22 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
                 toast.error("Fund not found");
                 return;
             }
+            // Filter out fields not accepted by createBreakdown mutation
+            const {
+                batchId,
+                utilizationRate,
+                balance,
+                projectId,
+                trustFundId,
+                specialHealthFundId,
+                ...validData
+            } = breakdownData as any;
+
             await createBreakdown({
-                ...breakdownData,
+                ...validData,
                 specialEducationFundId: fundId as Id<"specialEducationFunds">,
-                reportDate: breakdownData.reportDate || Date.now(),
-                reason: "Created via dashboard form",
-            } as any);
+                reportDate: validData.reportDate || Date.now(),
+            });
 
             toast.success("Breakdown record created successfully!");
             setShowAddModal(false);
@@ -135,10 +145,22 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
                 toast.error("No breakdown selected");
                 return;
             }
+            // Filter out fields not accepted by updateBreakdown mutation
+            const {
+                batchId,
+                utilizationRate,
+                balance,
+                projectId,
+                trustFundId,
+                specialHealthFundId,
+                specialEducationFundId,
+                ...validData
+            } = breakdownData as any;
+
             await updateBreakdown({
                 id: selectedBreakdown._id as Id<"specialEducationFundBreakdowns">,
-                ...breakdownData,
-            } as any);
+                ...validData,
+            });
 
             toast.success("Breakdown record updated successfully!");
             setShowEditModal(false);

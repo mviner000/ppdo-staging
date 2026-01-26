@@ -175,7 +175,11 @@ export function FundsTableRow<T extends BaseFund>({
             (e.target as HTMLElement).closest("[role='checkbox']") ||
             (e.target as HTMLElement).closest("[role='combobox']") ||
             (e.target as HTMLElement).closest("[role='listbox']") ||
-            (e.target as HTMLElement).closest("[data-radix-select-viewport]")
+            (e.target as HTMLElement).closest("[role='menu']") ||
+            (e.target as HTMLElement).closest("[role='menuitem']") ||
+            (e.target as HTMLElement).closest("[data-radix-select-viewport]") ||
+            (e.target as HTMLElement).closest("[data-radix-dropdown-menu-content]") ||
+            (e.target as HTMLElement).closest("[data-radix-collection-item]")
         ) {
             return;
         }

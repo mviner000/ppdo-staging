@@ -1,3 +1,5 @@
+// app/dashboard/trust-funds/[year]/page.tsx
+
 "use client";
 
 import { use, useState, useMemo } from "react";

@@ -123,12 +123,22 @@ export default function TrustFundBreakdownPage() {
         toast.error("Trust Fund not found");
         return;
       }
+      // Filter out fields not accepted by createBreakdown mutation
+      const {
+        batchId,
+        utilizationRate,
+        balance,
+        projectId,
+        specialEducationFundId,
+        specialHealthFundId,
+        ...validData
+      } = breakdownData as any;
+
       await createBreakdown({
-        ...breakdownData,
+        ...validData,
         trustFundId: trustFundId as Id<"trustFunds">,
-        reportDate: breakdownData.reportDate || Date.now(),
-        reason: "Created via dashboard form",
-      } as any);
+        reportDate: validData.reportDate || Date.now(),
+      });
 
       toast.success("Breakdown record created successfully!");
       setShowAddModal(false);
@@ -145,10 +155,22 @@ export default function TrustFundBreakdownPage() {
         toast.error("No breakdown selected");
         return;
       }
+      // Filter out fields not accepted by updateBreakdown mutation
+      const {
+        batchId,
+        utilizationRate,
+        balance,
+        projectId,
+        specialEducationFundId,
+        specialHealthFundId,
+        trustFundId,
+        ...validData
+      } = breakdownData as any;
+
       await updateBreakdown({
         id: selectedBreakdown._id as Id<"trustFundBreakdowns">,
-        ...breakdownData,
-      } as any);
+        ...validData,
+      });
 
       toast.success("Breakdown record updated successfully!");
       setShowEditModal(false);
