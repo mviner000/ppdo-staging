@@ -12,7 +12,7 @@ import { Modal } from "./BudgetModal";
 import { ConfirmationModal } from "./BudgetConfirmationModal";
 import { BudgetItemForm } from "./BudgetItemForm";
 import BudgetShareModal from "./BudgetShareModal";
-import { BudgetTableToolbar } from "./table/BudgetTableToolbar";
+import { BudgetTableToolbar } from "@/components/ppdo/table/toolbar";
 import { BudgetTableHeader } from "./table/BudgetTableHeader";
 import { BudgetTableRow } from "./table/BudgetTableRow";
 import { BudgetTableTotalsRow } from "./table/BudgetTableTotalsRow";

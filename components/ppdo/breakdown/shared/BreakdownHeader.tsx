@@ -120,7 +120,13 @@ export function BreakdownHeader({
         {/* Activity Log Sheet */}
         {showActivityLog && entityName && (
           <ActivityLogSheet
-            type="breakdown"
+            type={
+              entityType === "specialeducationfund"
+                ? "specialEducationFundBreakdown"
+                : entityType === "specialhealthfund"
+                  ? "specialHealthFundBreakdown"
+                  : "breakdown"
+            }
             projectName={entityName}
             implementingOffice={implementingOffice}
           />

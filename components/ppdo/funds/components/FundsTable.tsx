@@ -198,7 +198,7 @@ export function FundsTable<T extends BaseFund>({
                     onShowAllColumns={() => setHiddenColumns(new Set())}
                     onHideAllColumns={() => setHiddenColumns(new Set(['projectTitle', 'officeInCharge', 'status', 'dateReceived', 'received', 'obligatedPR', 'utilized', 'utilizationRate', 'balance', 'remarks']))}
                     onExportCSV={handleExportCSV}
-                    onPrint={() => setShowPrintModal(true)}
+                    onOpenPrintPreview={() => setShowPrintModal(true)}
                     isAdmin={isAdmin}
                     onOpenTrash={onOpenTrash}
                     onBulkTrash={handleBulkTrash}

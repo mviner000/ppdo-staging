@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx convex dev:*)"
+      "Bash(npx convex dev:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

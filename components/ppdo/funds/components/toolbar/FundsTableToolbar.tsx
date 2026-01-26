@@ -29,7 +29,9 @@ interface FundsTableToolbarProps {
     onShowAllColumns: () => void;
     onHideAllColumns: () => void;
     onExportCSV: () => void;
-    onPrint: () => void;
+    onPrint?: () => void;
+    onOpenPrintPreview?: () => void;
+    hasPrintDraft?: boolean;
     isAdmin: boolean;
     onOpenTrash?: () => void;
     onBulkTrash: () => void;
@@ -51,6 +53,8 @@ export function FundsTableToolbar({
     onHideAllColumns,
     onExportCSV,
     onPrint,
+    onOpenPrintPreview,
+    hasPrintDraft,
     isAdmin,
     onOpenTrash,
     onBulkTrash,
@@ -174,12 +178,29 @@ export function FundsTableToolbar({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={onPrint} className="cursor-pointer">
-                            <Printer className="w-4 h-4 mr-2" /> Print
-                        </DropdownMenuItem>
+                        {onOpenPrintPreview && (
+                            <DropdownMenuItem onClick={onOpenPrintPreview} className="cursor-pointer">
+                                <Eye className="w-4 h-4 mr-2" />
+                                Print Preview
+                                {hasPrintDraft && (
+                                    <span className="ml-auto w-2 h-2 bg-blue-500 rounded-full" />
+                                )}
+                            </DropdownMenuItem>
+                        )}
+                        {onPrint && (
+                            <DropdownMenuItem onClick={onPrint} className="cursor-pointer">
+                                <Printer className="w-4 h-4 mr-2" /> Print
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={onExportCSV} className="cursor-pointer">
                             <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <div className="p-2">
+                            <span className="text-[10px] text-zinc-500 leading-tight block">
+                                Note: Exports are based on currently shown/hidden columns.
+                            </span>
+                        </div>
                     </DropdownMenuContent>
                 </DropdownMenu>
 

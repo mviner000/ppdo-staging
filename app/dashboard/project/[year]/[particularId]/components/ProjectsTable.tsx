@@ -616,7 +616,7 @@ export function ProjectsTable({
           onShowAllColumns={handleShowAllColumns}
           onHideAllColumns={handleHideAllColumns}
           onExportCSV={handleExportCSV}
-          onPrint={handleOpenPrintPreview}
+          onOpenPrintPreview={handleOpenPrintPreview}
           onOpenTrash={onOpenTrash}
           onBulkTrash={handleBulkTrash}
           isAdmin={canManageBulkActions}

@@ -22,6 +22,12 @@ export async function logSpecialEducationFundActivity(
   userId: Id<"users">,
   config: SpecialEducationFundLogConfig
 ): Promise<void> {
+  // DEBUG LOG
+  console.log(`[ACTIVITY LOG] SpecialEducationFund: ${config.action}`, {
+    id: config.specialEducationFundId,
+    reason: config.reason
+  });
+
   try {
     const user = await ctx.db.get(userId);
     if (!user) {

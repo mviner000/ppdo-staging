@@ -35,7 +35,7 @@ export { default as BudgetStatistics } from "./BudgetStatistics";
 // ============================================================================
 // TABLE COMPONENTS
 // ============================================================================
-export { BudgetTableToolbar } from "./table/BudgetTableToolbar";
+export { BudgetTableToolbar } from "@/components/ppdo/table/toolbar";
 export { BudgetTableHeader } from "./table/BudgetTableHeader";
 export { BudgetTableRow } from "./table/BudgetTableRow";
 export { BudgetTableTotalsRow } from "./table/BudgetTableTotalsRow";

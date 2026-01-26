@@ -31,20 +31,20 @@ export function useActivityLogData({
   const trustFundActivitiesAll = useQuery(
     api.trustFundActivities.list,
     type === "trustFund" && entityId === "all"
-      ? { 
-          limit: loadedCount,
-          action: actionFilter !== "all" ? actionFilter : undefined 
-        }
+      ? {
+        limit: loadedCount,
+        action: actionFilter !== "all" ? actionFilter : undefined
+      }
       : "skip"
   );
 
   const trustFundActivitiesSingle = useQuery(
     api.trustFundActivities.getByTrustFundId,
     type === "trustFund" && entityId && entityId !== "all"
-      ? { 
-          trustFundId: entityId as Id<"trustFunds">,
-          limit: loadedCount 
-        }
+      ? {
+        trustFundId: entityId as Id<"trustFunds">,
+        limit: loadedCount
+      }
       : "skip"
   );
 
@@ -64,10 +64,10 @@ export function useActivityLogData({
   const budgetActivities = useQuery(
     api.budgetItemActivities.getByBudgetItem,
     type === "budgetItem" && (entityId || budgetItemId)
-      ? { 
-          budgetItemId: (entityId || budgetItemId) as Id<"budgetItems">, 
-          limit: loadedCount 
-        }
+      ? {
+        budgetItemId: (entityId || budgetItemId) as Id<"budgetItems">,
+        limit: loadedCount
+      }
       : "skip"
   );
 
@@ -85,10 +85,52 @@ export function useActivityLogData({
     api.govtProjectActivities.getProjectOfficeActivities,
     type === "breakdown" && projectName && implementingOffice
       ? {
-          projectName,
-          implementingOffice,
-          action: actionFilter !== "all" ? actionFilter as any : undefined,
-        }
+        projectName,
+        implementingOffice,
+        action: actionFilter !== "all" ? actionFilter as any : undefined,
+      }
+      : "skip"
+  );
+
+  // ============================================================================
+  // SEF BREAKDOWN ACTIVITIES
+  // ============================================================================
+  const sefBreakdownActivitiesSingle = useQuery(
+    api.specialEducationFundBreakdownActivities.getBreakdownActivities,
+    type === "specialEducationFundBreakdown" && entityId
+      ? { breakdownId: entityId as Id<"specialEducationFundBreakdowns">, limit: loadedCount }
+      : "skip"
+  );
+
+  const sefBreakdownActivitiesProjectOffice = useQuery(
+    api.specialEducationFundBreakdownActivities.getProjectOfficeActivities,
+    type === "specialEducationFundBreakdown" && projectName && implementingOffice
+      ? {
+        projectName,
+        implementingOffice,
+        action: actionFilter !== "all" ? actionFilter as any : undefined,
+      }
+      : "skip"
+  );
+
+  // ============================================================================
+  // SPECIAL HEALTH FUND BREAKDOWN ACTIVITIES
+  // ============================================================================
+  const healthBreakdownActivitiesSingle = useQuery(
+    api.specialHealthFundBreakdownActivities.getBreakdownActivities,
+    type === "specialHealthFundBreakdown" && entityId
+      ? { breakdownId: entityId as Id<"specialHealthFundBreakdowns">, limit: loadedCount }
+      : "skip"
+  );
+
+  const healthBreakdownActivitiesProjectOffice = useQuery(
+    api.specialHealthFundBreakdownActivities.getProjectOfficeActivities,
+    type === "specialHealthFundBreakdown" && projectName && implementingOffice
+      ? {
+        projectName,
+        implementingOffice,
+        action: actionFilter !== "all" ? actionFilter as any : undefined,
+      }
       : "skip"
   );
 
@@ -193,6 +235,62 @@ export function useActivityLogData({
       }));
     }
 
+    // SEF Breakdown Activities
+    if (type === "specialEducationFundBreakdown") {
+      if (projectName && implementingOffice) {
+        rawActivities = sefBreakdownActivitiesProjectOffice || [];
+      } else {
+        rawActivities = sefBreakdownActivitiesSingle || [];
+      }
+
+      return rawActivities.map((activity) => ({
+        _id: activity._id,
+        action: activity.action,
+        timestamp: activity.timestamp,
+        performedByName: activity.performedByName,
+        performedByEmail: activity.performedByEmail,
+        performedByRole: activity.performedByRole,
+        reason: activity.reason,
+        changedFields: activity.changedFields,
+        changeSummary: activity.changeSummary,
+        previousValues: activity.previousValues,
+        newValues: activity.newValues,
+        projectName: activity.projectName,
+        implementingOffice: activity.implementingOffice,
+        municipality: activity.municipality,
+        barangay: activity.barangay,
+        district: activity.district,
+      }));
+    }
+
+    // Special Health Fund Breakdown Activities
+    if (type === "specialHealthFundBreakdown") {
+      if (projectName && implementingOffice) {
+        rawActivities = healthBreakdownActivitiesProjectOffice || [];
+      } else {
+        rawActivities = healthBreakdownActivitiesSingle || [];
+      }
+
+      return rawActivities.map((activity) => ({
+        _id: activity._id,
+        action: activity.action,
+        timestamp: activity.timestamp,
+        performedByName: activity.performedByName,
+        performedByEmail: activity.performedByEmail,
+        performedByRole: activity.performedByRole,
+        reason: activity.reason,
+        changedFields: activity.changedFields,
+        changeSummary: activity.changeSummary,
+        previousValues: activity.previousValues,
+        newValues: activity.newValues,
+        projectName: activity.projectName,
+        implementingOffice: activity.implementingOffice,
+        municipality: activity.municipality,
+        barangay: activity.barangay,
+        district: activity.district,
+      }));
+    }
+
     return [];
   }, [
     type,
@@ -205,6 +303,8 @@ export function useActivityLogData({
     budgetActivities,
     breakdownActivitiesSingle,
     breakdownActivitiesProjectOffice,
+    sefBreakdownActivitiesSingle,
+    sefBreakdownActivitiesProjectOffice,
   ]);
 
   // ============================================================================
@@ -233,6 +333,20 @@ export function useActivityLogData({
       return breakdownActivitiesSingle === undefined;
     }
 
+    if (type === "specialEducationFundBreakdown") {
+      if (projectName && implementingOffice) {
+        return sefBreakdownActivitiesProjectOffice === undefined;
+      }
+      return sefBreakdownActivitiesSingle === undefined;
+    }
+
+    if (type === "specialHealthFundBreakdown") {
+      if (projectName && implementingOffice) {
+        return healthBreakdownActivitiesProjectOffice === undefined;
+      }
+      return healthBreakdownActivitiesSingle === undefined;
+    }
+
     return false;
   }, [
     type,
@@ -245,6 +359,8 @@ export function useActivityLogData({
     budgetActivities,
     breakdownActivitiesSingle,
     breakdownActivitiesProjectOffice,
+    sefBreakdownActivitiesSingle,
+    sefBreakdownActivitiesProjectOffice,
   ]);
 
   // ============================================================================

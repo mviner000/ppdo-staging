@@ -1,18 +1,7 @@
-// app/dashboard/project/budget/[particularId]/components/ProjectsTable/ProjectsTableToolbar.tsx
+"use client";
 
 import React from "react";
-import {
-  Search,
-  X,
-  Trash2,
-  Download,
-  Printer,
-  FileSpreadsheet,
-  CheckCircle2,
-  Share2,
-  Calculator,
-  Eye
-} from "lucide-react";
+import { Search, CheckCircle2, Trash2, Share2, X, Download, Eye, FileSpreadsheet, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,96 +13,80 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
-import { ProjectBulkActions } from "./ProjectBulkActions";
+import { BudgetColumnVisibilityMenu } from "./BudgetColumnVisibilityMenu";
 
-interface ProjectsTableToolbarProps {
+interface BudgetTableToolbarProps {
   // Search
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onSearchFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  
+  searchInputRef: React.RefObject<HTMLInputElement>;
+
   // Selection
   selectedCount: number;
   onClearSelection: () => void;
-  
-  // Bulk Actions
-  canManageBulkActions: boolean;
-  onBulkCategoryChange: (categoryId: any) => void;
-  
+
   // Column Visibility
   hiddenColumns: Set<string>;
   onToggleColumn: (columnId: string, isChecked: boolean) => void;
   onShowAllColumns: () => void;
   onHideAllColumns: () => void;
-  
+
   // Export/Print
   onExportCSV: () => void;
-  onPrint?: () => void;
-  onOpenPrintPreview?: () => void;
-  hasPrintDraft?: boolean;
+  onOpenPrintPreview: () => void; // 🆕 NEW: Print Preview instead of direct print
 
-  // Trash
-  onOpenTrash?: () => void;
-  onBulkTrash: () => void;
-  
-  // Share (NEW)
+  // Actions
   isAdmin: boolean;
   pendingRequestsCount: number | undefined;
   onOpenShare: () => void;
-  
-  // 🆕 NEW: Auto-Calculate Toggle
+  onOpenTrash: () => void;
+  onBulkTrash: () => void;
+  onAddNew?: () => void;
+
+  // Auto-Calculate Toggle
   onBulkToggleAutoCalculate?: () => void;
-  
-  // Add Project
-  onAddProject?: () => void;
-  
-  // Expand Button
+
+  // Draft indicator
+  hasPrintDraft?: boolean; // 🆕 NEW: Show draft badge
+
+  // UI State
   expandButton?: React.ReactNode;
-  
   accentColor: string;
 }
 
-/**
- * Main toolbar for the projects table
- * Contains search, filters, bulk actions, and primary actions
- */
-export function ProjectsTableToolbar({
+export function BudgetTableToolbar({
   searchQuery,
   onSearchChange,
-  onSearchFocus,
   searchInputRef,
   selectedCount,
   onClearSelection,
-  canManageBulkActions,
-  onBulkCategoryChange,
   hiddenColumns,
   onToggleColumn,
   onShowAllColumns,
   onHideAllColumns,
   onExportCSV,
-  onPrint,
   onOpenPrintPreview,
-  hasPrintDraft,
-  onOpenTrash,
-  onBulkTrash,
   isAdmin,
   pendingRequestsCount,
   onOpenShare,
+  onOpenTrash,
+  onBulkTrash,
+  onAddNew,
   onBulkToggleAutoCalculate,
-  onAddProject,
+  hasPrintDraft,
   expandButton,
   accentColor,
-}: ProjectsTableToolbarProps) {
+}: BudgetTableToolbarProps) {
   return (
-    <div className="h-16 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between no-print gap-4">
-      
+    <div className="h-16 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-4 no-print">
       {/* Left: Title or Selection Info */}
       <div className="flex items-center gap-3 min-w-[200px]">
         {selectedCount > 0 ? (
           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 h-7">
+            <Badge
+              variant="secondary"
+              className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 h-7"
+            >
               <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
               {selectedCount} Selected
             </Badge>
@@ -128,22 +101,20 @@ export function ProjectsTableToolbar({
           </div>
         ) : (
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Projects
+            Budget Items
           </h3>
         )}
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2 flex-1 justify-end">
-        
-        {/* Search */}
+        {/* Search Input - Clean Inline Design */}
         <div className="relative max-w-xs w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
             ref={searchInputRef}
-            onFocus={onSearchFocus}
             type="text"
-            placeholder="Search projects..."
+            placeholder="Search budget items..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full h-9 pl-9 pr-9 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-all"
@@ -161,22 +132,14 @@ export function ProjectsTableToolbar({
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         {/* Column Visibility */}
-        <ColumnVisibilityMenu
+        <BudgetColumnVisibilityMenu
           hiddenColumns={hiddenColumns}
           onToggleColumn={onToggleColumn}
           onShowAll={onShowAllColumns}
           onHideAll={onHideAllColumns}
         />
 
-        {/* Bulk Category Actions */}
-        {selectedCount > 0 && canManageBulkActions && (
-          <ProjectBulkActions
-            selectedCount={selectedCount}
-            onCategoryChange={onBulkCategoryChange}
-          />
-        )}
-
-        {/* 🆕 NEW: Bulk Auto-Calculate Toggle (only when items are selected) */}
+        {/* Bulk Auto-Calculate Toggle (only when items are selected) */}
         {selectedCount > 0 && onBulkToggleAutoCalculate && (
           <Button
             onClick={onBulkToggleAutoCalculate}
@@ -191,7 +154,7 @@ export function ProjectsTableToolbar({
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Trash Button */}
+        {/* Recycle Bin */}
         <Button
           onClick={selectedCount > 0 ? onBulkTrash : onOpenTrash}
           variant={selectedCount > 0 ? "destructive" : "outline"}
@@ -199,10 +162,28 @@ export function ProjectsTableToolbar({
           className="gap-2"
         >
           <Trash2 className="w-4 h-4" />
-          {selectedCount > 0 ? `To Trash (${selectedCount})` : 'Recycle Bin'}
+          {selectedCount > 0 ? (
+            `To Trash (${selectedCount})`
+          ) : (
+            <span className="hidden sm:inline">Recycle Bin</span>
+          )}
         </Button>
 
-        {/* Export/Print Dropdown */}
+        {/* 🆕 NEW: Print Preview Button with Draft Indicator */}
+        <Button
+          onClick={onOpenPrintPreview}
+          variant="outline"
+          size="sm"
+          className="gap-2 relative"
+        >
+          <Eye className="w-4 h-4" />
+          <span className="hidden sm:inline">Print Preview</span>
+          {hasPrintDraft && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+          )}
+        </Button>
+
+        {/* Export CSV */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
@@ -212,27 +193,13 @@ export function ProjectsTableToolbar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-            {onOpenPrintPreview && (
-              <DropdownMenuItem onClick={onOpenPrintPreview} className="cursor-pointer">
-                <Eye className="w-4 h-4 mr-2" />
-                Print Preview
-                {hasPrintDraft && (
-                  <span className="ml-auto w-2 h-2 bg-blue-500 rounded-full" />
-                )}
-              </DropdownMenuItem>
-            )}
-            {onPrint && (
-              <DropdownMenuItem onClick={onPrint} className="cursor-pointer">
-                <Printer className="w-4 h-4 mr-2" /> Print PDF
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem onClick={onExportCSV} className="cursor-pointer">
               <FileSpreadsheet className="w-4 h-4 mr-2" /> Export CSV
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <div className="p-2">
               <span className="text-[10px] text-zinc-500 leading-tight block">
-                Note: Exports are based on currently shown/hidden columns.
+                Note: Exports are based on the currently shown/hidden columns.
               </span>
             </div>
           </DropdownMenuContent>
@@ -265,16 +232,17 @@ export function ProjectsTableToolbar({
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        {/* Add Project Button */}
-        {onAddProject && (
+        {/* Add New Item Button */}
+        {onAddNew && (
           <Button
-            onClick={onAddProject}
+            onClick={onAddNew}
             size="sm"
             className="gap-2 text-white shadow-sm"
             style={{ backgroundColor: accentColor }}
           >
             <span className="text-lg leading-none mb-0.5">+</span>
-            Add Project
+            <span className="hidden sm:inline">Add New Item</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         )}
       </div>

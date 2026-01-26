@@ -199,6 +199,9 @@ export const createBreakdown = mutation({
       budgetUtilized: args.budgetUtilized,
     });
 
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Breakdown Create: ${args.projectName}`, { fundId: args.specialEducationFundId });
+
     // Create breakdown record
     const breakdownId = await ctx.db.insert("specialEducationFundBreakdowns", {
       specialEducationFundId: args.specialEducationFundId,
@@ -299,6 +302,9 @@ export const bulkCreateBreakdowns = mutation({
         obligatedBudget: breakdown.obligatedBudget,
         budgetUtilized: breakdown.budgetUtilized,
       });
+
+      // DEBUG LOG
+      console.log(`[CRUD] SEF Breakdown BulkCreate Item: ${breakdown.projectName}`, { batchId });
 
       const breakdownId = await ctx.db.insert("specialEducationFundBreakdowns", {
         specialEducationFundId: breakdown.specialEducationFundId,
@@ -465,6 +471,9 @@ export const updateBreakdown = mutation({
       updates.utilizationRate = calculated.utilizationRate;
     }
 
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Breakdown Update: ${args.id}`, { hasFinancialChanges });
+
     // Apply updates
     await ctx.db.patch(args.id, updates);
 
@@ -505,6 +514,9 @@ export const moveToTrash = mutation({
       throw new Error("Breakdown not found");
     }
 
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Breakdown MoveToTrash: ${args.id}`, { reason: args.reason });
+
     // Soft delete
     await softDeleteBreakdown(
       ctx,
@@ -543,6 +555,9 @@ export const restoreFromTrash = mutation({
     if (!breakdown) {
       throw new Error("Breakdown not found");
     }
+
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Breakdown RestoreFromTrash: ${args.id}`);
 
     // Restore
     await restoreBreakdown(ctx, "specialEducationFundBreakdowns", args.id, userId);
@@ -591,6 +606,9 @@ export const deleteBreakdown = mutation({
       usageContext: "breakdown",
       delta: -1,
     });
+
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Breakdown Permanent Delete: ${args.id}`);
 
     // Permanently delete
     await ctx.db.delete(args.id);

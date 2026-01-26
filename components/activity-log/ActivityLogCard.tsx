@@ -21,6 +21,8 @@ const trackedFieldsByType: Record<ActivityLogType, string[]> = {
   trustFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
   specialEducationFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
   specialHealthFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
+  specialEducationFundBreakdown: ["allocatedBudget", "status", "projectAccomplishment", "remarks"],
+  specialHealthFundBreakdown: ["allocatedBudget", "status", "projectAccomplishment", "remarks"],
 };
 
 export function ActivityLogCard({

@@ -6,7 +6,7 @@
 import { Header } from "../../components/header/Header";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { TimeLocation } from "../../components/TimeLocation";
-import AIAssistant from "../../components/AIAssistant";
+
 import { SearchProvider } from "../../contexts/SearchContext";
 import { SidebarProvider } from "../../contexts/SidebarContext";
 import { AccentColorProvider } from "../../contexts/AccentColorContext";
@@ -38,7 +38,7 @@ function ChangeLogContent({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       {/* AI Assistant */}
-      <AIAssistant />
+
     </div>
   );
 }

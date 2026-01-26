@@ -232,6 +232,8 @@ export const createBreakdown = mutation({
       delta: 1,
     });
 
+    console.log('[CRUD] SHF Breakdown Created:', { breakdownId });
+
     // Log activity
     const breakdown = await ctx.db.get(breakdownId);
     await logspecialHealthFundBreakdownActivity(ctx, userId, {
@@ -342,6 +344,8 @@ export const bulkCreateBreakdowns = mutation({
         source: "bulk_import",
       });
     }
+
+    console.log('[CRUD] SHF Breakdown Bulk Created:', { count: breakdownIds.length, batchId });
 
     // Update all agency usage counts
     for (const [code, delta] of agencyUsageChanges.entries()) {
@@ -465,6 +469,8 @@ export const updateBreakdown = mutation({
       updates.utilizationRate = calculated.utilizationRate;
     }
 
+    console.log('[CRUD] SHF Breakdown Updated:', { breakdownId: args.id });
+
     // Apply updates
     await ctx.db.patch(args.id, updates);
 
@@ -514,6 +520,8 @@ export const moveToTrash = mutation({
       args.reason
     );
 
+    console.log('[CRUD] SHF Breakdown Moved to Trash:', { breakdownId: args.id });
+
     // Log activity
     await logspecialHealthFundBreakdownActivity(ctx, userId, {
       action: "deleted",
@@ -546,6 +554,8 @@ export const restoreFromTrash = mutation({
 
     // Restore
     await restoreBreakdown(ctx, "specialHealthFundBreakdowns", args.id, userId);
+
+    console.log('[CRUD] SHF Breakdown Restored:', { breakdownId: args.id });
 
     // Log activity
     const restored = await ctx.db.get(args.id);
@@ -584,6 +594,8 @@ export const deleteBreakdown = mutation({
       previousValues: breakdown,
       source: "web_ui",
     });
+
+    console.log('[CRUD] SHF Breakdown Permanently Deleted:', { breakdownId: args.id });
 
     // Update implementing agency usage count
     await ctx.runMutation(internal.implementingAgencies.updateUsageCount, {

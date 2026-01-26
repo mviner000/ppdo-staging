@@ -316,6 +316,8 @@ export const moveToTrash = mutation({
         const existing = await ctx.db.get(args.id);
         if (!existing) throw new Error("Special health fund not found");
 
+        console.log('[CRUD] SHF Move to Trash:', { fundId: args.id });
+
         await ctx.db.patch(args.id, {
             isDeleted: true,
             deletedAt: now,
@@ -347,6 +349,8 @@ export const restoreFromTrash = mutation({
 
         const existing = await ctx.db.get(args.id);
         if (!existing) throw new Error("Special health fund not found");
+
+        console.log('[CRUD] SHF Restore from Trash:', { fundId: args.id });
 
         await ctx.db.patch(args.id, {
             isDeleted: false,
@@ -392,6 +396,8 @@ export const remove = mutation({
             throw new Error("Not authorized");
         }
 
+        console.log('[CRUD] SHF Permanent Delete:', { fundId: args.id });
+
         // Log before deletion
         await logSpecialHealthFundActivity(ctx, userId, {
             action: "deleted",
@@ -422,6 +428,8 @@ export const bulkMoveToTrash = mutation({
         if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
             throw new Error("Unauthorized: Only admins can perform bulk actions.");
         }
+
+        console.log('[CRUD] SHF Bulk Move to Trash:', { count: args.ids.length });
 
         const now = Date.now();
         let successCount = 0;
@@ -502,6 +510,8 @@ export const updateStatus = mutation({
 
         const existing = await ctx.db.get(args.id);
         if (!existing) throw new Error("Special health fund not found");
+
+        console.log('[CRUD] SHF Update Status:', { fundId: args.id, newStatus: args.status });
 
         const now = Date.now();
 

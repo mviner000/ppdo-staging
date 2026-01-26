@@ -15,7 +15,7 @@ const isProtectedRoute = createRouteMatcher([
   "/server",
 ]);
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const isAuthenticated = await convexAuth.isAuthenticated();
 
   // Logged-in users should NEVER see landing or signin

@@ -46,7 +46,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         router.replace("/inspector");
         return;
       }
-      
+
       // User role can access dashboard (this includes super_admin, admin, and user)
       // Continue to render dashboard
     }
@@ -97,7 +97,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* AI Assistant */}
-      {/* <AIAssistant /> */}
+      {/* AI Assistant removed */}
 
       {/* Global Onboarding Modal - Only show in production */}
       {shouldShowOnboarding && <OnboardingModal />}

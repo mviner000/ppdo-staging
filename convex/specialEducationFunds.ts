@@ -316,6 +316,9 @@ export const moveToTrash = mutation({
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Special education fund not found");
 
+    // DEBUG LOG
+    console.log(`[CRUD] SEF MoveToTrash: ${args.id}`, { reason: args.reason });
+
     await ctx.db.patch(args.id, {
       isDeleted: true,
       deletedAt: now,
@@ -347,6 +350,9 @@ export const restoreFromTrash = mutation({
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Special education fund not found");
+
+    // DEBUG LOG
+    console.log(`[CRUD] SEF RestoreFromTrash: ${args.id}`);
 
     await ctx.db.patch(args.id, {
       isDeleted: false,
@@ -400,6 +406,9 @@ export const remove = mutation({
       reason: args.reason || "Permanent deletion"
     });
 
+    // DEBUG LOG
+    console.log(`[CRUD] SEF Permanent Delete: ${args.id}`, { reason: args.reason });
+
     await ctx.db.delete(args.id);
 
     return { success: true };
@@ -429,6 +438,9 @@ export const bulkMoveToTrash = mutation({
     for (const id of args.ids) {
       const existing = await ctx.db.get(id);
       if (!existing || existing.isDeleted) continue;
+
+      // DEBUG LOG
+      console.log(`[CRUD] SEF BulkMoveToTrash: ${id}`);
 
       await ctx.db.patch(id, {
         isDeleted: true,
@@ -467,6 +479,9 @@ export const togglePin = mutation({
 
     const now = Date.now();
     const newPinnedState = !existing.isPinned;
+
+    // DEBUG LOG
+    console.log(`[CRUD] SEF TogglePin: ${args.id}`, { pinned: newPinnedState });
 
     await ctx.db.patch(args.id, {
       isPinned: newPinnedState,

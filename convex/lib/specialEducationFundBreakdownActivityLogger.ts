@@ -19,15 +19,15 @@ type MutationCtx = GenericMutationCtx<DataModel>;
  */
 export interface SpecialEducationFundBreakdownActivityLogConfig {
   action:
-    | "created"
-    | "updated"
-    | "deleted"
-    | "bulk_created"
-    | "bulk_updated"
-    | "bulk_deleted"
-    | "viewed"
-    | "exported"
-    | "restored";
+  | "created"
+  | "updated"
+  | "deleted"
+  | "bulk_created"
+  | "bulk_updated"
+  | "bulk_deleted"
+  | "viewed"
+  | "exported"
+  | "restored";
   breakdownId?: Id<"specialEducationFundBreakdowns">;
   breakdown?: Doc<"specialEducationFundBreakdowns"> | null;
   previousValues?: any;
@@ -61,6 +61,13 @@ export async function logSpecialEducationFundBreakdownActivity(
   userId: Id<"users">,
   config: SpecialEducationFundBreakdownActivityLogConfig
 ): Promise<Id<"specialEducationFundBreakdownActivities">> {
+  // DEBUG LOG
+  console.log(`[ACTIVITY LOG] SEF Breakdown: ${config.action}`, {
+    id: config.breakdownId,
+    batchId: config.batchId,
+    source: config.source
+  });
+
   const now = Date.now();
 
   // Get user details (snapshot at time of action)
