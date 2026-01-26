@@ -14,10 +14,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { 
-  Trash2, 
-  RotateCcw, 
-  CheckSquare, 
+import {
+  Trash2,
+  RotateCcw,
+  CheckSquare,
   Square,
   Loader2,
   Search
@@ -25,8 +25,8 @@ import {
 import { toast } from "sonner";
 import { useAccentColor } from "../contexts/AccentColorContext";
 
-// 🆕 UPDATED: Added "trustFund" to type union
-type EntityType = "budget" | "project" | "breakdown" | "trustFund";
+// 🆕 UPDATED: Added fund types to type union
+type EntityType = "budget" | "project" | "breakdown" | "trustFund" | "specialEducationFund" | "specialHealthFund";
 
 interface TrashBinModalProps {
   isOpen: boolean;
@@ -40,35 +40,43 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🆕 UPDATED: Dynamic Queries with Trust Fund support
+  // 🆕 UPDATED: Dynamic Queries with all fund types support
   const trashItems = useQuery(
     type === "budget" ? api.budgetItems.getTrash :
-    type === "project" ? api.projects.getTrash :
-    type === "trustFund" ? api.trustFunds.getTrash :
-    api.govtProjects.getTrash
+      type === "project" ? api.projects.getTrash :
+        type === "trustFund" ? api.trustFunds.getTrash :
+          type === "specialEducationFund" ? api.specialEducationFunds.getTrash :
+            type === "specialHealthFund" ? api.specialHealthFunds.getTrash :
+              api.govtProjects.getTrash
   );
 
-  // 🆕 UPDATED: Dynamic Mutations with Trust Fund support
+  // 🆕 UPDATED: Dynamic Mutations with all fund types support
   const restoreMutation = useMutation(
     type === "budget" ? api.budgetItems.restoreFromTrash :
-    type === "project" ? api.projects.restoreFromTrash :
-    type === "trustFund" ? api.trustFunds.restoreFromTrash :
-    api.govtProjects.restoreFromTrash
+      type === "project" ? api.projects.restoreFromTrash :
+        type === "trustFund" ? api.trustFunds.restoreFromTrash :
+          type === "specialEducationFund" ? api.specialEducationFunds.restoreFromTrash :
+            type === "specialHealthFund" ? api.specialHealthFunds.restoreFromTrash :
+              api.govtProjects.restoreFromTrash
   );
 
   const deleteMutation = useMutation(
     type === "budget" ? api.budgetItems.remove :
-    type === "project" ? api.projects.remove :
-    type === "trustFund" ? api.trustFunds.remove :
-    api.govtProjects.deleteProjectBreakdown
+      type === "project" ? api.projects.remove :
+        type === "trustFund" ? api.trustFunds.remove :
+          type === "specialEducationFund" ? api.specialEducationFunds.remove :
+            type === "specialHealthFund" ? api.specialHealthFunds.remove :
+              api.govtProjects.deleteProjectBreakdown
   );
 
-  // 🆕 UPDATED: Filter items with Trust Fund support
+  // 🆕 UPDATED: Filter items with all fund types support
   const filteredItems = trashItems?.filter((item: any) => {
     const term = searchQuery.toLowerCase();
     if (type === "budget") return item.particulars.toLowerCase().includes(term);
     if (type === "project") return item.particulars.toLowerCase().includes(term) || item.implementingOffice.toLowerCase().includes(term);
     if (type === "trustFund") return item.projectTitle.toLowerCase().includes(term) || item.officeInCharge.toLowerCase().includes(term);
+    if (type === "specialEducationFund") return item.projectTitle.toLowerCase().includes(term) || item.officeInCharge.toLowerCase().includes(term);
+    if (type === "specialHealthFund") return item.projectTitle.toLowerCase().includes(term) || item.officeInCharge.toLowerCase().includes(term);
     if (type === "breakdown") return item.projectName.toLowerCase().includes(term) || item.implementingOffice.toLowerCase().includes(term);
     return false;
   }) || [];
@@ -90,13 +98,13 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
     }
   };
 
-  const formatCurrency = (val: number) => 
+  const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(val || 0);
 
-  const formatDate = (ts?: number) => 
+  const formatDate = (ts?: number) =>
     ts ? new Date(ts).toLocaleDateString() : "N/A";
 
-  // 🆕 UPDATED: ACTIONS with Trust Fund support
+  // 🆕 UPDATED: ACTIONS with all fund types support
   const handleRestore = async (ids: string[]) => {
     if (!ids.length) return;
     setIsProcessing(true);
@@ -108,11 +116,15 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
           return restoreMutation({ id: id as Id<"projects"> });
         } else if (type === "trustFund") {
           return restoreMutation({ id: id as Id<"trustFunds"> });
+        } else if (type === "specialEducationFund") {
+          return restoreMutation({ id: id as Id<"specialEducationFunds"> });
+        } else if (type === "specialHealthFund") {
+          return restoreMutation({ id: id as Id<"specialHealthFunds"> });
         } else {
           return restoreMutation({ breakdownId: id as Id<"govtProjectBreakdowns"> });
         }
       }));
-      
+
       toast.success(`Restored ${ids.length} item(s) successfully`);
       setSelectedIds(new Set());
     } catch (error) {
@@ -126,7 +138,7 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
   const handleDeleteForever = async (ids: string[]) => {
     if (!ids.length) return;
     if (!confirm("Are you sure? This action is irreversible.")) return;
-    
+
     setIsProcessing(true);
     try {
       await Promise.all(ids.map(id => {
@@ -136,6 +148,10 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
           return deleteMutation({ id: id as Id<"projects"> });
         } else if (type === "trustFund") {
           return deleteMutation({ id: id as Id<"trustFunds"> });
+        } else if (type === "specialEducationFund") {
+          return deleteMutation({ id: id as Id<"specialEducationFunds"> });
+        } else if (type === "specialHealthFund") {
+          return deleteMutation({ id: id as Id<"specialHealthFunds"> });
         } else {
           return deleteMutation({ breakdownId: id as Id<"govtProjectBreakdowns"> });
         }
@@ -151,12 +167,14 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
     }
   };
 
-  // 🆕 UPDATED: Title with Trust Fund support
+  // 🆕 UPDATED: Title with all fund types support
   const getTitle = () => {
     switch (type) {
       case "budget": return "Budget Items";
       case "project": return "Projects";
       case "trustFund": return "Trust Funds";
+      case "specialEducationFund": return "Special Education Funds";
+      case "specialHealthFund": return "Special Health Funds";
       case "breakdown": return "Breakdowns";
       default: return "Items";
     }
@@ -164,7 +182,7 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="w-[95vw] h-[90vh] flex flex-col bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
         style={{ maxWidth: '1200px', maxHeight: '900px' }}
       >
@@ -174,7 +192,7 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
             Trash Bin: {getTitle()}
           </DialogTitle>
           <DialogDescription>
-            Items in the trash can be restored or permanently deleted. 
+            Items in the trash can be restored or permanently deleted.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,13 +210,13 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {selectedIds.size > 0 && (
               <>
                 <span className="text-sm text-zinc-500 mr-2">{selectedIds.size} selected</span>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleRestore(Array.from(selectedIds))}
                   disabled={isProcessing}
@@ -207,8 +225,8 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
                   <RotateCcw className="w-4 h-4" />
                   Restore
                 </Button>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   size="sm"
                   onClick={() => handleDeleteForever(Array.from(selectedIds))}
                   disabled={isProcessing}
@@ -239,7 +257,7 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
                   <th className="w-10 px-4 py-3">
                     <button onClick={handleSelectAll} className="flex items-center justify-center">
-                      {selectedIds.size === filteredItems.length && filteredItems.length > 0 ? 
+                      {selectedIds.size === filteredItems.length && filteredItems.length > 0 ?
                         <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-zinc-400" />
                       }
                     </button>
@@ -256,32 +274,34 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
                   <tr key={item._id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                     <td className="px-4 py-3">
                       <button onClick={() => handleToggleSelect(item._id)}>
-                        {selectedIds.has(item._id) ? 
+                        {selectedIds.has(item._id) ?
                           <CheckSquare className="w-4 h-4 text-blue-500" /> : <Square className="w-4 h-4 text-zinc-300" />
                         }
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {/* 🆕 UPDATED: Display trust fund title */}
-                        {type === "budget" ? item.particulars : 
-                         type === "project" ? item.particulars : 
-                         type === "trustFund" ? item.projectTitle :
-                         item.projectName || item.projectTitle || "Untitled"}
+                        {/* 🆕 UPDATED: Display fund title */}
+                        {type === "budget" ? item.particulars :
+                          type === "project" ? item.particulars :
+                            type === "trustFund" ? item.projectTitle :
+                              type === "specialEducationFund" ? item.projectTitle :
+                                type === "specialHealthFund" ? item.projectTitle :
+                                  item.projectName || item.projectTitle || "Untitled"}
                       </div>
                       <div className="text-xs text-zinc-500">
                         ID: {item._id.slice(-6)}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                      {/* 🆕 UPDATED: Display trust fund office */}
-                      {type === "trustFund" ? item.officeInCharge : item.implementingOffice || "-"}
+                      {/* 🆕 UPDATED: Display fund office */}
+                      {(type === "trustFund" || type === "specialEducationFund" || type === "specialHealthFund") ? item.officeInCharge : item.implementingOffice || "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-zinc-700 dark:text-zinc-300">
-                      {/* 🆕 UPDATED: Display trust fund received amount */}
+                      {/* 🆕 UPDATED: Display fund received amount */}
                       {formatCurrency(
-                        type === "trustFund" ? item.received : 
-                        item.totalBudgetAllocated || item.allocatedBudget
+                        (type === "trustFund" || type === "specialEducationFund" || type === "specialHealthFund") ? item.received :
+                          item.totalBudgetAllocated || item.allocatedBudget
                       )}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-500 text-xs">
@@ -289,14 +309,14 @@ export function TrashBinModal({ isOpen, onClose, type }: TrashBinModalProps) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleRestore([item._id])}
                           className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 rounded"
                           title="Restore"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteForever([item._id])}
                           className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 rounded"
                           title="Delete Permanently"

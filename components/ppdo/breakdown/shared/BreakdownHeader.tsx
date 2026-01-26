@@ -19,7 +19,7 @@ export interface BreakdownHeaderProps {
 
   // Entity Information
   entityName?: string;
-  entityType: "project" | "trustfund";
+  entityType: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
   implementingOffice?: string;
   year: string;
   subtitle?: string;

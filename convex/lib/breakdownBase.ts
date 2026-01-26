@@ -136,15 +136,15 @@ export function createRestoreFields() {
  * Soft delete a breakdown record (move to trash)
  *
  * @param ctx - Mutation context
- * @param tableName - Name of the breakdown table ("govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns")
+ * @param tableName - Name of the breakdown table ("govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns" | "specialHealthFundBreakdowns")
  * @param id - Breakdown record ID
  * @param userId - User performing the deletion
  * @param reason - Optional reason for deletion
  */
 export async function softDeleteBreakdown(
   ctx: MutationCtx,
-  tableName: "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns",
-  id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns">,
+  tableName: "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns" | "specialHealthFundBreakdowns",
+  id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns"> | Id<"specialHealthFundBreakdowns">,
   userId: Id<"users">,
   reason?: string
 ): Promise<void> {
@@ -167,8 +167,8 @@ export async function softDeleteBreakdown(
  */
 export async function restoreBreakdown(
   ctx: MutationCtx,
-  tableName: "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns",
-  id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns">,
+  tableName: "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns" | "specialHealthFundBreakdowns",
+  id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns"> | Id<"specialHealthFundBreakdowns">,
   userId: Id<"users">
 ): Promise<void> {
   const restoreFields = createRestoreFields();
@@ -195,7 +195,7 @@ export async function restoreBreakdown(
  * @returns Updated record
  */
 export async function applyBreakdownPatch<
-  T extends "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns"
+  T extends "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns" | "specialHealthFundBreakdowns"
 >(
   ctx: MutationCtx,
   tableName: T,
@@ -289,8 +289,8 @@ export function buildChangeSummary(
 
   // Budget changes
   if (changedFields.includes("allocatedBudget") ||
-      changedFields.includes("obligatedBudget") ||
-      changedFields.includes("budgetUtilized")) {
+    changedFields.includes("obligatedBudget") ||
+    changedFields.includes("budgetUtilized")) {
     summary.budgetChanged = true;
 
     if (changedFields.includes("allocatedBudget")) {
@@ -313,15 +313,15 @@ export function buildChangeSummary(
 
   // Date changes
   if (changedFields.includes("dateStarted") ||
-      changedFields.includes("targetDate") ||
-      changedFields.includes("completionDate")) {
+    changedFields.includes("targetDate") ||
+    changedFields.includes("completionDate")) {
     summary.dateChanged = true;
   }
 
   // Location changes
   if (changedFields.includes("municipality") ||
-      changedFields.includes("barangay") ||
-      changedFields.includes("district")) {
+    changedFields.includes("barangay") ||
+    changedFields.includes("district")) {
     summary.locationChanged = true;
   }
 
@@ -397,12 +397,12 @@ export function validateBreakdownStatus(
  * @returns Array of active breakdown records
  */
 export async function getActiveBreakdowns<
-  T extends "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns"
+  T extends "govtProjectBreakdowns" | "trustFundBreakdowns" | "specialEducationFundBreakdowns" | "specialHealthFundBreakdowns"
 >(
   ctx: QueryCtx,
   tableName: T,
-  parentIdField: "projectId" | "trustFundId" | "specialEducationFundId",
-  parentId: Id<"projects"> | Id<"trustFunds"> | Id<"specialEducationFunds">
+  parentIdField: "projectId" | "trustFundId" | "specialEducationFundId" | "specialHealthFundId",
+  parentId: Id<"projects"> | Id<"trustFunds"> | Id<"specialEducationFunds"> | Id<"specialHealthFunds">
 ): Promise<Array<any>> {
   const breakdowns = await ctx.db
     .query(tableName)

@@ -30,7 +30,7 @@ const legacyColorMap: Record<string, string> = {
 };
 
 // Default color
-const DEFAULT_COLOR = "#15803d";
+const DEFAULT_COLOR = "#b45309";
 
 // Helper to lighten a hex color
 const lightenColor = (hex: string, percent: number): string => {
@@ -78,6 +78,17 @@ export function AccentColorProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    // Update CSS variables when accent color changes
+    document.documentElement.style.setProperty("--accent-color", accentColorValue);
+
+    // We can also update the translucent version if needed
+    const r = parseInt(accentColorValue.slice(1, 3), 16);
+    const g = parseInt(accentColorValue.slice(3, 5), 16);
+    const b = parseInt(accentColorValue.slice(5, 7), 16);
+    document.documentElement.style.setProperty("--accent-color-rgb", `${r}, ${g}, ${b}`);
+  }, [accentColorValue]);
 
   const setAccentColor = (color: string) => {
     // Validate hex color format

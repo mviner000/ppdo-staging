@@ -10,12 +10,14 @@
 import { Id } from "@/convex/_generated/dataModel";
 
 export interface Breakdown {
-  _id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns">;
+  _id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns"> | Id<"specialHealthFundBreakdowns">;
   _creationTime: number;
   projectName: string;
   implementingOffice: string;
   projectId?: Id<"projects">;
   trustFundId?: Id<"trustFunds">;
+  specialEducationFundId?: Id<"specialEducationFunds">;
+  specialHealthFundId?: Id<"specialHealthFunds">;
   projectTitle?: string;
   allocatedBudget?: number;
   obligatedBudget?: number;
@@ -55,14 +57,9 @@ export interface BreakdownHistoryTableProps {
   onDelete?: (id: string) => void;
   onOpenTrash?: () => void;
   /** Entity type for navigation - determines URL structure */
-  entityType?: "project" | "trustfund";
+  entityType?: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
   /** Navigation params for building detail paths */
-  navigationParams?: {
-    particularId?: string;
-    projectbreakdownId?: string;
-    trustfundbreakdownId?: string;
-    year?: string;
-  };
+  navigationParams?: NavigationParams;
 }
 
 export interface RowHeights {
@@ -87,6 +84,6 @@ export interface TableSettings {
 export interface NavigationParams {
   particularId?: string;
   projectbreakdownId?: string;
-  trustfundbreakdownId?: string;
   year?: string;
+  slug?: string;
 }

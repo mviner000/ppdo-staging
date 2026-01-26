@@ -18,6 +18,7 @@ import { useAccentColor } from "@/contexts/AccentColorContext";
 import {
   Breakdown,
   BreakdownHistoryTableProps,
+  NavigationParams,
 } from "../types/breakdown.types";
 
 // Import constants
@@ -84,9 +85,11 @@ export function BreakdownHistoryTable({
   const [printAdapter, setPrintAdapter] = useState<BreakdownPrintAdapter | null>(null);
 
   // Determine table identifier based on entity type
-  const tableIdentifier = entityType === "trustfund"
-    ? "trustFundBreakdowns"
-    : "govtProjectBreakdowns";
+  const tableIdentifier =
+    entityType === "trustfund" ? "trustFundBreakdowns" :
+      entityType === "specialeducationfund" ? "specialEducationFundBreakdowns" :
+        entityType === "specialhealthfund" ? "specialHealthFundBreakdowns" :
+          "govtProjectBreakdowns";
 
   // Custom hooks
   const {
@@ -145,9 +148,22 @@ export function BreakdownHistoryTable({
   const handlePrint = useCallback(() => {
     try {
       // Determine breakdown ID from params or navigation params
-      const breakdownId = entityType === "trustfund"
-        ? (navigationParams?.trustfundbreakdownId || params.trustfundbreakdownId as string)
-        : (navigationParams?.projectbreakdownId || params.projectbreakdownId as string);
+      let breakdownId: string | undefined;
+
+      if (entityType === "trustfund") {
+        breakdownId = navigationParams?.slug || (params as any).slug as string;
+      } else if (entityType === "specialeducationfund") {
+        breakdownId = navigationParams?.slug || (params as any).slug as string;
+      } else if (entityType === "specialhealthfund") {
+        breakdownId = navigationParams?.slug || (params as any).slug as string;
+      } else {
+        breakdownId = navigationParams?.projectbreakdownId || (params as any).projectbreakdownId as string;
+      }
+
+      if (!breakdownId) {
+        console.warn("No breakdown ID found for print adapter");
+        return;
+      }
 
       const adapter = new BreakdownPrintAdapter(
         breakdowns,
@@ -175,11 +191,11 @@ export function BreakdownHistoryTable({
     logBreakdownNavigation(breakdown);
 
     // Build navigation params from props or URL params
-    const navParams = navigationParams || {
-      particularId: params.particularId as string,
-      projectbreakdownId: params.projectbreakdownId as string,
-      trustfundbreakdownId: params.trustfundbreakdownId as string,
-      year: params.year as string,
+    const navParams: NavigationParams = navigationParams || {
+      particularId: (params as any).particularId as string,
+      projectbreakdownId: (params as any).projectbreakdownId as string,
+      year: (params as any).year as string,
+      slug: ((params as any).slug || (params as any).trustfundbreakdownId) as string, // Fallback for backward compat if needed, otherwise just slug
     };
 
     const path = buildBreakdownDetailPath(breakdown, navParams, entityType);

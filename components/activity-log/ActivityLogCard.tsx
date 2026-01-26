@@ -19,6 +19,8 @@ const trackedFieldsByType: Record<ActivityLogType, string[]> = {
   project: ["totalBudgetAllocated", "targetDateCompletion", "remarks", "implementingOffice"],
   budgetItem: ["totalBudgetAllocated", "particulars", "year", "notes"],
   trustFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
+  specialEducationFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
+  specialHealthFund: ["received", "utilized", "balance", "officeInCharge", "remarks"],
 };
 
 export function ActivityLogCard({
@@ -184,18 +186,18 @@ function buildChangeRows(activity: UnifiedActivityLog, type: ActivityLogType) {
       key,
       label: key.replace(/([A-Z])/g, " $1").trim(),
       value:
-        typeof current[key] === "number" && 
-        (key.includes("Budget") || 
-         key.includes("Allocated") || 
-         key.includes("received") || 
-         key.includes("utilized") || 
-         key.includes("balance"))
-          ? new Intl.NumberFormat("en-PH", { 
-              style: "currency", 
-              currency: "PHP",
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(current[key])
+        typeof current[key] === "number" &&
+          (key.includes("Budget") ||
+            key.includes("Allocated") ||
+            key.includes("received") ||
+            key.includes("utilized") ||
+            key.includes("balance"))
+          ? new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(current[key])
           : String(current[key] || "Empty"),
     }));
   } catch (error) {

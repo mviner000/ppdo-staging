@@ -37,7 +37,7 @@ interface TableRowProps {
   onDelete?: (id: string) => void;
   onStartRowResize: (e: React.MouseEvent, rowId: string) => void;
   /** Entity type for status update mutation */
-  entityType?: "project" | "trustfund";
+  entityType?: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
 }
 
 export function TableRow({
@@ -60,6 +60,8 @@ export function TableRow({
   // Use appropriate mutation based on entity type
   const updateProjectBreakdown = useMutation(api.govtProjects.updateProjectBreakdown);
   const updateTrustFundBreakdown = useMutation(api.trustFundBreakdowns.updateBreakdown);
+  const updateSpecialEducationFundBreakdown = useMutation(api.specialEducationFundBreakdowns.updateBreakdown);
+  const updateSpecialHealthFundBreakdown = useMutation(api.specialHealthFundBreakdowns.updateBreakdown);
 
   const handleStatusChange = async (newStatus: "completed" | "ongoing" | "delayed") => {
     setIsUpdating(true);
@@ -67,6 +69,16 @@ export function TableRow({
       if (entityType === "trustfund") {
         await updateTrustFundBreakdown({
           id: breakdown._id as Id<"trustFundBreakdowns">,
+          status: newStatus,
+        });
+      } else if (entityType === "specialeducationfund") {
+        await updateSpecialEducationFundBreakdown({
+          id: breakdown._id as Id<"specialEducationFundBreakdowns">,
+          status: newStatus,
+        });
+      } else if (entityType === "specialhealthfund") {
+        await updateSpecialHealthFundBreakdown({
+          id: breakdown._id as Id<"specialHealthFundBreakdowns">,
           status: newStatus,
         });
       } else {

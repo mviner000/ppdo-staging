@@ -17,7 +17,7 @@ interface CardData {
 }
 
 export interface EntityOverviewCardsProps {
-  entityType: "project" | "trustfund";
+  entityType: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
   implementingOffice?: string;
   totalBudget?: number;
   statusText?: string;
@@ -70,9 +70,18 @@ export function EntityOverviewCards({
   }
 
   // Status
+  // Function to get readable status label
+  const getStatusLabel = (type: string) => {
+    if (type === "project") return "Project Status";
+    if (type === "trustfund") return "Trust Fund Status";
+    if (type === "specialeducationfund") return "SEF Status";
+    if (type === "specialhealthfund") return "SHF Status";
+    return "Status";
+  };
+
   if (statusText) {
     cards.push({
-      title: `${entityType === "project" ? "Project" : "Trust Fund"} Status`,
+      title: getStatusLabel(entityType),
       value: statusText.toUpperCase(),
       valueClassName: statusColor,
     });
@@ -133,9 +142,8 @@ function Card({
     <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
       <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">{title}</p>
       <p
-        className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 ${
-          valueClassName || ""
-        } ${truncate ? "truncate" : ""}`}
+        className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 ${valueClassName || ""
+          } ${truncate ? "truncate" : ""}`}
       >
         {value}
       </p>

@@ -2,346 +2,215 @@
 
 "use client";
 
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import Link from "next/link";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { LoginTrail } from "../../components/LoginTrail";
-import { MiniGauge } from "../../components/MiniGauge";
-import { SpeedometerCard } from "../../components/SpeedometerCard";
-import { BarChartCard } from "../../components/BarChartCard";
-import { OfficeSelect } from "../../components/OfficeSelect";
-import { useMemo, useState } from "react";
-import { PersonalKPICard } from "../../components/PersonalKPICard";
-
+import { useMemo, useState, useEffect } from "react";
+import { DepartmentUtilizationHorizontalBar } from "../../components/dashboard/charts/DepartmentUtilizationHorizontalBar";
+import { GovernmentTrendsAreaChart } from "../../components/dashboard/charts/GovernmentTrendsAreaChart";
+import { ActivityHeatmap } from "../../components/dashboard/charts/ActivityHeatmap";
+import { BudgetStatusProgressList } from "../../components/dashboard/charts/BudgetStatusProgressList";
+import { ExecutiveFinancialPie } from "../../components/dashboard/charts/ExecutiveFinancialPie";
+import { StatusDistributionPie } from "../../components/dashboard/charts/StatusDistributionPie";
+import { LoginTrailDialog } from "@/components/LoginTrailDialog";
 export default function Dashboard() {
-  const OFFICES = [
-    // 1-24 based on your image, abbreviated
-    "OPA", // Office of the Provincial Administrator
-    "HRMO", // Provincial Human Resource Management Office
-    "PCEDO", // Provincial Cooperative & Enterprise Dev't Office
-    "PPDO", // Provincial Planning & Development Office
-    "PTourO", // Provincial Tourism Office
-    "PENRO", // Provincial Environment & Natural Resources Office
-    "GSO", // Provincial General Services Office
-    "PEPO", // Provincial Equipment Pool Office
-    "PEO", // Provincial Engineering Office
-    "PIO", // Provincial Information Office
-    "PAgO", // Provincial Agriculture Office
-    "PTreasO", // Provincial Treasury Office
-    "PVO", // Provincial Veterinary Office
-    "PACCO", // Provincial Accounting Office
-    "PAssO", // Provincial Assessor's Office
-    "PLO", // Provincial Legal Office
-    "PSWDO", // Provincial Social Welfare & Development Office
-    "TPH", // Tarlac Provincial Hospital
-    "PHO", // Provincial Health Office
-    "GOTMH", // Gilberto O. Teodoro Memorial Hospital
-    "CDH", // Concepcion District Hospital
-    "LPMCH", // La Paz Medicare & Community Hospital
-    "EHMCMH", // Enrique "Henry" M. Cojuangco Memorial Hospital
-    "PESO", // Provincial Public Employment Service Office
-    "PDRRMO", // Provincial Disaster Risk Reduction and Management Office
-    "PBO", // Provincial Budget Office
-    "OSSP", // Office of the Secretary to the Sangguniang Panlalawigan
-    "OPVG", // Office of the Provincial Vice Governor
-  ];
-  const [selectedOffice, setSelectedOffice] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Deterministic per-office metrics so UI updates on selection
-  const officePercent = useMemo(() => {
-    return (office: string, min = 40, max = 90) => {
-      if (!office) return 0;
-      const code = office.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
-      const span = max - min;
-      return Math.round(min + (code % (span + 1)));
-    };
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
-  const completionValue = useMemo(() => {
-    return selectedOffice ? officePercent(selectedOffice, 50, 95) : 60;
-  }, [selectedOffice, officePercent]);
+  // Fetch real government data
+  const projects = useQuery(api.projects.list, {});
+  const budgetItems = useQuery(api.budgetItems.list, {});
 
-  const utilizationValue = useMemo(() => {
-    return selectedOffice ? officePercent(selectedOffice, 45, 85) : 52;
-  }, [selectedOffice, officePercent]);
+  // 1. Government Trends (Allocated vs Utilized)
+  const trendData = useMemo(() => {
+    if (!budgetItems) return [];
 
-  const physicalData = useMemo(() => {
-    if (!selectedOffice) {
-      return [
-        { label: "MO", value: 45 },
-        { label: "SB", value: 68 },
-        { label: "MHRMO", value: 72 },
-        { label: "MPDO", value: 58 },
-        { label: "MCR", value: 80 },
-        { label: "MBO", value: 61 },
-        { label: "MAO", value: 77 },
-        { label: "MTO", value: 64 },
-        { label: "PESO", value: 70 },
-      ];
-    }
-    return [
-      { label: selectedOffice, value: officePercent(selectedOffice, 40, 90) },
-    ];
-  }, [selectedOffice, officePercent]);
+    // Group by year or fiscalYear
+    const yearly = budgetItems.reduce((acc, item) => {
+      const year = (item.year || item.fiscalYear || new Date().getFullYear()).toString();
+      if (!acc[year]) acc[year] = { allocated: 0, utilized: 0 };
+      acc[year].allocated += item.totalBudgetAllocated;
+      acc[year].utilized += item.totalBudgetUtilized;
+      return acc;
+    }, {} as Record<string, { allocated: number; utilized: number }>);
 
+    return Object.entries(yearly)
+      .map(([label, data]) => ({ label, allocated: data.allocated, utilized: data.utilized }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [budgetItems]);
+
+  // 2. Financial Overview (Pie Data)
   const financialData = useMemo(() => {
-    if (!selectedOffice) {
-      return [
-        { label: "MO", value: 40 },
-        { label: "SB", value: 55 },
-        { label: "MHRMO", value: 62 },
-        { label: "MPDO", value: 47 },
-        { label: "MCR", value: 74 },
-        { label: "MBO", value: 51 },
-        { label: "MAO", value: 69 },
-        { label: "MTO", value: 60 },
-        { label: "PESO", value: 66 },
-      ];
-    }
+    if (!budgetItems) return { allocated: 0, utilized: 0, obligated: 0 };
+    return budgetItems.reduce((acc, item) => ({
+      allocated: acc.allocated + item.totalBudgetAllocated,
+      utilized: acc.utilized + item.totalBudgetUtilized,
+      obligated: acc.obligated + (item.obligatedBudget || 0),
+    }), { allocated: 0, utilized: 0, obligated: 0 });
+  }, [budgetItems]);
+
+  // 3. Project Status Distribution (Pie Data)
+  const statusData = useMemo(() => {
+    if (!projects) return [];
+    const counts = projects.reduce((acc, p) => {
+      const status = p.status || "not_started";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
     return [
-      { label: selectedOffice, value: officePercent(selectedOffice, 35, 85) },
-    ];
-  }, [selectedOffice, officePercent]);
-  const router = useRouter();
+      { status: "ongoing", count: counts["ongoing"] || 0 },
+      { status: "completed", count: counts["completed"] || 0 },
+      { status: "delayed", count: counts["delayed"] || 0 },
+    ] as { status: "ongoing" | "completed" | "delayed" | "not_started"; count: number }[];
+  }, [projects]);
+
+  // 4. Department Utilization (Horizontal Bar)
+  const utilizationData = useMemo(() => {
+    if (!budgetItems) return [];
+    const grouped = budgetItems.reduce((acc, item) => {
+      const label = item.particulars;
+      if (!acc[label]) acc[label] = { allocated: 0, utilized: 0 };
+      acc[label].allocated += item.totalBudgetAllocated;
+      acc[label].utilized += item.totalBudgetUtilized;
+      return acc;
+    }, {} as Record<string, { allocated: number; utilized: number }>);
+
+    return Object.entries(grouped)
+      .map(([department, data]) => ({
+        department,
+        rate: data.allocated > 0 ? (data.utilized / data.allocated) * 100 : 0,
+      }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 8);
+  }, [budgetItems]);
+
+  // 5. Project Activity (Heatmap)
+  const heatmapData = useMemo(() => {
+    if (!projects) return [];
+    const offices = Array.from(new Set(projects.map(p => p.implementingOffice))).slice(0, 8);
+    return offices.map(office => {
+      const officeProjects = projects.filter(p => p.implementingOffice === office);
+      const values = Array(12).fill(0);
+      officeProjects.forEach(p => { values[new Date(p.createdAt).getMonth()]++; });
+      return { label: office, values };
+    });
+  }, [projects]);
+
+  // 6. Budget Status (Progress List)
+  const budgetDistributionData = useMemo(() => {
+    if (!budgetItems) return [];
+    const categories = Array.from(new Set(budgetItems.map(b => b.particulars))).slice(0, 6);
+    return categories.map(cat => {
+      const items = budgetItems.filter(b => b.particulars === cat);
+      const allocated = items.reduce((sum, i) => sum + i.totalBudgetAllocated, 0);
+      const utilized = items.reduce((sum, i) => sum + i.totalBudgetUtilized, 0);
+      return {
+        label: cat,
+        value: allocated,
+        subValue: `${items.length} projects · ₱${new Intl.NumberFormat(undefined, { notation: "compact" }).format(allocated)}`,
+        percentage: allocated > 0 ? (utilized / allocated) * 100 : 0
+      };
+    });
+  }, [budgetItems]);
+
+  if (!isMounted) return null;
 
   return (
-    <>
-      {/* Page Header */}
-      <div className="mb-4">
-        <h1
-          className="text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-zinc-100 mb-1"
-          style={{ fontFamily: "var(--font-cinzel), serif" }}
-        >
-          Dashboard
-        </h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Overview of planning and development activities
-        </p>
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 sm:space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
+            Government Performance Dashboard
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
+            Real-time tracking of development and financial metrics
+          </p>
+        </div>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <LoginTrailDialog />
+        </div>
       </div>
-      
-      
 
-      {/* Overall Performance Score and Login Trail (below main section) */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="group bg-white dark:bg-zinc-900 p-5 sm:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm hover:shadow-md transition-all duration-200">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide mb-2">Total Projects</p>
+          <p className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-50">
+            {projects ? projects.length : 0}
+          </p>
+        </div>
+        <div className="group bg-white dark:bg-zinc-900 p-5 sm:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700 shadow-sm hover:shadow-md transition-all duration-200">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide mb-2">Ongoing</p>
+          <p className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-500">
+            {projects?.filter(p => p.status === "ongoing").length || 0}
+          </p>
+        </div>
+        <div className="group bg-white dark:bg-zinc-900 p-5 sm:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-sm hover:shadow-md transition-all duration-200">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide mb-2">Completed</p>
+          <p className="text-3xl sm:text-4xl font-bold text-emerald-600 dark:text-emerald-500">
+            {projects?.filter(p => p.status === "completed").length || 0}
+          </p>
+        </div>
+        <div className="group bg-white dark:bg-zinc-900 p-5 sm:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-red-300 dark:hover:border-red-700 shadow-sm hover:shadow-md transition-all duration-200">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide mb-2">Delayed</p>
+          <p className="text-3xl sm:text-4xl font-bold text-red-600 dark:text-red-500">
+            {projects?.filter(p => p.status === "delayed").length || 0}
+          </p>
+        </div>
+      </div>
+
+      {/* Main Analytics Grid */}
+      <div className="space-y-4 sm:space-y-6">
+        {/* Row 1: High Level Trends & Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Main Trend Chart - 2 columns on large screens */}
+          <div className="lg:col-span-2">
+            <GovernmentTrendsAreaChart
+              title="Budget Allocation vs. Utilization"
+              subtitle="Fiscal performance trends over years"
+              data={trendData}
+              isLoading={!budgetItems}
+            />
+          </div>
+          {/* Financial Pie Chart - 1 column */}
           <div>
-            <PersonalKPICard
-              metrics={[
-                {
-                  title: "Productivity Score",
-                  value: 87,
-                  icon: (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  ),
-                  subtitle: "Task completion rate",
-                  color: "green",
-                },
-                {
-                  title: "Quality Score",
-                  value: 92,
-                  icon: (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  ),
-                  subtitle: "Work accuracy rate",
-                  color: "blue",
-                },
-                {
-                  title: "Timeliness Score",
-                  value: 81,
-                  icon: (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  ),
-                  subtitle: "On-time completion",
-                  color: "orange",
-                },
-                {
-                  title: "Compliance Score",
-                  value: 95,
-                  icon: (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                      />
-                    </svg>
-                  ),
-                  subtitle: "Policy adherence",
-                  color: "green",
-                },
-              ]}
+            <ExecutiveFinancialPie
+              data={financialData}
+              isLoading={!budgetItems}
             />
           </div>
-          
-      </div>
+        </div>
 
-      <LoginTrail />
+        {/* Row 2: Operational Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <StatusDistributionPie
+            data={statusData}
+            isLoading={!projects}
+          />
+          <DepartmentUtilizationHorizontalBar
+            data={utilizationData}
+            isLoading={!budgetItems}
+          />
+          <BudgetStatusProgressList
+            title="Sector Distribution"
+            subtitle="Budget allocation by sector"
+            data={budgetDistributionData}
+            isLoading={!budgetItems}
+          />
+        </div>
 
-      {/* Gauges + Bar Charts + Status Blocks */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8 mb-8">
-        {/* Left: status blocks */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Client Satisfaction / Overall Score */}
-          <div className="bg-[#f8f8f8] dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-            <div className="flex items-center justify-between">
+        {/* Row 3: Activity Heatmap (Full Width) */}
         <div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Client Satisfaction Rating
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                  Latest survey
-                </p>
-              </div>
-              <p
-                className="text-5xl font-bold text-zinc-900 dark:text-zinc-100"
-                style={{ fontFamily: "var(--font-cinzel), serif" }}
-              >
-                92%
-              </p>
-            </div>
-          </div>
-
-          {/* Office Selection - searchable combobox */}
-          <OfficeSelect
-            offices={OFFICES}
-            value={selectedOffice}
-            onChange={setSelectedOffice}
+          <ActivityHeatmap
+            data={heatmapData}
+            isLoading={!projects}
           />
-
-          {/* SGLG Data / Others */}
-          <div className="bg-[#f8f8f8] dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-              SGLG Data
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <MiniGauge title="SC Compliant" value={88} />
-              <MiniGauge title="DRR Compliant" value={79} />
-              <MiniGauge title="FIN Compliant" value={83} />
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <MiniGauge title="Accomplishment - PS" value={72} />
-              <MiniGauge title="Accomplishment - LCCF" value={66} />
-            </div>
-          </div>
         </div>
-
-        {/* Middle: bar charts */}
-        <div className="lg:col-span-6 space-y-6">
-          <BarChartCard
-            title="Physical Accomplishment"
-            subtitle={selectedOffice ? `for ${selectedOffice}` : "by Office"}
-            className="min-h-[315px]"
-            data={physicalData}
-          />
-          <BarChartCard
-            title="Financial Accomplishment"
-            subtitle={selectedOffice ? `for ${selectedOffice}` : "by Office"}
-            className="min-h-[315px]"
-            data={financialData}
-                  />
-        </div>
-
-        {/* Right: two primary gauges */}
-        <div className="lg:col-span-3 space-y-6">
-          <SpeedometerCard
-            title="Overall Completion Rate"
-            value={completionValue}
-            subtitle="As of YTD"
-            color="green"
-          />
-          <SpeedometerCard
-            title="Overall Utilization Rate"
-            value={utilizationValue}
-            subtitle="Budget utilization"
-            color="blue"
-            />
-          </div>
-
-        {/* Horizontal Status of Mandatory Fund full width row */}
-        <div className="lg:col-span-12">
-          <div className="bg-[#f8f8f8] dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3
-                className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                style={{ fontFamily: "var(--font-cinzel), serif" }}
-              >
-                Status of Mandatory Fund
-              </h3>
-              <div className="text-xs text-zinc-500">Physical vs Financial</div>
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Physical grid */}
-              <div className="min-w-0">
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
-                  Physical Accomplishment
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MiniGauge title="20% LDF" value={56} />
-                  <MiniGauge title="5% MDRRMF" value={61} />
-                  <MiniGauge title="5% GAD" value={49} />
-                  <MiniGauge title="Trust Fund" value={73} />
-                </div>
-              </div>
-              {/* Financial grid */}
-              <div className="min-w-0">
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
-                  Financial Accomplishment
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MiniGauge title="20% LDF" value={35} />
-                  <MiniGauge title="5% MDRRMF" value={46} />
-                  <MiniGauge title="5% GAD" value={42} />
-                  <MiniGauge title="Trust Fund" value={58} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-    </>
+      </div>
+    </div>
   );
 }

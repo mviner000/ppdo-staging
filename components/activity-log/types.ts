@@ -12,6 +12,8 @@ export interface UnifiedActivityLog {
     | "budgetItemActivities"
     | "govtProjectBreakdownActivities"
     | "trustFundActivities"
+    | "specialEducationFundActivities"
+    | "specialHealthFundActivities"
   >;
   action: string;
   timestamp: number;
@@ -57,7 +59,7 @@ export interface ActivityLogSheetProps {
 /**
  * Activity log type discriminator
  */
-export type ActivityLogType = "project" | "budgetItem" | "breakdown" | "trustFund";
+export type ActivityLogType = "project" | "budgetItem" | "breakdown" | "trustFund" | "specialEducationFund" | "specialHealthFund";
 
 /**
  * Action filter options

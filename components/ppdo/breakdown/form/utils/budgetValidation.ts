@@ -27,7 +27,7 @@ interface UseBudgetValidationProps {
   currentObligated: number;
   breakdown: any | undefined;
   /** Entity type to determine which API to call */
-  entityType?: "project" | "trustfund";
+  entityType?: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
 }
 
 /**
@@ -70,6 +70,20 @@ export const useBudgetValidation = ({
       : "skip"
   );
 
+  const parentSpecialEducationFund = useQuery(
+    api.specialEducationFunds.get,
+    effectiveProjectId && entityType === "specialeducationfund"
+      ? { id: effectiveProjectId as Id<"specialEducationFunds"> }
+      : "skip"
+  );
+
+  const parentSpecialHealthFund = useQuery(
+    api.specialHealthFunds.get,
+    effectiveProjectId && entityType === "specialhealthfund"
+      ? { id: effectiveProjectId as Id<"specialHealthFunds"> }
+      : "skip"
+  );
+
   // Query sibling breakdowns based on entity type
   const siblingProjectBreakdowns = useQuery(
     api.govtProjects.getProjectBreakdowns,
@@ -85,11 +99,32 @@ export const useBudgetValidation = ({
       : "skip"
   );
 
+  const siblingSpecialEducationFundBreakdowns = useQuery(
+    api.specialEducationFundBreakdowns.getBreakdowns,
+    effectiveProjectId && entityType === "specialeducationfund"
+      ? { specialEducationFundId: effectiveProjectId as Id<"specialEducationFunds"> }
+      : "skip"
+  );
+
+  const siblingSpecialHealthFundBreakdowns = useQuery(
+    api.specialHealthFundBreakdowns.getBreakdowns,
+    effectiveProjectId && entityType === "specialhealthfund"
+      ? { specialHealthFundId: effectiveProjectId as Id<"specialHealthFunds"> }
+      : "skip"
+  );
+
   // Select the appropriate parent and siblings based on entity type
-  const parentEntity = entityType === "trustfund" ? parentTrustFund : parentProject;
-  const siblingBreakdowns = entityType === "trustfund"
-    ? siblingTrustFundBreakdowns
-    : siblingProjectBreakdowns;
+  const parentEntity =
+    entityType === "trustfund" ? parentTrustFund :
+      entityType === "specialeducationfund" ? parentSpecialEducationFund :
+        entityType === "specialhealthfund" ? parentSpecialHealthFund :
+          parentProject;
+
+  const siblingBreakdowns =
+    entityType === "trustfund" ? siblingTrustFundBreakdowns :
+      entityType === "specialeducationfund" ? siblingSpecialEducationFundBreakdowns :
+        entityType === "specialhealthfund" ? siblingSpecialHealthFundBreakdowns :
+          siblingProjectBreakdowns;
 
   // Calculate budget allocation status
   const budgetAllocationStatus = useMemo(

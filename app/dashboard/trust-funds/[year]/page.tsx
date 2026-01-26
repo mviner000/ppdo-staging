@@ -1,13 +1,8 @@
-// app/dashboard/trust-funds/[year]/page.tsx
-
 "use client";
 
 import { use, useState, useMemo } from "react";
-import { useTrustFundData } from "../hooks/useTrustFundData";
-import { useTrustFundMutations } from "../hooks/useTrustFundMutations";
-import { YearTrustFundsPageHeader } from "./components/YearTrustFundsPageHeader";
-import TrustFundStatistics from "./components/TrustFundStatistics";
-import { TrustFundsTable } from "./components/TrustFundsTable";
+import { useFundsData, useFundsMutations, FundsPageHeader, FundsStatistics, FundsTable, FundForm } from "@/components/ppdo/funds";
+import { api } from "@/convex/_generated/api";
 import { TrashBinModal } from "@/components/TrashBinModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -19,9 +14,20 @@ export default function YearTrustFundsPage({ params }: PageProps) {
   const { year: yearParam } = use(params);
   const year = parseInt(yearParam);
 
-  const { trustFunds, statistics, isLoading } = useTrustFundData();
-  const { handleAdd, handleEdit, handleDelete } = useTrustFundMutations();
-  
+  // Use shared hooks with Trust Funds API
+  const { funds: trustFunds, statistics, isLoading } = useFundsData({
+    listQuery: api.trustFunds.list,
+    statsQuery: api.trustFunds.getStatistics,
+    converter: (fund) => ({ ...fund, id: fund._id }),
+  });
+
+  const { handleAdd, handleEdit, handleDelete } = useFundsMutations({
+    createMutation: api.trustFunds.create,
+    updateMutation: api.trustFunds.update,
+    moveToTrashMutation: api.trustFunds.moveToTrash,
+    entityName: "trust fund"
+  });
+
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [showDetails, setShowDetails] = useState(true);
 
@@ -56,14 +62,14 @@ export default function YearTrustFundsPage({ params }: PageProps) {
         acc.totalReceived += fund.received;
         acc.totalUtilized += fund.utilized;
         acc.totalBalance += fund.balance;
-        
-        // ✅ FIXED: Handle all status types including 'active'
+
+        // Handle all status types including 'active'
         const status = fund.status || 'not_available';
-        
+
         // Explicitly check each status type
         switch (status) {
           case 'active':
-            acc.counts.active++;
+            acc.counts.active = (acc.counts.active || 0) + 1;
             break;
           case 'not_yet_started':
             acc.counts.not_yet_started++;
@@ -79,12 +85,12 @@ export default function YearTrustFundsPage({ params }: PageProps) {
             acc.counts.not_available++;
             break;
         }
-        
+
         return acc;
       },
-      { 
-        totalReceived: 0, 
-        totalUtilized: 0, 
+      {
+        totalReceived: 0,
+        totalUtilized: 0,
         totalBalance: 0,
         counts: {
           active: 0,
@@ -114,13 +120,13 @@ export default function YearTrustFundsPage({ params }: PageProps) {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-4 w-96" />
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
-        
+
         <Skeleton className="h-96" />
       </div>
     );
@@ -144,14 +150,17 @@ export default function YearTrustFundsPage({ params }: PageProps) {
 
   return (
     <div className="p-6">
-      <YearTrustFundsPageHeader 
+      <FundsPageHeader
         year={year}
         showDetails={showDetails}
         onToggleDetails={() => setShowDetails(!showDetails)}
+        pageTitle="Trust Funds"
+        pageDescription="Monitor fund allocation, utilization, and project status"
+        activityLogType="trustFund"
       />
 
       {showDetails && (
-        <TrustFundStatistics
+        <FundsStatistics
           totalReceived={yearStatistics.totalReceived}
           totalUtilized={yearStatistics.totalUtilized}
           totalBalance={yearStatistics.totalBalance}
@@ -160,13 +169,19 @@ export default function YearTrustFundsPage({ params }: PageProps) {
         />
       )}
 
-      <TrustFundsTable
+      <FundsTable
         data={yearFilteredFunds}
         year={year}
+        fundType="trust"
+        title="Trust Funds"
+        searchPlaceholder="Search trust funds..."
+        emptyMessage="No trust funds found"
+        activityLogType="trustFund"
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onOpenTrash={() => setShowTrashModal(true)}
+        FormComponent={FundForm}
       />
 
       <TrashBinModal

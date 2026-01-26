@@ -15,7 +15,7 @@ import { Id } from "@/convex/_generated/dataModel";
  * Matches the baseBreakdownSchema from convex/schema/shared/baseBreakdown.ts
  */
 export interface IBaseBreakdown {
-  _id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns">;
+  _id: Id<"govtProjectBreakdowns"> | Id<"trustFundBreakdowns"> | Id<"specialEducationFundBreakdowns"> | Id<"specialHealthFundBreakdowns">;
   _creationTime: number;
 
   // Core Project Information

@@ -16,13 +16,23 @@ import { createBreakdownSlug } from "./helpers";
 export function buildBreakdownDetailPath(
   breakdown: Breakdown,
   params: NavigationParams,
-  entityType: "project" | "trustfund" = "project"
+  entityType: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund" = "project"
 ): string {
   const breakdownSlug = createBreakdownSlug(breakdown);
 
   if (entityType === "trustfund") {
-    const { year, trustfundbreakdownId } = params;
-    return `/dashboard/trust-funds/${year}/${trustfundbreakdownId}/${breakdownSlug}`;
+    const { year, slug } = params;
+    return `/dashboard/trust-funds/${year}/${slug}/${breakdownSlug}`;
+  }
+
+  if (entityType === "specialeducationfund") {
+    const { year, slug } = params;
+    return `/dashboard/special-education-funds/${year}/${slug}/${breakdownSlug}`;
+  }
+
+  if (entityType === "specialhealthfund") {
+    const { year, slug } = params;
+    return `/dashboard/special-health-funds/${year}/${slug}/${breakdownSlug}`;
   }
 
   // Default: project breakdown

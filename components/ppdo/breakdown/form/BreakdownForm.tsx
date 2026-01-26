@@ -41,7 +41,7 @@ interface BreakdownFormProps {
   defaultImplementingOffice?: string;
   projectId?: string;
   /** Entity type for budget validation */
-  entityType?: "project" | "trustfund";
+  entityType?: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
 }
 
 export function BreakdownForm({
