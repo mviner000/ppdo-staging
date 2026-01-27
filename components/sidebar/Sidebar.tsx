@@ -6,37 +6,38 @@ import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarFooter } from "./SidebarFooter";
 import { SidebarProps } from "./types";
-import { groupItemsByCategory } from "./utils";
-import { useNavItems } from "./navItems";
+import { groupItemsByCategory, getActiveExpandedKeys } from "./utils";
+import { defaultNavItems, useNavItems } from "./navItems";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { useAccentColor } from "../../contexts/AccentColorContext";
 
-export function Sidebar({ navItems }: SidebarProps) {
+export function Sidebar({ navItems: navItemsProp }: SidebarProps) {
+  const dynamicNavItems = useNavItems();
+  const navItems = navItemsProp || dynamicNavItems;
   const [isOpen, setIsOpen] = useState(true);
   const { isMinimized } = useSidebar();
   const pathname = usePathname();
   const { accentColorValue } = useAccentColor();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  // ✅ Call the hook correctly
-  const resolvedNavItems = navItems ?? useNavItems();
-
-  const grouped = groupItemsByCategory(resolvedNavItems);
+  const grouped = groupItemsByCategory(navItems);
 
   useEffect(() => {
-    resolvedNavItems.forEach((item, index) => {
-      if (item.submenu && item.submenu.length > 0) {
-        const itemKey = item.href || `nav-item-${index}`;
-        const hasActiveSubmenu = item.submenu.some(
-          (sub) => pathname === sub.href
-        );
-        if (hasActiveSubmenu) {
-          setExpandedItems((prev) => new Set(prev).add(itemKey));
-        }
-      }
-    });
-  }, [pathname, resolvedNavItems]);
+    // Initial expansion based on active route
+    const activeKeys = getActiveExpandedKeys(navItems, pathname);
 
+    // Only update if we found active keys (prevents collapsing manually opened items on navigation if we wanted persistence, but here we likely want to auto-expand active)
+    // Actually, we should probably merge with previous if we wanted to keep others open, 
+    // but standard behavior is usually to ensure active path is expanded.
+    // The previous logic was "add to set".
+    if (activeKeys.size > 0) {
+      setExpandedItems(prev => {
+        const next = new Set(prev);
+        activeKeys.forEach(k => next.add(k));
+        return next;
+      });
+    }
+  }, [pathname, navItems]);
 
   return (
     <>

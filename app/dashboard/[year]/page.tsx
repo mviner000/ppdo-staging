@@ -18,7 +18,7 @@ export default function DashboardYearPage() {
   if (isNaN(year)) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500 font-semibold">Invalid fiscal year</p>
+        <p className="text-red-500 font-semibold">Invalid year</p>
         <p className="text-zinc-600 dark:text-zinc-400 text-sm mt-2">
           Please select a valid year from the dashboard
         </p>

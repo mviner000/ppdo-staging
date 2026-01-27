@@ -8,6 +8,7 @@ import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { Toaster } from "@/components/ui/sonner";
 import { AccentColorProvider } from "../contexts/AccentColorContext";
+import { ProgressBar } from "@/components/providers/ProgressBar";
 import { ChangelogBanner } from "@/components/ui/changelog-banner";
 import { getLatestChangelog } from "@/data/changelog-data";
 
@@ -40,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const latestChangelog = getLatestChangelog();
-  
+
   return (
     <ConvexAuthNextjsServerProvider>
       <html lang="en">
@@ -50,6 +51,7 @@ export default function RootLayout({
           <ConvexClientProvider>
             <ThemeProvider>
               <AccentColorProvider>
+                <ProgressBar />
                 {/* Changelog Banner - Shows on all pages */}
                 <ChangelogBanner
                   version={latestChangelog.version}
@@ -58,9 +60,9 @@ export default function RootLayout({
                   dismissible={true}
                   storageKey={`changelog-${latestChangelog.version}-dismissed`}
                 />
-                
+
                 {children}
-                
+
                 <Toaster />
               </AccentColorProvider>
             </ThemeProvider>
