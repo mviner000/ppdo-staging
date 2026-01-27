@@ -11,7 +11,7 @@ import {
     Cell,
 } from "recharts";
 import { DashboardChartCard } from "./DashboardChartCard";
-import { useAccentColor } from "../../../contexts/AccentColorContext";
+
 
 interface ProjectStatusData {
     status: string;
@@ -28,13 +28,12 @@ export function ProjectStatusVerticalBar({
     data,
     isLoading,
 }: ProjectStatusVerticalBarProps) {
-    const { accentColorValue } = useAccentColor();
 
     if (isLoading) {
         return (
             <DashboardChartCard title="Project Status" height={300}>
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-500"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
                 </div>
             </DashboardChartCard>
         );
@@ -56,13 +55,13 @@ export function ProjectStatusVerticalBar({
                         dataKey="status"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: "#6B7280", fontSize: 12 }}
+                        tick={{ fill: "#6B7280", fontSize: 13, fontWeight: 600 }}
                         dy={10}
                     />
                     <YAxis
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: "#6B7280", fontSize: 12 }}
+                        tick={{ fill: "#6B7280", fontSize: 13, fontWeight: 600 }}
                     />
                     <Tooltip
                         cursor={{ fill: "rgba(0,0,0,0.05)" }}
@@ -75,7 +74,7 @@ export function ProjectStatusVerticalBar({
                     />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                         {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color || accentColorValue} />
+                            <Cell key={`cell-${index}`} fill={entry.color || "#15803D"} />
                         ))}
                     </Bar>
                 </BarChart>

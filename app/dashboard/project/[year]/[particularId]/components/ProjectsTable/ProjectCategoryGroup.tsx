@@ -1,6 +1,8 @@
 // app/dashboard/project/budget/[particularId]/components/ProjectsTable/ProjectCategoryGroup.tsx
 
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Project, ProjectCategory } from "../../types";
@@ -54,10 +56,18 @@ export function ProjectCategoryGroup({
 
   const headerStyle = getCategoryHeaderStyle(category);
 
+  const animationConfig = useReducedMotion();
+
   return (
     <>
       {/* Category Header Row */}
-      <tr className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800">
+      <motion.tr
+        initial={animationConfig.shouldAnimate ? { opacity: 0, y: 6 } : undefined}
+        animate={animationConfig.shouldAnimate ? { opacity: 1, y: 0 } : undefined}
+        exit={animationConfig.shouldAnimate ? { opacity: 0, y: -6 } : undefined}
+        transition={{ duration: animationConfig.duration, ease: animationConfig.ease }}
+        className="bg-zinc-50 dark:bg-zinc-900 border-t-2 border-zinc-100 dark:border-zinc-800"
+      >
         {canManageBulkActions && (
           <td
             className="px-3 py-2 text-center"
@@ -86,15 +96,15 @@ export function ProjectCategoryGroup({
             ({projects.length} {projects.length === 1 ? 'project' : 'projects'})
           </span>
         </td>
-      </tr>
+      </motion.tr>
 
       {/* Project Rows */}
-      {projects.map((project) => {
+      <AnimatePresence initial={false} mode="popLayout">
+        {projects.map((project) => {
         const isNewProject = project.id === newlyAddedProjectId;
         const isSelected = selectedIds.has(project.id);
         const rowRef = isNewProject ? React.createRef<HTMLTableRowElement>() : undefined;
         const isExpanded = expandedRemarks.has(project.id); // 🆕 CHECK IF EXPANDED
-
         return (
           <ProjectsTableRow
             key={project.id}
@@ -113,6 +123,7 @@ export function ProjectCategoryGroup({
           />
         );
       })}
+      </AnimatePresence>
     </>
   );
 }

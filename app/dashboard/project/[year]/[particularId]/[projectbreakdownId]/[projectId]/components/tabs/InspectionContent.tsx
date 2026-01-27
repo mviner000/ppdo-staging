@@ -9,13 +9,16 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { NewInspectionForm } from "../modals/NewInspectionForm";
 import { InspectionDetailsModal } from "../modals/InspectionDetailsModal";
+import { InspectionsDataTable } from "../InspectionsDataTable";
+import { InspectionViewToggle } from "../InspectionViewToggle";
 
 interface InspectionContentProps {
-  data: any[];
-  projectId: Id<"projects">; // 🔧 Accept projectId as prop
+  projectId: Id<"projects">;
+  viewMode?: "table" | "list"
+  onViewModeChange?: (mode: "table" | "list") => void
 }
 
-export const InspectionContent: React.FC<InspectionContentProps> = ({ data, projectId }) => {
+export const InspectionContent: React.FC<InspectionContentProps> = ({ projectId, viewMode = "table", onViewModeChange }) => {
   const inspections = useQuery(api.inspections.listInspectionsByProject, {
     projectId,
   });
@@ -82,7 +85,32 @@ export const InspectionContent: React.FC<InspectionContentProps> = ({ data, proj
   if (!inspections) {
     return (
       <div className="p-6">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Loading inspections...</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inspections</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Loading...</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {onViewModeChange && (
+              <InspectionViewToggle viewMode={viewMode} onChange={onViewModeChange} />
+            )}
+            <Button 
+              onClick={() => setIsFormOpen(true)} 
+              className="bg-[#4FBA76] hover:bg-[#3d9660] text-white"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Inspection
+            </Button>
+          </div>
+        </div>
+        
+        <div className="animate-pulse space-y-3">
+          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        </div>
       </div>
     );
   }
@@ -105,24 +133,29 @@ export const InspectionContent: React.FC<InspectionContentProps> = ({ data, proj
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inspections</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {inspections.length} total inspection{inspections.length !== 1 ? "s" : ""}
+            {inspections === undefined ? "..." : `${inspections.length} total inspection${inspections.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Button 
-          onClick={() => setIsFormOpen(true)} 
-          className="bg-[#15803D] hover:bg-[#166534] text-white"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New Inspection
-        </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          {onViewModeChange && (
+            <InspectionViewToggle viewMode={viewMode} onChange={onViewModeChange} />
+          )}
+          <Button 
+            onClick={() => setIsFormOpen(true)} 
+            className="bg-[#4FBA76] hover:bg-[#3d9660] text-white"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add New Inspection
+          </Button>
+        </div>
       </div>
       
       {inspections.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-3"
+            className="mx-auto h-12 w-12 text-gray-400 mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -134,11 +167,26 @@ export const InspectionContent: React.FC<InspectionContentProps> = ({ data, proj
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <p className="text-sm text-gray-500 dark:text-gray-400">No inspections yet</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          <p className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">No inspections yet</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Create your first inspection to get started
           </p>
+          <Button 
+            onClick={() => setIsFormOpen(true)} 
+            className="bg-[#4FBA76] hover:bg-[#3d9660] text-white"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Your First Inspection
+          </Button>
         </div>
+      ) : viewMode === "table" ? (
+        <InspectionsDataTable
+          data={inspections}
+          isLoading={false}
+          onViewDetails={handleViewDetails}
+        />
       ) : (
         <div className="space-y-4">
           {inspections.map((inspection) => (
@@ -158,7 +206,7 @@ export const InspectionContent: React.FC<InspectionContentProps> = ({ data, proj
                 </span>
               </div>
               
-              {/* Image thumbnails - Facebook style */}
+              {/* Image thumbnails */}
               {inspection.imageCount > 0 && inspection.thumbnails && inspection.thumbnails.length > 0 && (
                 <div className="grid grid-cols-4 gap-1 mb-3">
                   {inspection.thumbnails.map((url: string, idx: number) => (
@@ -186,7 +234,7 @@ export const InspectionContent: React.FC<InspectionContentProps> = ({ data, proj
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex items-center gap-1">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 01-2-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span>{formatDateShort(new Date(inspection.inspectionDate))}</span>
                 </div>

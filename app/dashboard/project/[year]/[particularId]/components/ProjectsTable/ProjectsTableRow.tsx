@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Pin, MoreHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Project } from "../../types";
 import { ANIMATION } from "../../constants";
@@ -43,6 +44,7 @@ export function ProjectsTableRow({
 }: ProjectsTableRowProps) {
   
   const [isHoveringRemarks, setIsHoveringRemarks] = useState(false); // 🆕 HOVER STATE
+  const animationConfig = useReducedMotion();
   
   const rowClassName = `
     hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer transition-colors
@@ -53,21 +55,21 @@ export function ProjectsTableRow({
   return (
     <motion.tr
       ref={rowRef}
-      initial={isNewlyAdded ? {
+      initial={animationConfig.shouldAnimate && isNewlyAdded ? {
         boxShadow: `0 0 0 3px ${accentColor}`,
         scale: 1.01
-      } : false}
-      animate={isNewlyAdded ? {
+      } : undefined}
+      animate={animationConfig.shouldAnimate && isNewlyAdded ? {
         boxShadow: [
           `0 0 0 3px ${accentColor}`,
           `0 0 0 0px ${accentColor}00`,
         ],
         scale: [1.01, 1]
-      } : {}}
-      transition={isNewlyAdded ? {
+      } : undefined}
+      transition={animationConfig.shouldAnimate && isNewlyAdded ? {
         duration: ANIMATION.NEW_PROJECT_DURATION / 1000,
-        ease: "easeOut"
-      } : {}}
+        ease: animationConfig.ease,
+      } : undefined}
       onContextMenu={onContextMenu}
       onClick={onClick}
       className={rowClassName}

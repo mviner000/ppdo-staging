@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import { Pin, PinOff, History, Edit, Trash2 } from "lucide-react";
 import { ContextMenuState } from "../../types";
+import { useContextMenuPosition } from "@/components/ui/hooks/useContextMenuPosition";
 
 interface FundsContextMenuProps {
     contextMenu: ContextMenuState | null;
@@ -43,17 +44,26 @@ export function FundsContextMenu({
         };
     }, [contextMenu, onClose]);
 
+    // Call hook before early return to follow Rules of Hooks
+    const { ref, style } = useContextMenuPosition(
+      contextMenu?.x ?? 0,
+      contextMenu?.y ?? 0
+    );
+
     if (!contextMenu) return null;
 
     const isPinned = contextMenu.entity?.isPinned;
 
     return (
         <div
-            ref={menuRef}
+            ref={(node) => {
+                menuRef.current = node;
+                (ref as any).current = node;
+            }}
             className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-1 z-50 min-w-[220px]"
             style={{
-                top: `${contextMenu.y}px`,
-                left: `${contextMenu.x}px`
+                top: (style as any).top ? `${(style as any).top}px` : undefined,
+                left: (style as any).left ? `${(style as any).left}px` : undefined,
             }}
         >
             {/* Pin/Unpin */}

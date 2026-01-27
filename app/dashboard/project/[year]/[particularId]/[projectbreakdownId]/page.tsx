@@ -36,12 +36,12 @@ import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/Bud
 import { useEntityStats, useEntityMetadata } from "@/lib/hooks/useEntityStats";
 
 // Utils
-import { extractProjectId, getParticularFullName, getStatusColor } from "./utils/page-helpers";
+import { extractProjectId, getParticularFullName, getStatusColor, extractCleanName } from "./utils/page-helpers";
 
 export default function ProjectBreakdownPage() {
   const params = useParams();
   const { setCustomBreadcrumbs } = useBreadcrumb();
-  
+
   // Extract Params
   const year = params.year as string;
   const particularId = decodeURIComponent(params.particularId as string);
@@ -62,7 +62,7 @@ export default function ProjectBreakdownPage() {
     api.projects.get,
     projectId ? { id: projectId as Id<"projects"> } : "skip"
   );
-  
+
   const parentBudgetItem = useQuery(
     api.budgetItems.get,
     project?.budgetItemId ? { id: project.budgetItemId } : "skip"
@@ -83,16 +83,17 @@ export default function ProjectBreakdownPage() {
   // Effects
   useEffect(() => {
     if (project) {
+      const cleanProjectName = extractCleanName(slugWithId);
       setCustomBreadcrumbs([
         { label: "Home", href: "/dashboard" },
         { label: "Project", href: "/dashboard/project" },
         { label: `${year}`, href: `/dashboard/project/${year}` },
         { label: particularFullName, href: `/dashboard/project/${year}/${encodeURIComponent(particularId)}` },
-        { label: project.implementingOffice || "Loading..." },
+        { label: cleanProjectName },
       ]);
     }
     return () => setCustomBreadcrumbs(null);
-  }, [project, particularFullName, particularId, year, setCustomBreadcrumbs]);
+  }, [project, particularFullName, particularId, year, slugWithId, setCustomBreadcrumbs]);
 
   // Mutations
   const createBreakdown = useMutation(api.govtProjects.createProjectBreakdown);
@@ -131,7 +132,7 @@ export default function ProjectBreakdownPage() {
         reportDate: breakdownData.reportDate || Date.now(),
         reason: "Created via dashboard form",
       } as any); // Cast to any to satisfy specific Convex args if types slightly mismatch
-      
+
       toast.success("Breakdown record created successfully!");
       setShowAddModal(false);
     } catch (error: any) {
@@ -145,9 +146,13 @@ export default function ProjectBreakdownPage() {
         toast.error("No breakdown selected");
         return;
       }
+      // Remove client-only / audit fields not accepted by the server validator
+      // (e.g. `batchId` is present on records created by bulk imports)
+      const { batchId, ...validData } = breakdownData as any;
+
       await updateBreakdown({
         breakdownId: selectedBreakdown._id as Id<"govtProjectBreakdowns">,
-        ...breakdownData,
+        ...validData,
         projectId: projectId as Id<"projects">,
         reason: "Updated via dashboard edit form",
       } as any);
@@ -208,7 +213,7 @@ export default function ProjectBreakdownPage() {
       />
 
       {showHeader && project && parentBudgetItem && (
-        <StatusChainCard 
+        <StatusChainCard
           breakdownCount={breakdownHistory?.length || 0}
           stats={stats}
           projectStatus={project.status}
@@ -229,10 +234,10 @@ export default function ProjectBreakdownPage() {
           breakdownCounts={
             stats
               ? {
-                  completed: stats.statusCounts.completed,
-                  delayed: stats.statusCounts.delayed,
-                  ongoing: stats.statusCounts.ongoing,
-                }
+                completed: stats.statusCounts.completed,
+                delayed: stats.statusCounts.delayed,
+                ongoing: stats.statusCounts.ongoing,
+              }
               : undefined
           }
         />
@@ -281,10 +286,10 @@ export default function ProjectBreakdownPage() {
       )}
 
       {showEditModal && selectedBreakdown && (
-        <Modal 
-          isOpen={showEditModal} 
-          onClose={() => { setShowEditModal(false); setSelectedBreakdown(null); }} 
-          title="Edit Breakdown Record" 
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => { setShowEditModal(false); setSelectedBreakdown(null); }}
+          title="Edit Breakdown Record"
           size="xl"
         >
           <BreakdownForm

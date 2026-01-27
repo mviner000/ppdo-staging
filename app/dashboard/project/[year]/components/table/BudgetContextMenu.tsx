@@ -6,6 +6,7 @@ import { forwardRef } from "react";
 import { Pin, PinOff, Edit, Trash2, Calculator } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { BudgetItem } from "@/app/dashboard/project/[year]/types";
+import { useContextMenuPosition } from "@/components/ui/hooks/useContextMenuPosition";
 
 interface BudgetContextMenuProps {
   position: { x: number; y: number };
@@ -36,13 +37,19 @@ export const BudgetContextMenu = forwardRef<
   // Get current auto-calculate state (default to true for backward compatibility)
   const isAutoCalculate = (item as any).autoCalculateBudgetUtilized !== false;
 
+  const { ref: posRef, style } = useContextMenuPosition(position.x, position.y);
+
   return (
     <div
-      ref={ref}
+      ref={(node) => {
+        if (typeof ref === "function") ref(node as any);
+        else if (ref) (ref as any).current = node;
+        (posRef as any).current = node;
+      }}
       className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-1 z-50 min-w-[220px]"
       style={{
-        top: `${position.y}px`,
-        left: `${position.x}px`,
+        top: (style as any).top ? `${(style as any).top}px` : undefined,
+        left: (style as any).left ? `${(style as any).left}px` : undefined,
       }}
     >
       {/* Pin/Unpin */}

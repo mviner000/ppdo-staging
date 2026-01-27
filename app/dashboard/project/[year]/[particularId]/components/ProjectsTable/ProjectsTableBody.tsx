@@ -1,8 +1,10 @@
 // app/dashboard/project/budget/[particularId]/components/ProjectsTable/ProjectsTableBody.tsx
 
 import React from "react";
+// animations handled within row and group components
 import { Project, GroupedProjects } from "../../types";
 import { ProjectCategoryGroup } from "./ProjectCategoryGroup";
+
 
 interface ProjectsTableBodyProps {
   groupedProjects: [string, GroupedProjects][];
@@ -38,14 +40,13 @@ export function ProjectsTableBody({
   expandedRemarks, // 🆕 NEW PROP
   onToggleRemarks, // 🆕 NEW PROP
 }: ProjectsTableBodyProps) {
-  
-  // Empty state
+  // No outer motion wrapper here to preserve valid table structure.
   if (groupedProjects.length === 0) {
     return (
       <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
         <tr>
-          <td 
-            colSpan={totalVisibleColumns + (canManageBulkActions ? 1 : 0)} 
+          <td
+            colSpan={totalVisibleColumns + (canManageBulkActions ? 1 : 0)}
             className="px-4 py-12 text-center text-sm text-zinc-500"
           >
             No projects found matching your criteria.

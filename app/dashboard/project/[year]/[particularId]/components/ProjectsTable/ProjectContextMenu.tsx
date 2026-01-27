@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from "react";
 import { Pin, PinOff, History, FolderOpen, Edit, Trash2, Calculator } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ProjectContextMenuState } from "../../types";
+import { useContextMenuPosition } from "@/components/ui/hooks/useContextMenuPosition";
 
 interface ProjectContextMenuProps {
   contextMenu: ProjectContextMenuState | null;
@@ -61,13 +62,19 @@ export function ProjectContextMenu({
     ? (contextMenu.entity as any).autoCalculateBudgetUtilized !== false
     : true;
 
+  const { ref, style } = useContextMenuPosition(contextMenu.x, contextMenu.y);
+
   return (
     <div
-      ref={menuRef}
+      ref={(node) => {
+        // preserve menuRef behavior for outside-click detection
+        menuRef.current = node;
+        (ref as any).current = node;
+      }}
       className="fixed bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 py-1 z-50 min-w-[220px]"
-      style={{ 
-        top: `${contextMenu.y}px`, 
-        left: `${contextMenu.x}px` 
+      style={{
+        top: (style as any).top ? `${(style as any).top}px` : undefined,
+        left: (style as any).left ? `${(style as any).left}px` : undefined,
       }}
     >
       {/* Pin/Unpin */}

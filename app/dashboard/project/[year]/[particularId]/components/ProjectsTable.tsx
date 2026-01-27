@@ -80,7 +80,7 @@ export function ProjectsTable({
     api.accessRequests.getParticularPendingCount,
     { particularCode: particularId }
   );
-  
+
   const togglePinProject = useMutation(api.projects.togglePin);
   const bulkMoveToTrash = useMutation(api.projects.bulkMoveToTrash);
   const bulkUpdateCategory = useMutation(api.projects.bulkUpdateCategory);
@@ -106,7 +106,7 @@ export function ProjectsTable({
   const [selectedCategoryProject, setSelectedCategoryProject] = useState<Project | null>(null);
   const [singleCategoryId, setSingleCategoryId] = useState<Id<"projectCategories"> | undefined>(undefined);
   const [pendingBulkCategoryId, setPendingBulkCategoryId] = useState<Id<"projectCategories"> | undefined>(undefined);
-  
+
   // ==================== STATE: SELECTION & FILTERS ====================
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,13 +134,13 @@ export function ProjectsTable({
   // 🆕 Filter by category first
   const categoryFilteredProjects = useMemo(() => {
     if (categoryFilter.length === 0) return projects;
-    return projects.filter((project) => 
+    return projects.filter((project) =>
       categoryFilter.includes(project.categoryId || "uncategorized")
     );
   }, [projects, categoryFilter]);
 
   // Apply remaining filters and sorting
-  const filteredAndSortedProjects = useMemo(() => 
+  const filteredAndSortedProjects = useMemo(() =>
     applyFilters(categoryFilteredProjects, createProjectFilterConfig(
       searchQuery,
       statusFilter,
@@ -156,6 +156,22 @@ export function ProjectsTable({
   const groupedProjects = useMemo(() => {
     return groupProjectsByCategory(filteredAndSortedProjects, allCategories);
   }, [filteredAndSortedProjects, allCategories]);
+
+  // Prepare categories for the category filter UI (include counts)
+  const categoriesForFilter = useMemo(() => {
+    const total = filteredAndSortedProjects.length;
+    // groupedProjects contains only groups with projects (>0)
+    const groups = groupedProjects.map(([id, group]) => ({
+      _id: id,
+      fullName: group.category?.fullName || "Uncategorized",
+      count: group.projects.length,
+    }));
+
+    return [
+      { _id: "all", fullName: "All Categories", count: total },
+      ...groups,
+    ];
+  }, [groupedProjects, filteredAndSortedProjects]);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -184,9 +200,9 @@ export function ProjectsTable({
   }), [totals]);
 
   // Selection state
-  const isAllSelected = filteredAndSortedProjects.length > 0 && 
+  const isAllSelected = filteredAndSortedProjects.length > 0 &&
     selectedIds.size === filteredAndSortedProjects.length;
-  const isIndeterminate = selectedIds.size > 0 && 
+  const isIndeterminate = selectedIds.size > 0 &&
     selectedIds.size < filteredAndSortedProjects.length;
 
   // Count visible columns
@@ -197,24 +213,24 @@ export function ProjectsTable({
   // ==================== URL SYNC HELPER ====================
   const updateURL = (key: string, values: string[]) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Remove existing params with this key
     params.delete(key);
-    
+
     // Add new values
     if (values.length > 0) {
       values.forEach(value => params.append(key, value));
     }
-    
-    const newURL = params.toString() 
+
+    const newURL = params.toString()
       ? `${pathname}?${params.toString()}`
       : pathname;
-    
+
     router.replace(newURL, { scroll: false });
   };
 
   // ==================== EFFECTS ====================
-  
+
   // 🆕 Initialize category filter from URL (ONLY ON MOUNT)
   useEffect(() => {
     const categoryParams = searchParams.getAll("category");
@@ -235,7 +251,7 @@ export function ProjectsTable({
       }
     }
 
-    const sessionYear = typeof window !== "undefined" 
+    const sessionYear = typeof window !== "undefined"
       ? sessionStorage.getItem("budget_year_preference")
       : null;
     if (sessionYear) {
@@ -252,7 +268,7 @@ export function ProjectsTable({
     const currentParams = searchParams.getAll("category");
     const isSame = currentParams.length === categoryFilter.length &&
       currentParams.every(p => categoryFilter.includes(p));
-    
+
     if (!isSame) {
       updateURL("category", categoryFilter);
     }
@@ -265,7 +281,7 @@ export function ProjectsTable({
     const currentYears = yearFilter.map(String);
     const isSame = currentParams.length === currentYears.length &&
       currentParams.every(p => currentYears.includes(p));
-    
+
     if (!isSame) {
       updateURL("year", yearFilter.map(String));
     }
@@ -311,9 +327,9 @@ export function ProjectsTable({
   const handleSort = (field: ProjectSortField) => {
     if (sortField === field) {
       setSortDirection(
-        sortDirection === "asc" ? "desc" : 
-        sortDirection === "desc" ? null : 
-        "asc"
+        sortDirection === "asc" ? "desc" :
+          sortDirection === "desc" ? null :
+            "asc"
       );
       if (sortDirection === "desc") setSortField(null);
     } else {
@@ -330,15 +346,19 @@ export function ProjectsTable({
     ) {
       return;
     }
-    
+
     const pathSegments = pathname.split('/');
     const projectIndex = pathSegments.findIndex(seg => seg === 'project');
     const year = pathSegments[projectIndex + 1];
-    
+
     const projectSlug = createProjectSlug(project.particulars, project.id);
-    router.push(
-      `/dashboard/project/${year}/${encodeURIComponent(particularId)}/${projectSlug}`
-    );
+
+    // The `particularId` is already decoded by the page-level route handler.
+    // Avoid calling `decodeURIComponent` here which can throw on malformed inputs.
+    const encodedParticularId = encodeURIComponent(particularId);
+    const targetUrl = `/dashboard/project/${year}/${encodedParticularId}/${projectSlug}`;
+
+    router.push(targetUrl);
   };
 
   const handleContextMenu = (project: Project, e: React.MouseEvent) => {
@@ -349,19 +369,19 @@ export function ProjectsTable({
   const handleBulkTrash = async () => {
     try {
       const toastId = toast.loading(`Moving ${selectedIds.size} project(s) to trash...`);
-      
-      const result = await bulkMoveToTrash({ 
-        ids: Array.from(selectedIds) as Id<"projects">[] 
+
+      const result = await bulkMoveToTrash({
+        ids: Array.from(selectedIds) as Id<"projects">[]
       });
-      
+
       toast.dismiss(toastId);
       toast.success(`Successfully moved ${selectedIds.size} project(s) to trash`);
-      
+
       const failed = (result as any)?.failed || 0;
       if (failed > 0) {
         toast.info(`Note: ${failed} project(s) failed to move`);
       }
-      
+
       setSelectedIds(new Set());
     } catch (error) {
       toast.error("Failed to move projects to trash");
@@ -377,18 +397,18 @@ export function ProjectsTable({
 
   const confirmBulkCategoryUpdate = async () => {
     if (!pendingBulkCategoryId) return;
-    
+
     try {
       const toastId = toast.loading(`Updating ${selectedIds.size} project(s)...`);
-      
+
       await bulkUpdateCategory({
         ids: Array.from(selectedIds) as Id<"projects">[],
         categoryId: pendingBulkCategoryId
       });
-      
+
       toast.dismiss(toastId);
       toast.success(`Successfully updated ${selectedIds.size} project(s)`);
-      
+
       setSelectedIds(new Set());
       setPendingBulkCategoryId(undefined);
       setShowBulkCategoryConfirmModal(false);
@@ -401,21 +421,21 @@ export function ProjectsTable({
 
   const handleToggleAutoCalculate = async (newValue: boolean) => {
     if (!contextMenu) return;
-    
+
     setIsTogglingAutoCalculate(true);
-    
+
     try {
       const toastId = toast.loading("Updating auto-calculate mode...");
-      
+
       await toggleAutoCalculate({
         id: contextMenu.entity.id as Id<"projects">,
         autoCalculate: newValue,
       });
-      
+
       toast.dismiss(toastId);
       toast.success(`Switched to ${newValue ? 'auto-calculate' : 'manual'} mode`, {
-        description: newValue 
-          ? "Budget utilized will be calculated from breakdowns" 
+        description: newValue
+          ? "Budget utilized will be calculated from breakdowns"
           : "You can now enter budget utilized manually"
       });
     } catch (error) {
@@ -438,20 +458,20 @@ export function ProjectsTable({
 
   const handleBulkToggleAutoCalculate = async (autoCalculate: boolean, reason?: string) => {
     setIsBulkToggling(true);
-    
+
     try {
       const result = await bulkToggleAutoCalculate({
         ids: Array.from(selectedIds) as Id<"projects">[],
         autoCalculate,
         reason,
       });
-      
+
       const count = (result as any).count || selectedIds.size;
-      
+
       toast.success(`Updated ${count} project(s)`, {
         description: `All items switched to ${autoCalculate ? 'auto-calculate' : 'manual'} mode`
       });
-      
+
       setSelectedIds(new Set());
       setShowBulkToggleDialog(false);
     } catch (error) {
@@ -529,10 +549,10 @@ export function ProjectsTable({
 
   const saveSingleCategoryChange = async () => {
     if (!selectedCategoryProject) return;
-    
+
     try {
       const toastId = toast.loading("Updating category...");
-      
+
       await updateProject({
         id: selectedCategoryProject.id as Id<"projects">,
         categoryId: singleCategoryId,
@@ -546,10 +566,10 @@ export function ProjectsTable({
         projectManagerId: selectedCategoryProject.projectManagerId as Id<"users">,
         reason: "Category updated via context menu"
       });
-      
+
       toast.dismiss(toastId);
       toast.success("Category updated successfully");
-      
+
       setShowSingleCategoryModal(false);
       setSelectedCategoryProject(null);
     } catch (error) {
@@ -560,7 +580,7 @@ export function ProjectsTable({
 
   const handlePinProject = async () => {
     if (!contextMenu) return;
-    
+
     try {
       await togglePinProject({ id: contextMenu.entity.id as Id<"projects"> });
     } catch (error) {
@@ -600,7 +620,7 @@ export function ProjectsTable({
   return (
     <>
       <div className="print-area bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-visible transition-all duration-300 shadow-sm">
-        
+
         {/* Toolbar */}
         <ProjectsTableToolbar
           searchQuery={searchQuery}
@@ -630,7 +650,7 @@ export function ProjectsTable({
 
         {/* 🆕 Category Filter - YouTube Style */}
         <ProjectCategoryFilter
-          categories={allCategories}
+          categories={categoriesForFilter}
           selectedCategoryIds={categoryFilter}
           onSelectionChange={handleCategoryFilterChange}
           accentColor={accentColorValue}
@@ -639,7 +659,7 @@ export function ProjectsTable({
         {/* Table */}
         <div className="overflow-x-auto max-h-[600px] relative">
           <table className="w-full">
-            
+
             {/* Header */}
             <ProjectsTableHeader
               hiddenColumns={hiddenColumns}
@@ -823,7 +843,7 @@ export function ProjectsTable({
                 Current Category:{" "}
                 {selectedCategoryProject.categoryId
                   ? allCategories?.find((c) => c._id === selectedCategoryProject.categoryId)
-                      ?.fullName
+                    ?.fullName
                   : "Uncategorized"}
               </p>
             </div>
@@ -863,9 +883,8 @@ export function ProjectsTable({
         onClose={() => setShowSearchWarningModal(false)}
         onConfirm={handleConfirmSearchClear}
         title="Clear Selection?"
-        message={`${selectedIds.size} ${
-          selectedIds.size === 1 ? "item" : "items"
-        } will be unselected. Do you want to proceed?`}
+        message={`${selectedIds.size} ${selectedIds.size === 1 ? "item" : "items"
+          } will be unselected. Do you want to proceed?`}
         confirmText="Proceed"
         variant="default"
       />

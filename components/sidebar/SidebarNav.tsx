@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { NavCategory } from "./types";
 import {
@@ -20,6 +20,17 @@ interface SidebarNavProps {
 }
 
 export function SidebarNav({ categories, isMinimized, pathname, accentColor, expanded, setExpanded }: SidebarNavProps) {
+  const [lastClicked, setLastClicked] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("ppdo:lastClickedNav");
+      if (v) setLastClicked(v);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   return (
     <TooltipProvider delayDuration={0}>
       <nav className="flex-1 overflow-y-auto p-4" aria-label="Main Navigation">
@@ -37,7 +48,9 @@ export function SidebarNav({ categories, isMinimized, pathname, accentColor, exp
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const itemKey = item.href || `nav-item-${category.name}-${itemIndex}`;
                   const isExpanded = expanded.has(itemKey);
-                  const isActive = item.href ? pathname === item.href : item.submenu?.some((sub) => pathname === sub.href);
+                  const isActive = item.href
+                    ? pathname === item.href || lastClicked === item.href || lastClicked === itemKey
+                    : (item.submenu?.some((sub) => pathname === sub.href || lastClicked === sub.href) ?? false);
 
                   const tooltipContent = item.name + (item.disabled ? " (Coming soon)" : "");
 
@@ -90,11 +103,17 @@ export function SidebarNav({ categories, isMinimized, pathname, accentColor, exp
                         {!isMinimized && isExpanded && item.submenu && (
                           <ul className="ml-4 mt-1 space-y-1 border-l-2 border-zinc-200 dark:border-zinc-800 pl-4">
                             {item.submenu.map((subItem) => {
-                              const isSubActive = pathname === subItem.href;
+                              const isSubActive = pathname === subItem.href || lastClicked === subItem.href;
                               return (
                                 <li key={subItem.href}>
                                   <Link
                                     href={subItem.href}
+                                    onClick={() => {
+                                      try {
+                                        localStorage.setItem("ppdo:lastClickedNav", subItem.href);
+                                      } catch {}
+                                      setLastClicked(subItem.href);
+                                    }}
                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 relative ${isSubActive ? "font-medium" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
                                     style={isSubActive ? { backgroundColor: `${accentColor}10`, color: accentColor } : undefined}
                                     aria-label={subItem.name}
@@ -143,6 +162,13 @@ export function SidebarNav({ categories, isMinimized, pathname, accentColor, exp
                         <TooltipTrigger asChild>
                           <Link
                             href={item.href || "#"}
+                            onClick={() => {
+                              const key = item.href || itemKey;
+                              try {
+                                localStorage.setItem("ppdo:lastClickedNav", key);
+                              } catch {}
+                              setLastClicked(key);
+                            }}
                             className={`flex items-center rounded-xl transition-all duration-200 group relative ${isMinimized ? "md:justify-center md:px-3 md:py-3" : "gap-3 px-4 py-3"} ${isActive ? "font-medium" : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
                             style={isActive ? { backgroundColor: `${accentColor}10`, color: accentColor } : undefined}
                             aria-label={tooltipContent}

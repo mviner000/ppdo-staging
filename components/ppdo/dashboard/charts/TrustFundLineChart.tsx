@@ -11,7 +11,7 @@ import {
     Legend,
 } from "recharts";
 import { DashboardChartCard } from "./DashboardChartCard";
-import { useAccentColor } from "../../../contexts/AccentColorContext";
+
 
 interface TrustFundTrendData {
     year: string;
@@ -28,13 +28,12 @@ export function TrustFundLineChart({
     data,
     isLoading,
 }: TrustFundLineChartProps) {
-    const { accentColorValue } = useAccentColor();
 
     if (isLoading) {
         return (
             <DashboardChartCard title="Trust Fund Trends" height={300}>
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-500"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
                 </div>
             </DashboardChartCard>
         );
@@ -103,9 +102,9 @@ export function TrustFundLineChart({
                         type="monotone"
                         dataKey="utilized"
                         name="Funds Utilized"
-                        stroke={accentColorValue}
+                        stroke="#15803D"
                         strokeWidth={2}
-                        dot={{ r: 4, fill: accentColorValue }}
+                        dot={{ r: 4, fill: "#15803D" }}
                         activeDot={{ r: 6 }}
                     />
                 </LineChart>

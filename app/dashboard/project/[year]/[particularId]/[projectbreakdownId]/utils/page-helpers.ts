@@ -16,6 +16,26 @@ export const extractProjectId = (slugWithId: string): string => {
 };
 
 /**
+ * Extracts clean display name from a slug by removing the ID suffix
+ * Example: "Flood Control Project 5-Kd714qaetqg7hh60×915zcffzd7zy2pp" -> "Flood Control Project 5"
+ */
+export const extractCleanName = (slugWithId: string): string => {
+  const parts = slugWithId.split('-');
+  const cleanParts: string[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    // Stop when we hit the ID (long alphanumeric segment >15 chars)
+    if (part.length > 15 && /^[a-z0-9]+$/i.test(part)) {
+      break;
+    }
+    cleanParts.push(part);
+  }
+
+  return cleanParts.join('-') || slugWithId;
+};
+
+/**
  * Maps particular ID to full name
  */
 export const getParticularFullName = (particular: string): string => {

@@ -10,7 +10,8 @@ import {
     Cell,
 } from "recharts";
 import { DashboardChartCard } from "./DashboardChartCard";
-import { useAccentColor } from "../../../contexts/AccentColorContext";
+import { useAccentColor } from "@/contexts/AccentColorContext";
+
 
 interface UtilizationData {
     department: string;
@@ -32,7 +33,7 @@ export function DepartmentUtilizationHorizontalBar({
         return (
             <DashboardChartCard title="Department Utilization" height={300}>
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-500"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderBottomColor: accentColorValue }}></div>
                 </div>
             </DashboardChartCard>
         );
@@ -60,9 +61,9 @@ export function DepartmentUtilizationHorizontalBar({
                         type="category"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: "#52525b", fontSize: 11, fontWeight: 500 }}
+                        tick={{ fill: "#52525b", fontSize: 13, fontWeight: 600 }}
                         className="dark:fill-zinc-300"
-                        width={120}
+                        width={140}
                     />
                     <Tooltip
                         cursor={{ fill: "rgba(0,0,0,0.02)" }}
@@ -75,11 +76,11 @@ export function DepartmentUtilizationHorizontalBar({
                             borderRadius: "10px",
                             border: "none",
                             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                            fontSize: "12px",
+                            fontSize: "13px",
                         }}
                         wrapperClassName="dark:[&>div]:!bg-zinc-800 dark:[&>div]:!text-zinc-50"
                     />
-                    <Bar dataKey="rate" fill={accentColorValue} radius={[0, 2, 2, 0]} barSize={24}>
+                    <Bar dataKey="rate" fill={accentColorValue} radius={[0, 4, 4, 0]} barSize={32}>
                         {data.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={accentColorValue} fillOpacity={1 - (index * 0.05)} />
                         ))}
