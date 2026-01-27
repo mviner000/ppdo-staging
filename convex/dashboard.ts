@@ -265,25 +265,33 @@ export const getSummaryData = query({
       // New Data
       timelineData,
       pieChartData: {
-        sector: Array.from(sectorMap.entries()).map(([name, value]) => ({ name, value, color: "#15803D" })), // Placeholder color, UI will handle palette
+        // Rainbow medium-light color palette for sectors
+        sector: Array.from(sectorMap.entries()).map(([name, value], index) => {
+          const sectorColors = ["#F472B6", "#A78BFA", "#60A5FA", "#34D399", "#FBBF24", "#FB923C", "#F87171", "#C084FC"];
+          return { name, value, color: sectorColors[index % sectorColors.length] };
+        }),
         finance: [
-          { name: "Utilized", value: totalUtil, color: "#15803D" },
-          { name: "Remaining", value: totalRemaining, color: "#86EFAC" } // Lighter green
+          { name: "Utilized", value: totalUtil, color: "#34D399" },    // Emerald
+          { name: "Remaining", value: totalRemaining, color: "#A5F3FC" } // Cyan light
         ],
         status: [
-          { name: "Completed", value: statusMap.completed, color: "#15803D" },
-          { name: "Ongoing", value: statusMap.ongoing, color: "#22C55E" },
-          { name: "Delayed", value: statusMap.delayed, color: "#EF4444" } // Red still makes sense for delayed? Or maybe a dark green/grey? Keeping red for updated alerts.
+          { name: "Completed", value: statusMap.completed, color: "#34D399" },  // Emerald
+          { name: "Ongoing", value: statusMap.ongoing, color: "#60A5FA" },      // Blue
+          { name: "Delayed", value: statusMap.delayed, color: "#F87171" }       // Red
         ],
+        // Rainbow medium-light colors for departments
         department: Array.from(deptMap.entries())
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 5) // Top 5
-          .map(([name, value]) => ({ name, value, color: "#15803D" })),
-        // 🆕 Budget Pie Chart: Allocated breakdown
+          .slice(0, 5)
+          .map(([name, value], index) => {
+            const deptColors = ["#F472B6", "#A78BFA", "#60A5FA", "#34D399", "#FBBF24"];
+            return { name, value, color: deptColors[index % deptColors.length] };
+          }),
+        // Budget Pie Chart: Allocated breakdown with distinct colors
         budget: [
-          { name: "Utilized", value: totalUtil, color: "#15803D" },       // Primary green (spent)
-          { name: "Obligated", value: obligatedNotUtilized, color: "#4ADE80" }, // Medium green (committed)
-          { name: "Unobligated", value: unobligated, color: "#BBF7D0" }  // Light green (available)
+          { name: "Utilized", value: totalUtil, color: "#34D399" },           // Emerald (spent)
+          { name: "Obligated", value: obligatedNotUtilized, color: "#60A5FA" }, // Blue (committed)
+          { name: "Unobligated", value: unobligated, color: "#FBBF24" }        // Amber (available)
         ],
         // Utilization rate for display
         utilizationRate: overallUtilizationRate

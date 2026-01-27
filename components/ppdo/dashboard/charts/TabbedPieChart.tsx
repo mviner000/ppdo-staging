@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DashboardChartCard } from "./DashboardChartCard";
 import { DashboardPieChartData } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
@@ -11,15 +11,28 @@ interface TabbedPieChartProps {
     isLoading?: boolean;
 }
 
+// Helper to format values based on tab type
+function formatValue(value: number, tabType: string): string {
+    if (tabType === 'finance' || tabType === 'budget') {
+        return new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            notation: "compact",
+            maximumFractionDigits: 1,
+        }).format(value);
+    }
+    return value.toLocaleString();
+}
+
 export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
-    const [activeTab, setActiveTab] = useState<keyof DashboardPieChartData>("sector");
+    const [activeTab, setActiveTab] = useState<keyof DashboardPieChartData>("budget");
 
     const tabs: { key: keyof DashboardPieChartData; label: string }[] = [
+        { key: "budget", label: "Budget" },
         { key: "sector", label: "Sector" },
         { key: "finance", label: "Finance" },
         { key: "status", label: "Status" },
         { key: "department", label: "Department" },
-        { key: "budget", label: "Budget" },
     ];
 
     if (isLoading) {
@@ -97,59 +110,75 @@ export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
                             </span>
                         </div>
                     ) : (
-                        <ResponsiveContainer width="100%" height={220} minWidth={200}>
-                            <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                                <Pie
-                                    data={activeData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={65}
-                                    outerRadius={90}
-                                    paddingAngle={2}
-                                    dataKey="value"
-                                >
-                                    {activeData.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={entry.color || "#15803D"}
-                                            strokeWidth={0}
+                        <div className="flex items-center h-full gap-4">
+                            {/* Pie Chart */}
+                            <div className="flex-shrink-0" style={{ width: 180, height: 180 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                                        <Pie
+                                            data={activeData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                            paddingAngle={2}
+                                            dataKey="value"
+                                        >
+                                            {activeData.map((entry, index) => (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={entry.color || "#15803D"}
+                                                    strokeWidth={0}
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: "#FFF",
+                                                borderRadius: "8px",
+                                                border: "none",
+                                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                                                fontSize: "13px",
+                                            }}
+                                            itemStyle={{ color: "#374151" }}
+                                            formatter={(value: number | undefined) => {
+                                                if (value === undefined) return ["0", ""];
+                                                if (activeTab === 'finance' || activeTab === 'budget') {
+                                                    return [new Intl.NumberFormat("en-PH", {
+                                                        style: "currency",
+                                                        currency: "PHP",
+                                                        notation: "compact",
+                                                    }).format(value), "Amount"];
+                                                }
+                                                return [value.toString(), ""];
+                                            }}
                                         />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: "#FFF",
-                                        borderRadius: "8px",
-                                        border: "none",
-                                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                                        fontSize: "13px",
-                                    }}
-                                    itemStyle={{ color: "#374151" }}
-                                    formatter={(value: number | undefined) => {
-                                        if (value === undefined) return ["0", ""];
-                                        if (activeTab === 'finance' || activeTab === 'budget') {
-                                            return [new Intl.NumberFormat("en-PH", {
-                                                style: "currency",
-                                                currency: "PHP",
-                                                notation: "compact",
-                                            }).format(value), "Amount"];
-                                        }
-                                        return [value.toString(), ""];
-                                    }}
-                                />
-                                <Legend
-                                    verticalAlign="middle"
-                                    layout="vertical"
-                                    align="right"
-                                    iconType="circle"
-                                    iconSize={8}
-                                    wrapperStyle={{ fontSize: "12px", color: "#6b7280" }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Custom Legend with Values */}
+                            <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                {activeData.map((entry, index) => (
+                                    <div key={index} className="flex items-center gap-2 min-w-0">
+                                        <div
+                                            className="w-3 h-3 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: entry.color }}
+                                        />
+                                        <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate flex-1">
+                                            {entry.name}
+                                        </span>
+                                        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex-shrink-0">
+                                            {formatValue(entry.value, activeTab)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
         </DashboardChartCard>
     );
 }
+
