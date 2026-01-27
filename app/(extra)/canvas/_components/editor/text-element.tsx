@@ -72,6 +72,7 @@ export default function TextElementComponent({
       backgroundColor: element.backgroundColor,
       textShadow: element.shadow ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none',
       WebkitTextStroke: element.outline ? '0.5px rgba(0,0,0,0.5)' : 'none',
+      lineHeight: element.lineHeight ?? 'normal', // Apply line height multiplier
     };
 
     const googleFonts = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat'];
@@ -99,9 +100,8 @@ export default function TextElementComponent({
       data-element-type="text"
       data-element-id={element.id}
       onMouseDown={onMouseDown}
-      className={`absolute ${
-        isSelected ? 'ring-2 ring-blue-500' : ''
-      } ${element.locked ? 'cursor-not-allowed opacity-70' : ''} transition-all cursor-move`}
+      className={`absolute ${isSelected ? 'ring-2 ring-blue-500' : ''
+        } ${element.locked ? 'cursor-not-allowed opacity-70' : ''} transition-all cursor-move`}
       style={{
         left: `${element.x}px`,
         top: `${element.y}px`,
@@ -117,16 +117,15 @@ export default function TextElementComponent({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onClick={(e) => e.stopPropagation()}
-          className="w-full h-full p-1 border border-blue-500 rounded resize-none focus:outline-none"
+          className="w-full h-full border border-blue-500 rounded resize-none focus:outline-none"
           style={getTextStyles()}
         />
       ) : (
         <div
           onDoubleClick={handleDoubleClick}
           onClick={(e) => e.stopPropagation()}
-          className={`w-full h-full p-1 break-words whitespace-pre-wrap ${
-            isSelected ? 'bg-blue-50' : ''
-          }`}
+          className={`w-full h-full break-words whitespace-pre-wrap ${isSelected ? 'bg-blue-50' : ''
+            }`}
           style={getTextStyles()}
         >
           {element.text}

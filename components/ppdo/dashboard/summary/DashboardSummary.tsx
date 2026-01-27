@@ -48,7 +48,7 @@ export function DashboardSummary({ year }: DashboardSummaryProps) {
       return {
         kpiData: { totalProjects: 0, ongoing: 0, completed: 0, delayed: 0 },
         timelineData: {},
-        pieChartData: { sector: [], finance: [], status: [], department: [] },
+        pieChartData: { sector: [], finance: [], status: [], department: [], budget: [] },
         utilizationData: [],
         budgetDistributionData: [],
       };
@@ -93,7 +93,7 @@ export function DashboardSummary({ year }: DashboardSummaryProps) {
         delayed: yearStats.delayedCount,
       },
       timelineData: dashboardData.timelineData || {},
-      pieChartData: dashboardData.pieChartData || { sector: [], finance: [], status: [], department: [] },
+      pieChartData: dashboardData.pieChartData || { sector: [], finance: [], status: [], department: [], budget: [] },
       utilizationData: yearUtilization,
       budgetDistributionData: budgetDistribution,
     };

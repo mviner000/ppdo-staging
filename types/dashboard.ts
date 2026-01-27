@@ -105,6 +105,7 @@ export interface DashboardPieChartData {
   finance: PieChartCategory[];
   status: PieChartCategory[];
   department: PieChartCategory[];
+  budget: PieChartCategory[];
 }
 
 export interface TimelineData {

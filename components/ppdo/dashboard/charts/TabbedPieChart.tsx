@@ -19,6 +19,7 @@ export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
         { key: "finance", label: "Finance" },
         { key: "status", label: "Status" },
         { key: "department", label: "Department" },
+        { key: "budget", label: "Budget" },
     ];
 
     if (isLoading) {
@@ -46,6 +47,11 @@ export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
         }).format(totalValue) + " total budget";
         if (activeTab === 'status') return `${totalValue} total projects`;
         if (activeTab === 'department') return `Top ${activeData.length} departments`;
+        if (activeTab === 'budget') return new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            notation: "compact"
+        }).format(totalValue) + " total allocated";
         return "Breakdown by category";
     };
 
@@ -87,10 +93,11 @@ export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
                                 {activeTab === 'finance' && 'Budget data will be displayed when budget items are added'}
                                 {activeTab === 'status' && 'Project status distribution will show once projects are created'}
                                 {activeTab === 'department' && 'Department distribution will appear when projects are assigned to offices'}
+                                {activeTab === 'budget' && 'Budget allocation breakdown will appear when budget data is available'}
                             </span>
                         </div>
                     ) : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={220} minWidth={200}>
                             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                                 <Pie
                                     data={activeData}
@@ -120,7 +127,7 @@ export function TabbedPieChart({ data, isLoading }: TabbedPieChartProps) {
                                     itemStyle={{ color: "#374151" }}
                                     formatter={(value: number | undefined) => {
                                         if (value === undefined) return ["0", ""];
-                                        if (activeTab === 'finance') {
+                                        if (activeTab === 'finance' || activeTab === 'budget') {
                                             return [new Intl.NumberFormat("en-PH", {
                                                 style: "currency",
                                                 currency: "PHP",

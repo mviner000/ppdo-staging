@@ -222,6 +222,15 @@ export const getSummaryData = query({
     // Calculate remaining because pie chart usually shows parts of a whole
     const totalRemaining = Math.max(0, totalAlloc - totalUtil);
 
+    // 2b. Budget Breakdown (Allocated = Utilized + Obligated-but-not-Utilized + Unobligated)
+    const totalObligated = allBudgetItems.reduce((acc, curr) => acc + (curr.obligatedBudget || 0), 0);
+    // "Obligated" slice = Obligated minus Utilized (committed but not yet spent)
+    const obligatedNotUtilized = Math.max(0, totalObligated - totalUtil);
+    // "Unobligated" slice = Allocated minus Obligated (still available)
+    const unobligated = Math.max(0, totalAlloc - totalObligated);
+    // Utilization Rate
+    const overallUtilizationRate = totalAlloc > 0 ? (totalUtil / totalAlloc) * 100 : 0;
+
     // 3. Project Progress (Status)
     const statusMap = {
       ongoing: 0,
@@ -269,7 +278,15 @@ export const getSummaryData = query({
         department: Array.from(deptMap.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5) // Top 5
-          .map(([name, value]) => ({ name, value, color: "#15803D" }))
+          .map(([name, value]) => ({ name, value, color: "#15803D" })),
+        // 🆕 Budget Pie Chart: Allocated breakdown
+        budget: [
+          { name: "Utilized", value: totalUtil, color: "#15803D" },       // Primary green (spent)
+          { name: "Obligated", value: obligatedNotUtilized, color: "#4ADE80" }, // Medium green (committed)
+          { name: "Unobligated", value: unobligated, color: "#BBF7D0" }  // Light green (available)
+        ],
+        // Utilization rate for display
+        utilizationRate: overallUtilizationRate
       }
     };
   },

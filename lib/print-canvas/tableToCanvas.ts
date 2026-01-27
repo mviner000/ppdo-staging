@@ -10,6 +10,12 @@ import {
   BudgetTotals
 } from './types';
 import { BudgetItem } from '@/app/dashboard/project/[year]/types';
+import {
+  wrapText,
+  calculateWrappedRow,
+  calculateWrappedHeader,
+  WrappedRowData,
+} from './textUtils';
 
 const PAGE_SIZES = {
   A4: { width: 595, height: 842 },
@@ -20,15 +26,20 @@ const PAGE_SIZES = {
 const HEADER_HEIGHT = 80;
 const FOOTER_HEIGHT = 60;
 const MARGIN = 20;
-const ROW_HEIGHT = 24;
-const HEADER_ROW_HEIGHT = 28;
+// Minimum row heights (rows will expand if text wraps)
+const MIN_ROW_HEIGHT = 24;
+const MIN_HEADER_ROW_HEIGHT = 28;
+const LINE_HEIGHT = 1.2;
 
 // ✅ Internal padding for text inside cells (NOT cell spacing)
 const CELL_TEXT_PADDING = 4; // Small padding so text doesn't touch borders
 
+// ✅ Extra left padding for first column text (spacing from left border)
+const FIRST_COLUMN_LEFT_PADDING = 20;
+
 /**
  * Converts budget table data into canvas pages
- * Supports row markers for category/group headers
+ * Supports row markers for category/group headers and dynamic text wrapping
  */
 export function convertTableToCanvas(config: ConversionConfig): ConversionResult {
   const {
@@ -57,12 +68,61 @@ export function convertTableToCanvas(config: ConversionConfig): ConversionResult
 
   const columnWidths = calculateColumnWidths(visibleColumns, size.width - (MARGIN * 2));
 
-  // Create pages
-  const pages: Page[] = [];
+  // Create column width map for text wrapping calculations
+  // First column gets reduced width to account for extra left padding
+  const columnWidthMap = new Map<string, number>();
+  visibleColumns.forEach((col, index) => {
+    const extraPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+    columnWidthMap.set(col.key, columnWidths[index] - extraPadding);
+  });
 
-  // Calculate rows per page
-  const headerHeight = includeHeaders ? HEADER_ROW_HEIGHT : 0;
-  const rowsPerPage = Math.floor((availableHeight - headerHeight) / ROW_HEIGHT);
+  // Pre-calculate header height with text wrapping
+  const columnLabels = new Map<string, string>();
+  visibleColumns.forEach(col => columnLabels.set(col.key, col.label));
+  const headerWrappedData = calculateWrappedHeader(
+    columnLabels,
+    columnWidthMap,
+    DEFAULT_TABLE_STYLE.headerFontSize,
+    'Inter',
+    CELL_TEXT_PADDING,
+    MIN_HEADER_ROW_HEIGHT,
+    LINE_HEIGHT
+  );
+  const dynamicHeaderHeight = includeHeaders ? headerWrappedData.rowHeight : 0;
+
+  // Pre-calculate row heights for all items
+  const preCalculatedRows: { item: BudgetItem; wrappedData: WrappedRowData; markerLabel?: string }[] = [];
+
+  items.forEach((item, index) => {
+    // Check for category marker
+    const markerAtThisIndex = rowMarkers.find(m => m.index === index);
+
+    // Create cell values map
+    const cellValues = new Map<string, string>();
+    visibleColumns.forEach(col => {
+      cellValues.set(col.key, formatCellValue(item, col.key));
+    });
+
+    // Calculate wrapped row data
+    const wrappedData = calculateWrappedRow(
+      cellValues,
+      columnWidthMap,
+      DEFAULT_TABLE_STYLE.dataFontSize,
+      'Inter',
+      CELL_TEXT_PADDING,
+      MIN_ROW_HEIGHT,
+      LINE_HEIGHT
+    );
+
+    preCalculatedRows.push({
+      item,
+      wrappedData,
+      markerLabel: markerAtThisIndex?.label,
+    });
+  });
+
+  // Create pages using height-based pagination
+  const pages: Page[] = [];
 
   // Create title page if title provided
   if (title) {
@@ -70,31 +130,82 @@ export function convertTableToCanvas(config: ConversionConfig): ConversionResult
     pages.push(titlePage);
   }
 
-  // Paginate items with category row support
-  let rowStartIndex = 0;
-  for (let i = 0; i < items.length; i += rowsPerPage) {
-    const pageItems = items.slice(i, Math.min(i + rowsPerPage, items.length));
+  // Paginate items based on accumulated height
+  let itemIndex = 0;
+  while (itemIndex < preCalculatedRows.length) {
+    const pageElements: TextElement[] = [];
+    let currentY = MARGIN;
+    const globalRowIndex = itemIndex;
 
-    const page = createDataPage(
-      pageSize,
-      pageItems,
-      visibleColumns,
-      columnWidths,
-      includeHeaders,
-      rowStartIndex,
-      i,
-      config.orientation,
-      rowMarkers
-    );
+    // Create unique group ID for this page's table data
+    const groupId = `table-group-${Date.now()}-${globalRowIndex}`;
+    const groupName = `Table (Page Data ${pages.length + 1})`;
 
+    // Add headers if requested
+    if (includeHeaders) {
+      pageElements.push(...createTableHeadersWithWrapping(
+        visibleColumns,
+        columnWidths,
+        currentY,
+        headerWrappedData,
+        groupId,
+        groupName
+      ));
+      currentY += dynamicHeaderHeight;
+    }
+
+    // Add rows until we run out of space or items
+    while (itemIndex < preCalculatedRows.length) {
+      const rowData = preCalculatedRows[itemIndex];
+      let rowHeightNeeded = rowData.wrappedData.rowHeight;
+
+      // Account for category marker if present
+      if (rowData.markerLabel) {
+        rowHeightNeeded += MIN_ROW_HEIGHT; // Category markers use minimum height
+      }
+
+      // Check if this row fits on the current page
+      if (currentY + rowHeightNeeded > availableHeight && pageElements.length > (includeHeaders ? visibleColumns.length : 0)) {
+        // Row doesn't fit and we have content, start a new page
+        break;
+      }
+
+      // Add category marker if present
+      if (rowData.markerLabel) {
+        pageElements.push(...createCategoryHeaderRow(rowData.markerLabel, columnWidths, currentY, groupId, groupName));
+        currentY += MIN_ROW_HEIGHT;
+      }
+
+      // Add the data row with wrapped text
+      pageElements.push(...createTableRowWithWrapping(
+        rowData.item,
+        visibleColumns,
+        columnWidths,
+        currentY,
+        rowData.wrappedData,
+        groupId,
+        groupName
+      ));
+      currentY += rowData.wrappedData.rowHeight;
+
+      itemIndex++;
+    }
+
+    // Create the page
+    const page: Page = {
+      id: `page-data-${Date.now()}-${globalRowIndex}`,
+      size: pageSize as 'A4' | 'Short' | 'Long',
+      orientation: config.orientation || 'portrait',
+      elements: pageElements,
+      backgroundColor: '#ffffff',
+    };
     pages.push(page);
-    rowStartIndex = i + pageItems.length;
   }
 
   // Add totals page if requested
   if (includeTotals && pages.length > 0) {
     const lastPage = pages[pages.length - 1];
-    const hasSpace = checkSpaceForTotals(lastPage);
+    const hasSpace = checkSpaceForTotals(lastPage, availableHeight);
 
     if (hasSpace) {
       addTotalsToPage(lastPage, totals, visibleColumns, columnWidths);
@@ -239,6 +350,7 @@ function createTitlePage(pageSize: string, title: string, subtitle?: string, ori
 
 /**
  * Create data page with table rows and optional category markers
+ * @deprecated Use the new height-based pagination in convertTableToCanvas instead
  */
 function createDataPage(
   pageSize: string,
@@ -265,7 +377,7 @@ function createDataPage(
   // Add headers if requested
   if (includeHeaders) {
     elements.push(...createTableHeaders(columns, columnWidths, currentY, groupId, groupName));
-    currentY += HEADER_ROW_HEIGHT;
+    currentY += MIN_HEADER_ROW_HEIGHT;
   }
 
   // Add data rows with category marker support
@@ -276,12 +388,12 @@ function createDataPage(
     if (markerAtThisIndex) {
       // Render category header
       elements.push(...createCategoryHeaderRow(markerAtThisIndex.label, columnWidths, currentY, groupId, groupName));
-      currentY += ROW_HEIGHT;
+      currentY += MIN_ROW_HEIGHT;
     }
 
     // Render data row
     elements.push(...createTableRow(item, columns, columnWidths, currentY, index % 2 === 0, groupId, groupName));
-    currentY += ROW_HEIGHT;
+    currentY += MIN_ROW_HEIGHT;
   });
 
   return {
@@ -307,14 +419,17 @@ function createTableHeaders(
   let currentX = MARGIN;
 
   columns.forEach((col, index) => {
+    // Extra left padding for first column
+    const firstColPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+
     elements.push({
       id: `header-${col.key}-${Date.now()}`,
       type: 'text',
       text: col.label,
-      x: currentX + CELL_TEXT_PADDING, // ✅ Text padding, NOT cell spacing
+      x: currentX + CELL_TEXT_PADDING + firstColPadding,
       y: y + CELL_TEXT_PADDING,
-      width: columnWidths[index] - (CELL_TEXT_PADDING * 2),
-      height: HEADER_ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
+      width: columnWidths[index] - (CELL_TEXT_PADDING * 2) - firstColPadding,
+      height: MIN_HEADER_ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
       fontSize: DEFAULT_TABLE_STYLE.headerFontSize,
       fontFamily: 'Inter',
       bold: true,
@@ -324,11 +439,62 @@ function createTableHeaders(
       shadow: false,
       outline: false,
       visible: true,
+      lineHeight: LINE_HEIGHT,
       groupId,
       groupName,
     });
 
     currentX += columnWidths[index]; // ✅ NO GAP between columns
+  });
+
+  return elements;
+}
+
+/**
+ * Create table headers with text wrapping support
+ */
+function createTableHeadersWithWrapping(
+  columns: ColumnDefinition[],
+  columnWidths: number[],
+  y: number,
+  wrappedData: WrappedRowData,
+  groupId?: string,
+  groupName?: string
+): TextElement[] {
+  const elements: TextElement[] = [];
+  let currentX = MARGIN;
+
+  columns.forEach((col, index) => {
+    // Find the wrapped cell data for this column
+    const cellData = wrappedData.cells.find(c => c.columnKey === col.key);
+    const wrappedText = cellData ? cellData.lines.join('\n') : col.label;
+
+    // Extra left padding for first column
+    const firstColPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+
+    elements.push({
+      id: `header-${col.key}-${Date.now()}`,
+      type: 'text',
+      text: wrappedText,
+      x: currentX + CELL_TEXT_PADDING + firstColPadding,
+      y: y + CELL_TEXT_PADDING,
+      width: columnWidths[index] - (CELL_TEXT_PADDING * 2) - firstColPadding,
+      height: wrappedData.rowHeight - (CELL_TEXT_PADDING * 2),
+      fontSize: DEFAULT_TABLE_STYLE.headerFontSize,
+      fontFamily: 'Inter',
+      bold: true,
+      italic: false,
+      underline: false,
+      color: DEFAULT_TABLE_STYLE.headerColor,
+      shadow: false,
+      outline: false,
+      visible: true,
+      lineHeight: LINE_HEIGHT,
+      groupId,
+      groupName,
+    });
+
+    currentX += columnWidths[index];
   });
 
   return elements;
@@ -346,14 +512,17 @@ function createCategoryHeaderRow(
 ): TextElement[] {
   const totalWidth = columnWidths.reduce((sum, w) => sum + w, 0);
 
+  // Apply extra left padding to category header as well for consistency
+  const firstColPadding = FIRST_COLUMN_LEFT_PADDING;
+
   return [{
     id: `category-header-${categoryLabel}-${Date.now()}`,
     type: 'text',
     text: categoryLabel,
-    x: MARGIN + CELL_TEXT_PADDING,
+    x: MARGIN + CELL_TEXT_PADDING + firstColPadding,
     y: y + CELL_TEXT_PADDING,
-    width: totalWidth - (CELL_TEXT_PADDING * 2),
-    height: ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
+    width: totalWidth - (CELL_TEXT_PADDING * 2) - firstColPadding,
+    height: MIN_ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
     fontSize: 11,
     fontFamily: 'Inter',
     bold: true,
@@ -363,6 +532,7 @@ function createCategoryHeaderRow(
     shadow: false,
     outline: false,
     visible: true,
+    lineHeight: LINE_HEIGHT,
     groupId,
     groupName,
   }];
@@ -386,14 +556,17 @@ function createTableRow(
   columns.forEach((col, index) => {
     const value = formatCellValue(item, col.key);
 
+    // Extra left padding for first column
+    const firstColPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+
     elements.push({
       id: `cell-${item.id}-${col.key}-${Date.now()}`,
       type: 'text',
       text: value,
-      x: currentX + CELL_TEXT_PADDING, // ✅ Text padding, NOT cell spacing
+      x: currentX + CELL_TEXT_PADDING + firstColPadding,
       y: y + CELL_TEXT_PADDING,
-      width: columnWidths[index] - (CELL_TEXT_PADDING * 2),
-      height: ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
+      width: columnWidths[index] - (CELL_TEXT_PADDING * 2) - firstColPadding,
+      height: MIN_ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
       fontSize: DEFAULT_TABLE_STYLE.dataFontSize,
       fontFamily: 'Inter',
       bold: false,
@@ -403,11 +576,63 @@ function createTableRow(
       shadow: false,
       outline: false,
       visible: true,
+      lineHeight: LINE_HEIGHT,
       groupId,
       groupName,
     });
 
     currentX += columnWidths[index]; // ✅ NO GAP between columns
+  });
+
+  return elements;
+}
+
+/**
+ * Create a single table row with text wrapping support
+ */
+function createTableRowWithWrapping(
+  item: BudgetItem,
+  columns: ColumnDefinition[],
+  columnWidths: number[],
+  y: number,
+  wrappedData: WrappedRowData,
+  groupId?: string,
+  groupName?: string
+): TextElement[] {
+  const elements: TextElement[] = [];
+  let currentX = MARGIN;
+
+  columns.forEach((col, index) => {
+    // Find the wrapped cell data for this column
+    const cellData = wrappedData.cells.find(c => c.columnKey === col.key);
+    const wrappedText = cellData ? cellData.lines.join('\n') : formatCellValue(item, col.key);
+
+    // Extra left padding for first column
+    const firstColPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+
+    elements.push({
+      id: `cell-${item.id}-${col.key}-${Date.now()}`,
+      type: 'text',
+      text: wrappedText,
+      x: currentX + CELL_TEXT_PADDING + firstColPadding,
+      y: y + CELL_TEXT_PADDING,
+      width: columnWidths[index] - (CELL_TEXT_PADDING * 2) - firstColPadding,
+      height: wrappedData.rowHeight - (CELL_TEXT_PADDING * 2),
+      fontSize: DEFAULT_TABLE_STYLE.dataFontSize,
+      fontFamily: 'Inter',
+      bold: false,
+      italic: false,
+      underline: false,
+      color: DEFAULT_TABLE_STYLE.dataColor,
+      shadow: false,
+      outline: false,
+      visible: true,
+      lineHeight: LINE_HEIGHT,
+      groupId,
+      groupName,
+    });
+
+    currentX += columnWidths[index];
   });
 
   return elements;
@@ -477,7 +702,7 @@ function addTotalsToPage(
   columnWidths: number[]
 ): void {
   const lastElement = page.elements[page.elements.length - 1];
-  const y = lastElement ? lastElement.y + ROW_HEIGHT : MARGIN;
+  const y = lastElement ? lastElement.y + lastElement.height + CELL_TEXT_PADDING * 2 : MARGIN;
 
   // Use the same groupId as other elements on this page
   const existingGroupId = lastElement?.groupId;
@@ -511,15 +736,18 @@ function createTotalsRow(
       value = formatCellValue({ [col.key]: totalValue } as any, col.key);
     }
 
+    // Extra left padding for first column
+    const firstColPadding = index === 0 ? FIRST_COLUMN_LEFT_PADDING : 0;
+
     if (value) {
       elements.push({
         id: `total-${col.key}-${Date.now()}`,
         type: 'text',
         text: value,
-        x: currentX + CELL_TEXT_PADDING, // ✅ Text padding, NOT cell spacing
+        x: currentX + CELL_TEXT_PADDING + firstColPadding,
         y: y + CELL_TEXT_PADDING,
-        width: columnWidths[index] - (CELL_TEXT_PADDING * 2),
-        height: ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
+        width: columnWidths[index] - (CELL_TEXT_PADDING * 2) - firstColPadding,
+        height: MIN_ROW_HEIGHT - (CELL_TEXT_PADDING * 2),
         fontSize: DEFAULT_TABLE_STYLE.totalsFontSize,
         fontFamily: 'Inter',
         bold: true,
@@ -529,6 +757,7 @@ function createTotalsRow(
         shadow: false,
         outline: false,
         visible: true,
+        lineHeight: LINE_HEIGHT,
         groupId,
         groupName,
       });
@@ -543,14 +772,13 @@ function createTotalsRow(
 /**
  * Check if page has space for totals row
  */
-function checkSpaceForTotals(page: Page): boolean {
+function checkSpaceForTotals(page: Page, availableHeight: number): boolean {
   if (page.elements.length === 0) return true;
 
   const lastElement = page.elements[page.elements.length - 1];
-  const pageSize = PAGE_SIZES[page.size];
-  const availableHeight = pageSize.height - HEADER_HEIGHT - FOOTER_HEIGHT - MARGIN;
+  const lastElementBottom = lastElement.y + lastElement.height + CELL_TEXT_PADDING * 2;
 
-  return (lastElement.y + ROW_HEIGHT + ROW_HEIGHT) < availableHeight;
+  return (lastElementBottom + MIN_ROW_HEIGHT) < availableHeight;
 }
 
 /**

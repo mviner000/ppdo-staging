@@ -17,6 +17,7 @@ export interface TextElement {
   outline: boolean;
   width: number;
   height: number;
+  lineHeight?: number; // Line height multiplier (e.g., 1.2)
   locked?: boolean;
   visible?: boolean;
   groupId?: string;
