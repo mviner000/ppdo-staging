@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { NavCategory, NavItem, SubMenuItem } from "./types";
 import {
@@ -45,6 +45,17 @@ function SidebarNavItem({
   const hasSubmenu = item.submenu && item.submenu.length > 0;
   const itemKey = item.href || `nav-item-${item.name}`;
   const isExpanded = expanded.has(itemKey);
+  const itemRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    if (isExpanded && !isMinimized && itemRef.current) {
+      // Delay to ensure the submenu has started expanding/rendering
+      const timeoutId = setTimeout(() => {
+        itemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 200);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isExpanded, isMinimized]);
 
   // Check active state
   // If it's a leaf node (no submenu), specific match.
@@ -97,7 +108,7 @@ function SidebarNavItem({
 
   if (hasSubmenu) {
     return (
-      <li key={itemKey}>
+      <li key={itemKey} ref={itemRef}>
         {isMinimized && level === 0 ? (
           // Top level minimized behavior with Tooltip
           <Tooltip>

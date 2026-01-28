@@ -5,9 +5,11 @@ import {
     GraduationCap,
     HeartPulse,
     LockKeyhole,
-    Wallet
+    Wallet,
+    ArrowLeft
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ComingSoonPage from "@/components/ComingSoonPage";
 import { useState } from "react";
@@ -15,9 +17,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 interface DashboardFundSelectionProps {
     onSelectBudget: () => void;
+    onBack?: () => void;
 }
 
-export function DashboardFundSelection({ onSelectBudget }: DashboardFundSelectionProps) {
+export function DashboardFundSelection({ onSelectBudget, onBack }: DashboardFundSelectionProps) {
     const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
 
     if (showComingSoon) {
@@ -86,6 +89,16 @@ export function DashboardFundSelection({ onSelectBudget }: DashboardFundSelectio
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-3">
+                    {onBack && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onBack}
+                            className="mr-1 -ml-2 md:hidden"
+                        >
+                            <ArrowLeft className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
+                        </Button>
+                    )}
                     <Building2 className="w-8 h-8 text-zinc-700 dark:text-zinc-300" />
                     Dashboard
                 </h1>

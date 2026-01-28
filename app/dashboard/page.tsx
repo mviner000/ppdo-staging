@@ -26,9 +26,13 @@ export default function DashboardPage() {
     router.push("/dashboard");
   };
 
+  const handleBackToHome = () => {
+    router.push("/");
+  };
+
   if (view === "years") {
     return <FiscalYearLanding onBack={handleBackToSelection} />;
   }
 
-  return <DashboardFundSelection onSelectBudget={handleSelectBudget} />;
+  return <DashboardFundSelection onSelectBudget={handleSelectBudget} onBack={handleBackToHome} />;
 }
