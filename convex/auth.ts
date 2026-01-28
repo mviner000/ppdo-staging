@@ -44,7 +44,7 @@ export const initializeNewUser = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
-    
+
     // Only initialize if the user doesn't already have role/status set
     if (user && (!user.role || !user.status)) {
       const now = Date.now();
@@ -70,11 +70,11 @@ export const getCurrentUser = query({
       return null;
     }
     const user = await ctx.db.get(userId);
-    
+
     if (!user) {
       return null;
     }
-    
+
     // Ensure backward compatibility: generate name if missing
     if (!user.name && user.firstName) {
       return {
@@ -82,7 +82,7 @@ export const getCurrentUser = query({
         name: formatFullName(user.firstName, user.middleName, user.lastName, user.nameExtension),
       };
     }
-    
+
     return user;
   },
 });
@@ -147,16 +147,16 @@ export const verifyUserCanSignIn = query({
 export const recordSuccessfulLogin = mutation({
   args: {
     userId: v.optional(v.id("users")),
-    email: v.optional(v.string()), 
+    email: v.optional(v.string()),
     ipAddress: v.string(),
     userAgent: v.optional(v.string()),
     sessionId: v.optional(v.id("authSessions")),
-    location: v.optional(v.string()), 
-    geoLocation: v.optional(v.string()), 
+    location: v.optional(v.string()),
+    geoLocation: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let user = null;
-    
+
     // Find user by ID or Email
     if (args.userId) {
       user = await ctx.db.get(args.userId);
@@ -176,7 +176,7 @@ export const recordSuccessfulLogin = mutation({
 
     // Parse user agent to extract device and browser info
     const deviceInfo = parseUserAgent(args.userAgent);
-    
+
     // Use provided geoLocation or fall back to IP-based parsing
     let geoLocation = null;
     if (args.geoLocation) {
@@ -215,7 +215,7 @@ export const recordSuccessfulLogin = mutation({
     const fingerprint = generateDeviceFingerprint(args.ipAddress, args.userAgent);
     const existingDevice = await ctx.db
       .query("deviceFingerprints")
-      .withIndex("userAndFingerprint", (q) => 
+      .withIndex("userAndFingerprint", (q) =>
         q.eq("userId", userId).eq("fingerprint", fingerprint)
       )
       .first();
@@ -246,10 +246,10 @@ export const recordSuccessfulLogin = mutation({
     if (geoLocation && geoLocation.city && geoLocation.country) {
       const existingLocation = await ctx.db
         .query("loginLocations")
-        .withIndex("userAndLocation", (q) => 
+        .withIndex("userAndLocation", (q) =>
           q.eq("userId", userId)
-           .eq("city", geoLocation.city)
-           .eq("country", geoLocation.country)
+            .eq("city", geoLocation.city)
+            .eq("country", geoLocation.country)
         )
         .first();
 
@@ -264,8 +264,8 @@ export const recordSuccessfulLogin = mutation({
           city: geoLocation.city,
           region: geoLocation.region || "Unknown",
           country: geoLocation.country,
-          coordinates: geoLocation.coordinates 
-            ? JSON.stringify(geoLocation.coordinates) 
+          coordinates: geoLocation.coordinates
+            ? JSON.stringify(geoLocation.coordinates)
             : JSON.stringify({ lat: 0, lng: 0 }),
           firstSeen: now,
           lastSeen: now,
@@ -289,8 +289,8 @@ export const recordFailedLogin = mutation({
     ipAddress: v.string(),
     userAgent: v.optional(v.string()),
     failureReason: v.string(),
-    location: v.optional(v.string()), 
-    geoLocation: v.optional(v.string()), 
+    location: v.optional(v.string()),
+    geoLocation: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -300,7 +300,7 @@ export const recordFailedLogin = mutation({
 
     const now = Date.now();
     const deviceInfo = parseUserAgent(args.userAgent);
-    
+
     let geoLocation = null;
     if (args.geoLocation) {
       try {
@@ -320,7 +320,7 @@ export const recordFailedLogin = mutation({
     if (user) {
       const recentFailedAttempts = await ctx.db
         .query("loginAttempts")
-        .withIndex("userAndStatus", (q) => 
+        .withIndex("userAndStatus", (q) =>
           q.eq("userId", user._id).eq("status", "failed")
         )
         .order("desc")
@@ -341,7 +341,7 @@ export const recordFailedLogin = mutation({
           .query("loginLocations")
           .withIndex("userId", (q) => q.eq("userId", user._id))
           .collect();
-        
+
         const locationKnown = knownLocations.some(
           loc => loc.city === geoLocation.city && loc.country === geoLocation.country
         );
@@ -377,7 +377,7 @@ export const recordFailedLogin = mutation({
     // Update user's failed login count if they exist
     if (user) {
       const failedCount = (user.failedLoginAttempts || 0) + 1;
-      
+
       await ctx.db.patch(user._id, {
         failedLoginAttempts: failedCount,
         lastFailedLogin: now,
@@ -512,6 +512,29 @@ export const completeInitialOnboarding = mutation({
   },
 });
 
+/**
+ * Complete the bug report onboarding step.
+ */
+export const completeBugReportOnboarding = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const completedSteps = new Set(user.completedOnboardingSteps || []);
+    completedSteps.add("bug_report_onboarding");
+
+    await ctx.db.patch(userId, {
+      completedOnboardingSteps: Array.from(completedSteps),
+    });
+
+    return { success: true };
+  },
+});
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -526,24 +549,24 @@ function formatFullName(
   nameExtension?: string
 ): string {
   const parts: string[] = [firstName];
-  
+
   if (middleName) parts.push(middleName);
   if (lastName) parts.push(lastName);
   if (nameExtension) parts.push(nameExtension);
-  
+
   return parts.join(" ");
 }
 
 function parseUserAgent(userAgent?: string) {
   // Simple user agent parsing
   const ua = userAgent || "";
-  
+
   const device = {
     type: "Unknown",
     os: "Unknown",
     osVersion: "",
   };
-  
+
   const browser = {
     browser: "Unknown",
     browserVersion: "",

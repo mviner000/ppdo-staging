@@ -8,6 +8,14 @@
 "use client";
 
 import { formatCurrency } from "@/lib/shared/utils/form-helpers";
+import { Switch } from "@/components/ui/switch";
+import { Calculator } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CardData {
   title: string;
@@ -16,10 +24,15 @@ interface CardData {
   truncate?: boolean;
 }
 
+// ... (previous imports)
+
 export interface EntityOverviewCardsProps {
   entityType: "project" | "trustfund" | "specialeducationfund" | "specialhealthfund";
   implementingOffice?: string;
   totalBudget?: number;
+  obligated?: number;
+  utilized?: number;
+  balance?: number;
   statusText?: string;
   statusColor?: string;
   year?: string;
@@ -36,6 +49,9 @@ export function EntityOverviewCards({
   entityType,
   implementingOffice,
   totalBudget,
+  obligated,
+  utilized,
+  balance,
   statusText,
   statusColor,
   year,
@@ -53,13 +69,38 @@ export function EntityOverviewCards({
     });
   }
 
-  // Current Budget
+  // Allocated Budget (renamed from Current Budget for clarity if needed, or keep as is)
   if (totalBudget !== undefined) {
     cards.push({
-      title: "Current Budget",
+      title: "Allocated Budget",
       value: formatCurrency(totalBudget),
     });
   }
+
+  // Obligated
+  if (obligated !== undefined) {
+    cards.push({
+      title: "Obligated",
+      value: formatCurrency(obligated),
+    });
+  }
+
+  // Utilized
+  if (utilized !== undefined) {
+    cards.push({
+      title: "Utilized",
+      value: formatCurrency(utilized),
+    });
+  }
+
+  // Balance
+  if (balance !== undefined) {
+    cards.push({
+      title: "Balance",
+      value: formatCurrency(balance),
+    });
+  }
+  // ... (rest of the file)
 
   // Breakdown Counts (if available)
   if (breakdownCounts) {

@@ -1,7 +1,7 @@
 // components/ppdo/funds/components/context-menu/FundsContextMenu.tsx
 
 import React, { useRef, useEffect } from "react";
-import { Pin, PinOff, History, Edit, Trash2 } from "lucide-react";
+import { Pin, PinOff, History, Edit, Trash2, Calculator } from "lucide-react";
 import { ContextMenuState } from "../../types";
 import { useContextMenuPosition } from "@/components/ui/hooks/useContextMenuPosition";
 
@@ -14,6 +14,7 @@ interface FundsContextMenuProps {
     onDelete: () => void;
     canEdit?: boolean;
     canDelete?: boolean;
+    onToggleAutoCalculate: () => void;
 }
 
 export function FundsContextMenu({
@@ -25,6 +26,7 @@ export function FundsContextMenu({
     onDelete,
     canEdit = true,
     canDelete = true,
+    onToggleAutoCalculate,
 }: FundsContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -46,8 +48,8 @@ export function FundsContextMenu({
 
     // Call hook before early return to follow Rules of Hooks
     const { ref, style } = useContextMenuPosition(
-      contextMenu?.x ?? 0,
-      contextMenu?.y ?? 0
+        contextMenu?.x ?? 0,
+        contextMenu?.y ?? 0
     );
 
     if (!contextMenu) return null;
@@ -84,6 +86,24 @@ export function FundsContextMenu({
                         <Pin className="w-4 h-4" />
                         Pin to top
                     </>
+                )}
+            </button>
+
+            {/* Auto Calculate Toggle */}
+            <button
+                onClick={onToggleAutoCalculate}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 text-zinc-700 dark:text-zinc-300 transition-colors"
+            >
+                {contextMenu.entity.autoCalculateFinancials ? (
+                    <span className="flex items-center gap-3">
+                        <Calculator className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        Disable Auto-Calc
+                    </span>
+                ) : (
+                    <span className="flex items-center gap-3">
+                        <Calculator className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                        Enable Auto-Calc
+                    </span>
                 )}
             </button>
 

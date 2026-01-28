@@ -46,6 +46,13 @@ export const specialHealthFundTables = {
         utilizationRate: v.optional(v.number()),
 
         /**
+         * 🆕 AUTO-CALCULATION FLAG
+         * When TRUE: financials (utilized/obligated) are calculated from breakdowns
+         * When FALSE: financials can be manually edited
+         */
+        autoCalculateFinancials: v.optional(v.boolean()),
+
+        /**
          * Project Status
          * Tracks the current state of the special health fund project
          */

@@ -29,6 +29,7 @@ export interface BaseFund {
     fiscalYear?: number;
     isPinned?: boolean;
     isDeleted?: boolean;
+    autoCalculateFinancials?: boolean;
     createdAt?: number;
     updatedAt?: number;
 }

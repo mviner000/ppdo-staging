@@ -314,6 +314,11 @@ export function FundForm({ fund, onSave, onCancel, year }: FundFormProps) {
                             <FormItem>
                                 <FormLabel className="text-zinc-700 dark:text-zinc-300">
                                     Obligated PR <span className="text-xs text-zinc-500">(Optional)</span>
+                                    {fund?.autoCalculateFinancials && (
+                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                            Auto
+                                        </span>
+                                    )}
                                 </FormLabel>
                                 <FormControl>
                                     <div className="relative">
@@ -322,8 +327,9 @@ export function FundForm({ fund, onSave, onCancel, year }: FundFormProps) {
                                         </span>
                                         <Input
                                             placeholder="0"
-                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 pl-8"
+                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 pl-8 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:text-zinc-500"
                                             value={displayObligated}
+                                            disabled={!!fund?.autoCalculateFinancials}
                                             onChange={(e) => {
                                                 const formatted = formatNumberWithCommas(e.target.value);
                                                 setDisplayObligated(formatted);
@@ -354,6 +360,11 @@ export function FundForm({ fund, onSave, onCancel, year }: FundFormProps) {
                             <FormItem>
                                 <FormLabel className="text-zinc-700 dark:text-zinc-300">
                                     Utilized
+                                    {fund?.autoCalculateFinancials && (
+                                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">
+                                            Auto
+                                        </span>
+                                    )}
                                 </FormLabel>
                                 <FormControl>
                                     <div className="relative">
@@ -362,8 +373,9 @@ export function FundForm({ fund, onSave, onCancel, year }: FundFormProps) {
                                         </span>
                                         <Input
                                             placeholder="0"
-                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 pl-8"
+                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 pl-8 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:text-zinc-500"
                                             value={displayUtilized}
+                                            disabled={!!fund?.autoCalculateFinancials}
                                             onChange={(e) => {
                                                 const formatted = formatNumberWithCommas(e.target.value);
                                                 setDisplayUtilized(formatted);

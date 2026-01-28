@@ -20,19 +20,31 @@ export const create = mutation({
   args: {
     title: v.string(),
     description: v.string(),
+    stepsToReplicate: v.optional(v.string()),
+    multimedia: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          type: v.string(),
+          name: v.string(),
+        })
+      )
+    ),
   },
-  handler: async (ctx, { title, description }) => {
+  handler: async (ctx, { title, description, stepsToReplicate, multimedia }) => {
     const userId = await requireUserId(ctx);
 
     const reportId = await ctx.db.insert("bugReports", {
       title,
       description,
+      stepsToReplicate,
+      multimedia: multimedia || [],
       submittedBy: userId,
       status: "pending",
       submittedAt: Date.now(),
     });
 
-    return reportId;
+    return { reportId };
   },
 });
 
@@ -82,10 +94,24 @@ export const getById = query({
 
     const report = await ctx.db.get(id);
     if (!report) {
-      throw new Error("Bug report not found");
+      return null;
     }
 
-    return report;
+    let submitter = null;
+    let updater = null;
+
+    if (report.submittedBy) {
+      submitter = await ctx.db.get(report.submittedBy);
+    }
+    if (report.updatedBy) {
+      updater = await ctx.db.get(report.updatedBy);
+    }
+
+    return {
+      ...report,
+      submitter,
+      updater
+    };
   },
 });
 
@@ -103,7 +129,7 @@ export const getMyReports = query({
       .order("desc")
       .collect();
 
-    // ✅ Enrich with updater info
+    // Enrich with updater info
     const enrichedReports = await Promise.all(
       reports.map(async (report) => {
         let updater = null;
@@ -147,6 +173,7 @@ export const update = mutation({
     id: v.id("bugReports"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    stepsToReplicate: v.optional(v.string()),
     status: v.optional(
       v.union(
         v.literal("pending"),
@@ -154,8 +181,17 @@ export const update = mutation({
         v.literal("not_fixed")
       )
     ),
+    multimedia: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          type: v.string(),
+          name: v.string(),
+        })
+      )
+    ),
   },
-  handler: async (ctx, { id, title, description, status }) => {
+  handler: async (ctx, { id, title, description, stepsToReplicate, status, multimedia }) => {
     const userId = await requireUserId(ctx);
 
     const existing = await ctx.db.get(id);
@@ -168,7 +204,13 @@ export const update = mutation({
       updatedBy: typeof userId;
       title?: string;
       description?: string;
+      stepsToReplicate?: string;
       status?: "pending" | "fixed" | "not_fixed";
+      multimedia?: Array<{
+        storageId: any; // Using any to avoid complex type import for Id<"_storage">
+        type: string;
+        name: string;
+      }>;
     } = {
       updatedAt: Date.now(),
       updatedBy: userId,
@@ -180,8 +222,14 @@ export const update = mutation({
     if (description !== undefined) {
       updates.description = description;
     }
+    if (stepsToReplicate !== undefined) {
+      updates.stepsToReplicate = stepsToReplicate;
+    }
     if (status !== undefined) {
       updates.status = status;
+    }
+    if (multimedia !== undefined) {
+      updates.multimedia = multimedia;
     }
 
     await ctx.db.patch(id, updates);

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { logTrustFundActivity } from "./lib/trustFundActivityLogger";
+import { recalculateFundMetrics } from "./lib/fundAggregation";
 
 /**
  * Get all ACTIVE trust funds (excludes deleted)
@@ -48,10 +49,10 @@ export const get = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
-    
+
     const trustFund = await ctx.db.get(args.id);
     if (!trustFund || trustFund.isDeleted) throw new Error("Trust fund not found");
-    
+
     return trustFund;
   },
 });
@@ -64,12 +65,12 @@ export const getStatistics = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
-    
+
     const trustFunds = await ctx.db
       .query("trustFunds")
       .filter(q => q.neq(q.field("isDeleted"), true))
       .collect();
-    
+
     if (trustFunds.length === 0) {
       return {
         totalReceived: 0,
@@ -79,12 +80,12 @@ export const getStatistics = query({
         averageUtilizationRate: 0,
       };
     }
-    
+
     const totalReceived = trustFunds.reduce((sum, item) => sum + item.received, 0);
     const totalUtilized = trustFunds.reduce((sum, item) => sum + item.utilized, 0);
     const totalBalance = trustFunds.reduce((sum, item) => sum + item.balance, 0);
     const averageUtilizationRate = trustFunds.reduce((sum, item) => sum + (item.utilizationRate || 0), 0) / trustFunds.length;
-    
+
     return {
       totalReceived,
       totalUtilized,
@@ -142,7 +143,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    
+
     // Calculate balance and utilization rate
     const balance = args.received - args.utilized;
     const utilizationRate = args.received > 0
@@ -176,10 +177,10 @@ export const create = mutation({
     });
 
     const newTrustFund = await ctx.db.get(trustFundId);
-    
+
     // DEBUG LOG
     console.log('Created trust fund with status:', newTrustFund?.status);
-    
+
     // Log activity
     await logTrustFundActivity(ctx, userId, {
       action: "created",
@@ -246,7 +247,7 @@ export const update = mutation({
     }
 
     const now = Date.now();
-    
+
     // Calculate balance and utilization rate
     const balance = args.received - args.utilized;
     const utilizationRate = args.received > 0
@@ -258,7 +259,7 @@ export const update = mutation({
       .query("implementingAgencies")
       .withIndex("code", (q) => q.eq("code", args.officeInCharge))
       .first();
-    
+
     const departmentId = agency?.departmentId;
 
     // DEBUG LOG
@@ -283,10 +284,10 @@ export const update = mutation({
     });
 
     const updatedTrustFund = await ctx.db.get(args.id);
-    
+
     // DEBUG LOG
     console.log('Updated trust fund with status:', updatedTrustFund?.status);
-    
+
     // Log activity
     await logTrustFundActivity(ctx, userId, {
       action: "updated",
@@ -295,7 +296,7 @@ export const update = mutation({
       newValues: updatedTrustFund,
       reason: args.reason
     });
-    
+
     return args.id;
   },
 });
@@ -461,13 +462,13 @@ export const togglePin = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
-    
+
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Trust fund not found");
-    
+
     const now = Date.now();
     const newPinnedState = !existing.isPinned;
-    
+
     await ctx.db.patch(args.id, {
       isPinned: newPinnedState,
       pinnedAt: newPinnedState ? now : undefined,
@@ -475,7 +476,7 @@ export const togglePin = mutation({
       updatedAt: now,
       updatedBy: userId,
     });
-    
+
     return args.id;
   },
 });
@@ -512,7 +513,7 @@ export const updateStatus = mutation({
     });
 
     const updatedTrustFund = await ctx.db.get(args.id);
-    
+
     // Log activity
     await logTrustFundActivity(ctx, userId, {
       action: "updated",
@@ -521,7 +522,44 @@ export const updateStatus = mutation({
       newValues: updatedTrustFund,
       reason: args.reason || `Status changed to ${args.status}`
     });
-    
+
     return args.id;
+  },
+});
+
+/**
+ * Toggle auto-calculation of financials from breakdowns
+ */
+export const toggleAutoCalculateFinancials = mutation({
+  args: { id: v.id("trustFunds") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const fund = await ctx.db.get(args.id);
+    if (!fund) throw new Error("Fund not found");
+
+    const newValue = !fund.autoCalculateFinancials;
+
+    await ctx.db.patch(args.id, {
+      autoCalculateFinancials: newValue,
+      updatedAt: Date.now(),
+      updatedBy: userId,
+    });
+
+    // If enabling, trigger immediate recalculation
+    if (newValue) {
+      await recalculateFundMetrics(ctx, args.id, "trustFunds", userId);
+    }
+
+    await logTrustFundActivity(ctx, userId, {
+      action: "updated",
+      trustFundId: args.id,
+      previousValues: fund,
+      newValues: { ...fund, autoCalculateFinancials: newValue },
+      reason: `Auto-calculation toggled ${newValue ? "ON" : "OFF"}`
+    });
+
+    return newValue;
   },
 });

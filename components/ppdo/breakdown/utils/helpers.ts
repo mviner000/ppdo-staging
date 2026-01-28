@@ -80,6 +80,13 @@ export function calculateColumnTotals(
     }
   });
 
+  // Correct utilization rate total: (Total Utilized / Total Allocated) * 100
+  if (totals.allocatedBudget !== undefined && totals.budgetUtilized !== undefined) {
+    totals.utilizationRate = totals.allocatedBudget > 0
+      ? (totals.budgetUtilized / totals.allocatedBudget) * 100
+      : 0;
+  }
+
   return totals;
 }
 

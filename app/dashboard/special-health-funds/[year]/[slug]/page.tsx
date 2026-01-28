@@ -27,6 +27,7 @@ import {
 import { TrashBinModal } from "@/components/TrashBinModal";
 import { Modal } from "@/app/dashboard/project/[year]/components/BudgetModal";
 import { ConfirmationModal } from "@/app/dashboard/project/[year]/components/BudgetConfirmationModal";
+import { AutoCalcConfirmationModal } from "@/components/ppdo/breakdown/shared/AutoCalcConfirmationModal";
 
 // Shared Hooks
 import { useEntityStats, useEntityMetadata } from "@/lib/hooks/useEntityStats";
@@ -66,6 +67,7 @@ export default function SpecialHealthFundBreakdownPage({ params }: PageProps) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(null);
     const [showHeader, setShowHeader] = useState(false);
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
     // Queries
     const fund = useQuery(
@@ -106,6 +108,7 @@ export default function SpecialHealthFundBreakdownPage({ params }: PageProps) {
     const createBreakdown = useMutation(api.specialHealthFundBreakdowns.createBreakdown);
     const updateBreakdown = useMutation(api.specialHealthFundBreakdowns.updateBreakdown);
     const deleteBreakdown = useMutation(api.specialHealthFundBreakdowns.moveToTrash);
+    const toggleAutoCalculate = useMutation(api.specialHealthFunds.toggleAutoCalculateFinancials);
 
     // Handlers
     const handlePrint = () => window.print();
@@ -217,6 +220,13 @@ export default function SpecialHealthFundBreakdownPage({ params }: PageProps) {
                 setShowHeader={setShowHeader}
                 showRecalculateButton={false}
                 showActivityLog={true}
+                isAutoCalculate={fund?.autoCalculateFinancials}
+                onToggleAutoCalculate={async () => {
+                    if (!fund) return;
+                    await toggleAutoCalculate({ id: fundId as Id<"specialHealthFunds"> });
+                    setIsConfirmationOpen(true);
+                    toast.success("Auto-calculation settings updated");
+                }}
             />
 
             {showHeader && fund && (
@@ -224,6 +234,9 @@ export default function SpecialHealthFundBreakdownPage({ params }: PageProps) {
                     entityType="specialhealthfund"
                     implementingOffice={fund.officeInCharge}
                     totalBudget={fund.received}
+                    obligated={fund.obligatedPR}
+                    utilized={fund.utilized}
+                    balance={fund.balance}
                     statusText={fund.status}
                     statusColor={getStatusColor(fund.status)}
                     year={year}
@@ -237,6 +250,18 @@ export default function SpecialHealthFundBreakdownPage({ params }: PageProps) {
                             }
                             : undefined
                     }
+                />
+            )}
+
+            {fund && (
+                <AutoCalcConfirmationModal
+                    isOpen={isConfirmationOpen}
+                    onClose={() => setIsConfirmationOpen(false)}
+                    data={{
+                        obligated: fund.obligatedPR,
+                        utilized: fund.utilized,
+                        balance: fund.balance,
+                    }}
                 />
             )}
 

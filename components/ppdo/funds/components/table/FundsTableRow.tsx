@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pin, MoreVertical, Eye, Edit, Archive } from "lucide-react";
+import { Pin, MoreVertical, Eye, Edit, Archive, Calculator } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -224,6 +224,11 @@ export function FundsTableRow<T extends BaseFund>({
                         <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate" title={item.projectTitle}>
                             {truncateText(item.projectTitle, Math.floor(columnWidths.projectTitle / 8))}
                         </span>
+                        {item.autoCalculateFinancials && (
+                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0" title="Auto-calculate enabled">
+                                <Calculator className="w-3 h-3" />
+                            </div>
+                        )}
                     </div>
                 </TableCell>
             )}

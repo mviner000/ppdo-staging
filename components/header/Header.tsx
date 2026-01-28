@@ -1,15 +1,18 @@
-// app/dashboard/components/Header.tsx
-
-"use client";
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Bug, Loader2, Eye, EyeOff } from "lucide-react";
 import { AccountModal } from "../account/AccountModal";
 import { UserDropdown } from "./UserDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import { EmailDropdown } from "./EmailDropdown";
 import { getDisplayName } from "@/lib/utils";
+// import domToImage from "dom-to-image-more"; 
+import { ConcernModal } from "./ConcernModal";
+import { ScreenshotZoom } from "./ScreenshotZoom";
 
 interface HeaderProps {
   onSearchChange?: (query: string) => void;
@@ -19,10 +22,56 @@ interface HeaderProps {
 export function Header({ onSearchChange, searchQuery }: HeaderProps) {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const { isMinimized, toggleMinimize } = useSidebar();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [showBugReport, setShowBugReport] = useState(true);
+
+  // Concern Logic State
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [showConcernModal, setShowConcernModal] = useState(false);
+
+  // Initialize state from local storage
+  useEffect(() => {
+    const stored = localStorage.getItem("showBugReport");
+    if (stored !== null) {
+      setShowBugReport(JSON.parse(stored));
+    }
+  }, []);
+
+  const toggleBugReport = () => {
+    const newState = !showBugReport;
+    setShowBugReport(newState);
+    localStorage.setItem("showBugReport", JSON.stringify(newState));
+  };
+
+  const handleCaptureConcern = async () => {
+    try {
+      setIsCapturing(true);
+
+      const domToImage = (await import("dom-to-image-more")).default;
+
+      const dataUrl = await domToImage.toPng(document.body, {
+        filter: (node) => true
+      });
+
+      setScreenshotUrl(dataUrl);
+
+    } catch (error) {
+      console.error("Screenshot capture failed:", error);
+      setIsCapturing(false);
+    }
+  };
+
+  const handleAnimationComplete = () => {
+    setShowConcernModal(true);
+    // We don't clear screenshotUrl yet because we pass it to the modal
+    setIsCapturing(false);
+  };
 
   // ✅ Use your existing useCurrentUser hook - FULLY DYNAMIC with image support!
   const { user, isLoading } = useCurrentUser();
-  
+
   // Extract user data with proper name handling
   const userName = user ? getDisplayName(user) : "User";
 
@@ -148,6 +197,33 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
                   {userName}
                 </span>
               </div>
+
+              {/* Report Bug Button & Toggle */}
+              <div className="ml-4 flex items-center gap-2">
+                {showBugReport && (
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 gap-2 h-8"
+                    onClick={handleCaptureConcern}
+                    disabled={isCapturing}
+                  >
+                    {isCapturing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Bug className="h-3.5 w-3.5" />
+                    )}
+                    Report Concerns
+                  </Button>
+                )}
+
+                <button
+                  onClick={toggleBugReport}
+                  className="cursor-grab text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors p-1 opacity-50 hover:opacity-100"
+                  title={showBugReport ? "Hide Bug Report Button" : "Show Bug Report Button"}
+                >
+                  {showBugReport ? <Eye size={16} /> : <EyeOff size={16} />}
+                </button>
+              </div>
             </div>
 
             {/* Right section - Actions */}
@@ -176,6 +252,22 @@ export function Header({ onSearchChange, searchQuery }: HeaderProps) {
           </div>
         </div>
       )}
+
+      {/* Screenshot Zoom Animation */}
+      <ScreenshotZoom
+        screenshotUrl={screenshotUrl}
+        onAnimationComplete={handleAnimationComplete}
+      />
+
+      {/* Concern Modal */}
+      <ConcernModal
+        open={showConcernModal}
+        onOpenChange={(open) => {
+          setShowConcernModal(open);
+          if (!open) setScreenshotUrl(null); // Clear screenshot when closed
+        }}
+        screenshot={screenshotUrl}
+      />
     </>
   );
 }

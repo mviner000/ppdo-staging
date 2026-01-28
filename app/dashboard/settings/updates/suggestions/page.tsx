@@ -4,18 +4,18 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { Plus, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Plus, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { BugsSuggestionsDataTable, MediaThumbnails } from "@/components/ppdo/dashboard/BugsSuggestionsDataTable";
-import { BugReportModal } from "@/components/maintenance/BugReportModal";
+import { SuggestionModal } from "@/components/maintenance/SuggestionModal";
 
-export default function BugReportsPage() {
+export default function SuggestionsPage() {
   const router = useRouter();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  // Fetch all bug reports
-  const reports = useQuery(api.bugReports.getAll);
+  // Fetch all suggestions
+  const suggestions = useQuery(api.suggestions.getAll);
 
   const columns: ColumnDef<any>[] = [
     {
@@ -33,15 +33,20 @@ export default function BugReportsPage() {
         let label = "";
 
         switch (status) {
-          case "fixed":
+          case "acknowledged":
             colorClass = "bg-[#15803D]/10 text-[#15803D] border-[#15803D]/20";
             icon = <CheckCircle2 className="w-3 h-3 mr-1" />;
-            label = "Fixed";
-            break;
-          case "not_fixed":
+            label = "Acknowledged";
+            break; // Added break
+          case "to_review":
             colorClass = "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800";
-            icon = <AlertCircle className="w-3 h-3 mr-1" />;
-            label = "Not Fixed";
+            icon = <Clock className="w-3 h-3 mr-1" />;
+            label = "To Review";
+            break;
+          case "denied":
+            colorClass = "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800";
+            icon = <XCircle className="w-3 h-3 mr-1" />;
+            label = "Denied";
             break;
           default:
             colorClass = "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
@@ -59,7 +64,7 @@ export default function BugReportsPage() {
     },
     {
       accessorKey: "submitter",
-      header: "Reported By",
+      header: "Suggested By",
       cell: ({ row }) => {
         const submitter = row.original.submitter;
         if (!submitter) return <span className="text-muted-foreground text-xs">Unknown</span>;
@@ -102,9 +107,9 @@ export default function BugReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bug Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Suggestions</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Track and manage reported bugs
+            Share your ideas to improve the system
           </p>
         </div>
 
@@ -113,10 +118,10 @@ export default function BugReportsPage() {
           onClick={() => setIsCreateDialogOpen(true)}
         >
           <Plus className="w-4 h-4" />
-          Report a Bug
+          Submit Suggestion
         </Button>
 
-        <BugReportModal
+        <SuggestionModal
           open={isCreateDialogOpen}
           onOpenChange={setIsCreateDialogOpen}
         />
@@ -124,9 +129,9 @@ export default function BugReportsPage() {
 
       <BugsSuggestionsDataTable
         columns={columns}
-        data={reports || []}
-        loading={reports === undefined}
-        onRowClick={(row) => router.push(`/dashboard/settings/updates/bugs-report/${row._id}`)}
+        data={suggestions || []}
+        loading={suggestions === undefined}
+        onRowClick={(row) => router.push(`/dashboard/settings/updates/suggestions/${row._id}`)}
       />
     </div>
   );

@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { Edit, Trash2, Eye, Loader2, Calculator } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -22,6 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { Breakdown, ColumnConfig } from "../types/breakdown.types";
 import { formatCellValue } from "../utils/formatters";
 
@@ -270,7 +278,7 @@ export function TableRow({
         </tr>
       </ContextMenuTrigger>
 
-      <ContextMenuContent className="w-48">
+      <ContextMenuContent className="w-[280px]">
         <ContextMenuItem
           onClick={(e) => {
             e.stopPropagation();

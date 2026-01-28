@@ -10,6 +10,7 @@ import {
     FileText,
     GraduationCap,
     Heart,
+    Percent,
 } from "lucide-react";
 import { NavItem } from "./types";
 import { BugsBadge, SuggestionsBadge } from "./badges/UpdatesBadges";
@@ -32,6 +33,13 @@ export const STATIC_NAV_ITEMS: NavItem[] = [
         href: "/dashboard/project",
         category: "Department",
         icon: <Calculator size={20} />,
+    },
+    {
+        name: "20% DF",
+        href: "/dashboard/20df",
+        category: "Department",
+        icon: <Percent size={20} />,
+        isNew: true,
     },
     {
         name: "Trust Funds (Project Organs)",

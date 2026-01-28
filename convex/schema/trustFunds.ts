@@ -14,23 +14,23 @@ export const trustFundTables = {
      * Can contain any characters - user enters project name directly
      */
     projectTitle: v.string(),
-    
+
     /**
      * Office In-Charge (connects to implementing agencies OR departments)
      * Uses the same system as projects for consistency
      */
     officeInCharge: v.string(), // Code from implementingAgencies table
-    
+
     /**
      * Optional department reference (auto-linked if office is a department)
      */
     departmentId: v.optional(v.id("departments")),
-    
+
     /**
      * Date when the trust fund was received
      */
     dateReceived: v.optional(v.number()), // Timestamp - OPTIONAL
-    
+
     /**
      * Financial tracking fields
      */
@@ -38,13 +38,20 @@ export const trustFundTables = {
     obligatedPR: v.optional(v.number()), // Obligated via Purchase Request
     utilized: v.number(), // Amount utilized
     balance: v.number(), // Remaining balance (auto-calculated)
-    
+
     /**
      * Utilization rate (auto-calculated)
      * Formula: (utilized / received) * 100
      */
     utilizationRate: v.optional(v.number()),
-    
+
+    /**
+     * 🆕 AUTO-CALCULATION FLAG
+     * When TRUE: financials (utilized/obligated) are calculated from breakdowns
+     * When FALSE: financials can be manually edited
+     */
+    autoCalculateFinancials: v.optional(v.boolean()),
+
     /**
      * Project Status
      * Tracks the current state of the trust fund project
@@ -59,28 +66,28 @@ export const trustFundTables = {
         v.literal("completed")
       )
     ),
-    
+
     /**
      * Optional fields
      */
     remarks: v.optional(v.string()),
     year: v.optional(v.number()), // Fiscal year
     fiscalYear: v.optional(v.number()),
-    
+
     /**
      * Pin functionality
      */
     isPinned: v.optional(v.boolean()),
     pinnedAt: v.optional(v.number()),
     pinnedBy: v.optional(v.id("users")),
-    
+
     /**
      * Trash system (soft delete)
      */
     isDeleted: v.optional(v.boolean()),
     deletedAt: v.optional(v.number()),
     deletedBy: v.optional(v.id("users")),
-    
+
     /**
      * Audit fields
      */

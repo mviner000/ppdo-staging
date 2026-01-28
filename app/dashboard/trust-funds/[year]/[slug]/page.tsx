@@ -11,6 +11,7 @@
 
 "use client";
 
+import { AutoCalcConfirmationModal } from "@/components/ppdo/breakdown/shared/AutoCalcConfirmationModal";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -74,6 +75,7 @@ export default function TrustFundBreakdownPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(null);
   const [showHeader, setShowHeader] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
   // Queries
   const trustFund = useQuery(
@@ -116,6 +118,7 @@ export default function TrustFundBreakdownPage() {
   const createBreakdown = useMutation(api.trustFundBreakdowns.createBreakdown);
   const updateBreakdown = useMutation(api.trustFundBreakdowns.updateBreakdown);
   const deleteBreakdown = useMutation(api.trustFundBreakdowns.moveToTrash);
+  const toggleAutoCalculate = useMutation(api.trustFunds.toggleAutoCalculateFinancials);
 
   // Handlers
   const handlePrint = () => window.print();
@@ -228,6 +231,13 @@ export default function TrustFundBreakdownPage() {
         setShowHeader={setShowHeader}
         showRecalculateButton={false} // Key difference from Projects
         showActivityLog={true}
+        isAutoCalculate={trustFund?.autoCalculateFinancials}
+        onToggleAutoCalculate={async () => {
+          if (!trustFund) return;
+          await toggleAutoCalculate({ id: trustFundId as Id<"trustFunds"> });
+          setIsConfirmationOpen(true);
+          toast.success("Auto-calculation settings updated");
+        }}
       />
 
       {/* Shared Entity Overview Cards */}
@@ -236,6 +246,9 @@ export default function TrustFundBreakdownPage() {
           entityType="trustfund"
           implementingOffice={trustFund.officeInCharge}
           totalBudget={trustFund.received}
+          obligated={trustFund.obligatedPR}
+          utilized={trustFund.utilized}
+          balance={trustFund.balance}
           statusText={trustFund.status}
           statusColor={getStatusColor(trustFund.status)}
           year={year}
@@ -249,6 +262,18 @@ export default function TrustFundBreakdownPage() {
               }
               : undefined
           }
+        />
+      )}
+
+      {trustFund && (
+        <AutoCalcConfirmationModal
+          isOpen={isConfirmationOpen}
+          onClose={() => setIsConfirmationOpen(false)}
+          data={{
+            obligated: trustFund.obligatedPR,
+            utilized: trustFund.utilized,
+            balance: trustFund.balance,
+          }}
         />
       )}
 

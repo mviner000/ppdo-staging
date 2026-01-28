@@ -12,5 +12,14 @@ export const suggestionsTables = {
     submittedAt: v.number(),
     updatedAt: v.optional(v.number()),
     updatedBy: v.optional(v.id("users")),
+    multimedia: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          type: v.string(), // "image" or "video"
+          name: v.string(),
+        })
+      )
+    ),
   }),
 };

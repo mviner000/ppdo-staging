@@ -24,6 +24,7 @@ import {
   validateBreakdownStatus,
   getActiveBreakdowns,
 } from "./lib/breakdownBase";
+import { recalculateFundMetrics } from "./lib/fundAggregation";
 import { logSpecialEducationFundBreakdownActivity } from "./lib/specialEducationFundBreakdownActivityLogger";
 import { internal } from "./_generated/api";
 
@@ -243,6 +244,9 @@ export const createBreakdown = mutation({
       breakdown,
       source: "web_ui",
     });
+
+    // Recalculate SEF Metrics
+    await recalculateFundMetrics(ctx, args.specialEducationFundId, "specialEducationFunds", userId);
 
     return breakdownId;
   },
@@ -488,6 +492,9 @@ export const updateBreakdown = mutation({
       source: "web_ui",
     });
 
+    // Recalculate SEF Metrics
+    await recalculateFundMetrics(ctx, current.specialEducationFundId, "specialEducationFunds", userId);
+
     return { success: true };
   },
 });
@@ -535,6 +542,9 @@ export const moveToTrash = mutation({
       source: "web_ui",
     });
 
+    // Recalculate SEF Metrics
+    await recalculateFundMetrics(ctx, breakdown.specialEducationFundId, "specialEducationFunds", userId);
+
     return { success: true };
   },
 });
@@ -570,6 +580,9 @@ export const restoreFromTrash = mutation({
       breakdown: restored,
       source: "web_ui",
     });
+
+    // Recalculate SEF Metrics
+    await recalculateFundMetrics(ctx, breakdown.specialEducationFundId, "specialEducationFunds", userId);
 
     return { success: true };
   },

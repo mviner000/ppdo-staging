@@ -26,7 +26,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   // Get environment variable
   const env = process.env.NEXT_PUBLIC_APP_ENV;
-  const shouldShowOnboarding = env === "production";
+  const shouldShowOnboarding = env === "production" || process.env.NODE_ENV === "development";
 
   // Check if current page should show beta banner
   const shouldShowBetaBanner = pathname === "/dashboard/particulars";

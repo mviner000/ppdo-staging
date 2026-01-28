@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { logSpecialHealthFundActivity } from "./lib/specialHealthFundActivityLogger";
+import { recalculateFundMetrics } from "./lib/fundAggregation";
 
 /**
  * Get all ACTIVE special health funds (excludes deleted)
@@ -533,5 +534,42 @@ export const updateStatus = mutation({
         });
 
         return args.id;
+    },
+});
+
+/**
+ * Toggle auto-calculation of financials from breakdowns
+ */
+export const toggleAutoCalculateFinancials = mutation({
+    args: { id: v.id("specialHealthFunds") },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        const fund = await ctx.db.get(args.id);
+        if (!fund) throw new Error("Fund not found");
+
+        const newValue = !fund.autoCalculateFinancials;
+
+        await ctx.db.patch(args.id, {
+            autoCalculateFinancials: newValue,
+            updatedAt: Date.now(),
+            updatedBy: userId,
+        });
+
+        // If enabling, trigger immediate recalculation
+        if (newValue) {
+            await recalculateFundMetrics(ctx, args.id, "specialHealthFunds", userId);
+        }
+
+        await logSpecialHealthFundActivity(ctx, userId, {
+            action: "updated",
+            specialHealthFundId: args.id,
+            previousValues: fund,
+            newValues: { ...fund, autoCalculateFinancials: newValue },
+            reason: `Auto-calculation toggled ${newValue ? "ON" : "OFF"}`
+        });
+
+        return newValue;
     },
 });

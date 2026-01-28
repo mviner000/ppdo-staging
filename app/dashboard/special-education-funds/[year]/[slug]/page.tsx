@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, use } from "react";
+import { AutoCalcConfirmationModal } from "@/components/ppdo/breakdown/shared/AutoCalcConfirmationModal";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 
@@ -65,6 +66,7 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(null);
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [showHeader, setShowHeader] = useState(false);
 
     // Queries
@@ -106,6 +108,7 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
     const createBreakdown = useMutation(api.specialEducationFundBreakdowns.createBreakdown);
     const updateBreakdown = useMutation(api.specialEducationFundBreakdowns.updateBreakdown);
     const deleteBreakdown = useMutation(api.specialEducationFundBreakdowns.moveToTrash);
+    const toggleAutoCalculate = useMutation(api.specialEducationFunds.toggleAutoCalculateFinancials);
 
     // Handlers
     const handlePrint = () => window.print();
@@ -217,6 +220,13 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
                 setShowHeader={setShowHeader}
                 showRecalculateButton={false}
                 showActivityLog={true}
+                isAutoCalculate={fund?.autoCalculateFinancials}
+                onToggleAutoCalculate={async () => {
+                    if (!fund) return;
+                    await toggleAutoCalculate({ id: fundId as Id<"specialEducationFunds"> });
+                    setIsConfirmationOpen(true);
+                    toast.success("Auto-calculation settings updated");
+                }}
             />
 
             {showHeader && fund && (
@@ -224,6 +234,9 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
                     entityType="specialeducationfund"
                     implementingOffice={fund.officeInCharge}
                     totalBudget={fund.received}
+                    obligated={fund.obligatedPR}
+                    utilized={fund.utilized}
+                    balance={fund.balance}
                     statusText={fund.status}
                     statusColor={getStatusColor(fund.status)}
                     year={year}
@@ -332,6 +345,17 @@ export default function SpecialEducationFundBreakdownPage({ params }: PageProps)
                 onClose={() => setShowTrashModal(false)}
                 type="breakdown"
             />
+            {fund && (
+                <AutoCalcConfirmationModal
+                    isOpen={isConfirmationOpen}
+                    onClose={() => setIsConfirmationOpen(false)}
+                    data={{
+                        obligated: fund.obligatedPR,
+                        utilized: fund.utilized,
+                        balance: fund.balance,
+                    }}
+                />
+            )}
         </>
     );
 }

@@ -41,6 +41,7 @@ import type * as lib_budgetAggregation from "../lib/budgetAggregation.js";
 import type * as lib_categoryActivityLogger from "../lib/categoryActivityLogger.js";
 import type * as lib_checkBudgetAccess from "../lib/checkBudgetAccess.js";
 import type * as lib_errors from "../lib/errors.js";
+import type * as lib_fundAggregation from "../lib/fundAggregation.js";
 import type * as lib_govtProjectActivityLogger from "../lib/govtProjectActivityLogger.js";
 import type * as lib_nameUtils from "../lib/nameUtils.js";
 import type * as lib_particularActivityLogger from "../lib/particularActivityLogger.js";
@@ -168,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   "lib/categoryActivityLogger": typeof lib_categoryActivityLogger;
   "lib/checkBudgetAccess": typeof lib_checkBudgetAccess;
   "lib/errors": typeof lib_errors;
+  "lib/fundAggregation": typeof lib_fundAggregation;
   "lib/govtProjectActivityLogger": typeof lib_govtProjectActivityLogger;
   "lib/nameUtils": typeof lib_nameUtils;
   "lib/particularActivityLogger": typeof lib_particularActivityLogger;

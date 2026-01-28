@@ -24,6 +24,7 @@ import {
   validateBreakdownStatus,
   getActiveBreakdowns,
 } from "./lib/breakdownBase";
+import { recalculateFundMetrics } from "./lib/fundAggregation";
 import { logTrustFundBreakdownActivity } from "./lib/trustFundBreakdownActivityLogger";
 import { internal } from "./_generated/api";
 
@@ -240,6 +241,9 @@ export const createBreakdown = mutation({
       breakdown,
       source: "web_ui",
     });
+
+    // Recalculate Trust Fund Metrics
+    await recalculateFundMetrics(ctx, args.trustFundId, "trustFunds", userId);
 
     return breakdownId;
   },
@@ -479,6 +483,9 @@ export const updateBreakdown = mutation({
       source: "web_ui",
     });
 
+    // Recalculate Trust Fund Metrics
+    await recalculateFundMetrics(ctx, current.trustFundId, "trustFunds", userId);
+
     return { success: true };
   },
 });
@@ -523,6 +530,9 @@ export const moveToTrash = mutation({
       source: "web_ui",
     });
 
+    // Recalculate Trust Fund Metrics
+    await recalculateFundMetrics(ctx, breakdown.trustFundId, "trustFunds", userId);
+
     return { success: true };
   },
 });
@@ -555,6 +565,9 @@ export const restoreFromTrash = mutation({
       breakdown: restored,
       source: "web_ui",
     });
+
+    // Recalculate Trust Fund Metrics
+    await recalculateFundMetrics(ctx, breakdown.trustFundId, "trustFunds", userId);
 
     return { success: true };
   },

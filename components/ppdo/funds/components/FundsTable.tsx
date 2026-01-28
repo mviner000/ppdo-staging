@@ -110,6 +110,8 @@ export function FundsTable<T extends BaseFund>({
         }
     };
 
+
+
     const handleStatusChange = async (itemId: string, newStatus: string) => {
         setUpdatingStatusIds(prev => new Set(prev).add(itemId));
 
@@ -129,6 +131,18 @@ export function FundsTable<T extends BaseFund>({
                 newSet.delete(itemId);
                 return newSet;
             });
+        }
+    };
+
+    const toggleAutoCalculate = useMutation(apiEndpoint.toggleAutoCalculateFinancials);
+
+    const handleToggleAutoCalculate = async (id: string) => {
+        try {
+            const newState = await toggleAutoCalculate({ id: id as any });
+            toast.success(`Auto-calculation ${newState ? "enabled" : "disabled"}`);
+        } catch (error) {
+            toast.error("Failed to toggle auto-calculation");
+            console.error(error);
         }
     };
 
@@ -287,6 +301,10 @@ export function FundsTable<T extends BaseFund>({
                 }}
                 onDelete={() => {
                     if (contextMenu) handleDelete(contextMenu.entity);
+                    setContextMenu(null);
+                }}
+                onToggleAutoCalculate={() => {
+                    if (contextMenu) handleToggleAutoCalculate(contextMenu.entity.id);
                     setContextMenu(null);
                 }}
                 canEdit={!!onEdit}
