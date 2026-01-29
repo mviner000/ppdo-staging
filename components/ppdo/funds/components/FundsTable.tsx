@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -64,6 +64,26 @@ export function FundsTable<T extends BaseFund>({
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState<T | null>(null);
     const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
+    const [showViewToggle, setShowViewToggle] = useState(false);
+
+    // Keyboard shortcut to toggle view tabs visibility
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'v' || e.key === 'V')) {
+                e.preventDefault();
+                const newValue = !showViewToggle;
+                setShowViewToggle(newValue);
+                if (newValue) {
+                    toast.info("View toggle controls visible");
+                } else {
+                    toast.info("View toggle controls hidden");
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showViewToggle]);
 
     // Search State
     const [searchQuery, setSearchQuery] = useState("");
@@ -224,16 +244,20 @@ export function FundsTable<T extends BaseFund>({
     return (
         <>
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "kanban")} className="w-full">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="table" className="gap-2">
-                        <TableIcon className="w-4 h-4" />
-                        Table View
-                    </TabsTrigger>
-                    <TabsTrigger value="kanban" className="gap-2">
-                        <LayoutGrid className="w-4 h-4" />
-                        Kanban View
-                    </TabsTrigger>
-                </TabsList>
+                <div className="flex justify-end mb-4 h-10">
+                    {showViewToggle && (
+                        <TabsList className="animate-in fade-in slide-in-from-right-4 duration-300">
+                            <TabsTrigger value="table" className="gap-2">
+                                <TableIcon className="w-4 h-4" />
+                                Table View
+                            </TabsTrigger>
+                            <TabsTrigger value="kanban" className="gap-2">
+                                <LayoutGrid className="w-4 h-4" />
+                                Kanban View
+                            </TabsTrigger>
+                        </TabsList>
+                    )}
+                </div>
 
                 <TabsContent value="table" className="mt-0">
                     <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">

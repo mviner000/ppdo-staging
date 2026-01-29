@@ -10,7 +10,7 @@ import {
     FileText,
     GraduationCap,
     Heart,
-    Percent,
+    TrendingUp,
 } from "lucide-react";
 import { NavItem } from "./types";
 import { BugsBadge, SuggestionsBadge } from "./badges/UpdatesBadges";
@@ -38,7 +38,7 @@ export const STATIC_NAV_ITEMS: NavItem[] = [
         name: "20% DF",
         href: "/dashboard/20_percent_df",
         category: "Department",
-        icon: <Percent size={20} />,
+        icon: <TrendingUp size={20} />,
         isNew: true,
     },
     {

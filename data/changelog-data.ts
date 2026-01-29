@@ -18,6 +18,77 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogEntry[] = [
   {
+    version: "v1.9.0",
+    date: "January 29, 2026",
+    author: "Melvin Nogoy",
+    title: "20% Development Fund (20% DF) Module, Reporting System, and UX Improvements",
+    description: "Introduction of the 20% Development Fund module, a new screenshot-integrated reporting system, and significant UX enhancements including a global loader and breadcrumb refactor.",
+    changes: [
+      {
+        category: "feature",
+        title: "20% Development Fund (20% DF) Integration",
+        description: "A complete end-to-end module for managing the 20% Development Fund, featuring full CRUD, auto-calculation, and stats.",
+        items: [
+          "Implemented backend architecture (twentyPercentDF, breakdowns, activity logs, shared access)",
+          "Added aggregation engine for automatic status and financial total calculations",
+          "Created dedicated 20% DF landing page cards and table interfaces",
+          "Integrated 20% DF into the shared breakdown framework and sidebar",
+          "Added full activity log support for all 20% DF operations",
+          "Aligned 20% DF with projects module conventions for a consistent experience",
+        ],
+      },
+      {
+        category: "feature",
+        title: "Screenshot & Bug Reporting Flow",
+        description: "Enhanced maintenance tools with integrated screenshot capture and rich text reports.",
+        items: [
+          "Integrated screenshot capture using dom-to-image-more with SSR-safe dynamic imports",
+          "New ConcernModal for bug reports and feature suggestions with automated capture flow",
+          "Enhanced RichTextEditor with ordered lists, video previews, and screenshot auto-sync",
+          "Added 'Steps to Replicate' field to bug report schema for better issue tracking",
+          "ScreenshotZoom component for seamless transitions between capture and modal views",
+        ],
+      },
+      {
+        category: "improvement",
+        title: "UI/UX & Navigation Polish",
+        description: "Significant improvements to app responsiveness and navigation clarity.",
+        items: [
+          "Introduced global horizontal loading bar synchronized with app accent colors",
+          "Complete Breadcrumb system refactor using centralized utilities and skeleton loaders",
+          "Optimized Sidebar with auto-scroll, mobile back buttons, and lazy-loaded badges",
+          "Support for recursive nested accordions in navigation sidebar",
+          "Custom 404 page with interactive Tarlac-themed 3D illustrations",
+          "CMS Coming Soon page and updated dashboard layout with view mode tabs",
+        ],
+      },
+      {
+        category: "refactor",
+        title: "Architecture & Maintenance",
+        description: "Internal improvements for stability and code reusability.",
+        items: [
+          "Modularized projects module into reusable Header, Body, Toolbar, and Footer components",
+          "Implemented automated error recovery and cache clearing (lib/cache-utils.ts)",
+          "Reverted slug-based design for a more stable ID-first routing architecture",
+          "Global-error and segment-level error pages for deep repair & restart",
+          "Resolved Next.js route conflicts caused by overlapping directory structures",
+        ],
+      },
+      {
+        category: "bugfix",
+        title: "Build & Type Safety",
+        description: "Resolved critical build errors and type mismatches.",
+        items: [
+          "Fixed TypeScript type mismatches in fund breakdown financial metrics",
+          "Resolved Convex ID typing issues and schema mismatches in forms",
+          "Synced ActivityLogType unions to prevent invalid activity log usage",
+          "Fixed missing trackedFields mappings and loading state checks for 20% DF",
+          "Corrected Zod validation to support Convex IDs safely across all modules",
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.8.0",
     date: "January 27, 2026",
     author: "Melvin Nogoy",

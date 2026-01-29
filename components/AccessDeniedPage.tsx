@@ -42,7 +42,7 @@ export default function AccessDeniedPage({
 }: AccessDeniedPageProps) {
   const router = useRouter();
   const createAccessRequest = useMutation(api.accessRequests.create);
-  
+
   const [accessType, setAccessType] = useState("");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,13 +101,6 @@ export default function AccessDeniedPage({
             <div className="flex flex-col gap-3">
               <Button onClick={() => router.push("/dashboard")} className="w-full">
                 Go to Dashboard
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.back()}
-                className="w-full"
-              >
-                Go Back
               </Button>
             </div>
           </CardContent>
@@ -200,7 +193,7 @@ export default function AccessDeniedPage({
                   Access Denied
                 </CardTitle>
               </div>
-             <CardDescription className="text-sm text-slate-600 dark:text-zinc-400 text-center leading-snug">
+              <CardDescription className="text-sm text-slate-600 dark:text-zinc-400 text-center leading-snug">
                 You don’t have access to this page.{" "}
                 <span className="font-semibold">{pageRequested}</span> is restricted to approved users only.
                 If you believe you should have access, please complete the form below to request permission.
@@ -212,87 +205,87 @@ export default function AccessDeniedPage({
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-             {/* User Information - Display Only */}
-            <div className="p-4 bg-slate-50 dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100 mb-3">
-                Your Information
-              </h3>
+              {/* User Information - Display Only */}
+              <div className="p-4 bg-slate-50 dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100 mb-3">
+                  Your Information
+                </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Email */}
-                <div className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 mt-1 text-slate-500 dark:text-zinc-400" />
-                  <div>
-                    <Label className="text-xs text-slate-500 dark:text-zinc-500">
-                      Email Address
-                    </Label>
-                    <p className="text-sm font-medium text-slate-900 dark:text-zinc-100 break-all">
-                      {userEmail || "Not provided"}
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Email */}
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-4 h-4 mt-1 text-slate-500 dark:text-zinc-400" />
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-zinc-500">
+                        Email Address
+                      </Label>
+                      <p className="text-sm font-medium text-slate-900 dark:text-zinc-100 break-all">
+                        {userEmail || "Not provided"}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Department */}
-                <div className="flex items-start gap-3">
-                  <Building2 className="w-4 h-4 mt-1 text-slate-500 dark:text-zinc-400" />
-                  <div>
-                    <Label className="text-xs text-slate-500 dark:text-zinc-500">
-                      Department / Office
-                    </Label>
-                    <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
-                      {departmentName}
-                    </p>
+                  {/* Department */}
+                  <div className="flex items-start gap-3">
+                    <Building2 className="w-4 h-4 mt-1 text-slate-500 dark:text-zinc-400" />
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-zinc-500">
+                        Department / Office
+                      </Label>
+                      <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+                        {departmentName}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
 
               {/* Request Form */}
               <div className="space-y-4">
-              <div className="space-y-2">
-  <Label>
-    Access Type <span className="text-red-500">*</span>
-  </Label>
+                <div className="space-y-2">
+                  <Label>
+                    Access Type <span className="text-red-500">*</span>
+                  </Label>
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    {/* Viewer */}
-    <div className="flex items-center space-x-2 rounded-md border p-3">
-      <Checkbox
-        id="viewer"
-        checked={accessType === "viewer"}
-        onCheckedChange={() => setAccessType("viewer")}
-      />
-      <label
-        htmlFor="viewer"
-        className="text-sm font-medium leading-none cursor-pointer"
-      >
-        Viewer
-        <span className="block text-xs text-slate-500 dark:text-zinc-400">
-          Read only
-        </span>
-      </label>
-    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Viewer */}
+                    <div className="flex items-center space-x-2 rounded-md border p-3">
+                      <Checkbox
+                        id="viewer"
+                        checked={accessType === "viewer"}
+                        onCheckedChange={() => setAccessType("viewer")}
+                      />
+                      <label
+                        htmlFor="viewer"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Viewer
+                        <span className="block text-xs text-slate-500 dark:text-zinc-400">
+                          Read only
+                        </span>
+                      </label>
+                    </div>
 
-    {/* Editor */}
-    <div className="flex items-center space-x-2 rounded-md border p-3">
-      <Checkbox
-        id="editor"
-        checked={accessType === "editor"}
-        onCheckedChange={() => setAccessType("editor")}
-      />
-      <label
-        htmlFor="editor"
-        className="text-sm font-medium leading-none cursor-pointer"
-      >
-        Editor
-        <span className="block text-xs text-slate-500 dark:text-zinc-400">
-          Can modify
-        </span>
-      </label>
-    </div>
-  </div>
-</div>
+                    {/* Editor */}
+                    <div className="flex items-center space-x-2 rounded-md border p-3">
+                      <Checkbox
+                        id="editor"
+                        checked={accessType === "editor"}
+                        onCheckedChange={() => setAccessType("editor")}
+                      />
+                      <label
+                        htmlFor="editor"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        Editor
+                        <span className="block text-xs text-slate-500 dark:text-zinc-400">
+                          Can modify
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
 
                 <div className="space-y-2">

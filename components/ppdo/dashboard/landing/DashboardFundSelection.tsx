@@ -6,7 +6,8 @@ import {
     HeartPulse,
     LockKeyhole,
     Wallet,
-    ArrowLeft
+    ArrowLeft,
+    TrendingUp
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export function DashboardFundSelection({ onSelectBudget, onBack }: DashboardFund
             <div className="space-y-4">
                 <button
                     onClick={() => setShowComingSoon(null)}
-                    className="flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+                    className="cursor-grab flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
                 >
                     ← Back to Fund Selection
                 </button>
@@ -49,6 +50,17 @@ export function DashboardFundSelection({ onSelectBudget, onBack }: DashboardFund
             borderColor: "hover:border-green-600 dark:hover:border-green-500",
             onClick: onSelectBudget,
             active: true,
+        },
+        {
+            id: "twenty-percent-df",
+            title: "20% DF",
+            description: "Montior 20% Development Fund projects and allocations",
+            icon: TrendingUp,
+            color: "text-emerald-600 dark:text-emerald-400",
+            bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
+            borderColor: "hover:border-emerald-600 dark:hover:border-emerald-500",
+            onClick: () => setShowComingSoon("20% DF"),
+            active: false,
         },
         {
             id: "trust",
@@ -107,7 +119,7 @@ export function DashboardFundSelection({ onSelectBudget, onBack }: DashboardFund
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {funds.map((fund) => (
                     <Card
                         key={fund.id}

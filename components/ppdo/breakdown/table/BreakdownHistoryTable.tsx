@@ -12,6 +12,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Trash2, Printer, Plus, LayoutGrid, Table2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAccentColor } from "@/contexts/AccentColorContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BreakdownKanban } from "../kanban";
@@ -92,6 +93,26 @@ export function BreakdownHistoryTable({
 
   // View state
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
+  const [showViewToggle, setShowViewToggle] = useState(false);
+
+  // Keyboard shortcut to toggle view tabs visibility
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
+        const newValue = !showViewToggle;
+        setShowViewToggle(newValue);
+        if (newValue) {
+          toast.info("View toggle controls visible");
+        } else {
+          toast.info("View toggle controls hidden");
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showViewToggle]);
 
   // Handle URL param for initial view mode
   useEffect(() => {
@@ -293,17 +314,19 @@ export function BreakdownHistoryTable({
 
   return (
     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "kanban")} className="space-y-4">
-      <div className="flex justify-end items-center">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-800">
-          <TabsTrigger value="table" className="gap-2">
-            <Table2 className="w-4 h-4" />
-            Table
-          </TabsTrigger>
-          <TabsTrigger value="kanban" className="gap-2">
-            <LayoutGrid className="w-4 h-4" />
-            Kanban
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex justify-end items-center mb-4 min-h-[40px]">
+        {showViewToggle && (
+          <TabsList className="bg-zinc-100 dark:bg-zinc-800 animate-in fade-in slide-in-from-right-4 duration-300">
+            <TabsTrigger value="table" className="gap-2">
+              <Table2 className="w-4 h-4" />
+              Table
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              Kanban
+            </TabsTrigger>
+          </TabsList>
+        )}
       </div>
 
       <TabsContent value="table" className="mt-0">

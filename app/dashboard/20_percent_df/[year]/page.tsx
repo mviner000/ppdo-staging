@@ -122,7 +122,7 @@ export default function YearTwentyPercentDFPage({ params }: PageProps) {
             <TwentyPercentDFYearHeader
                 year={year}
                 pageTitle="20% Development Fund"
-                pageDescription="Manage 20% development fund allocations and utilization"
+                pageDescription="Monitor 20% development fund allocations and utilization"
                 showDetails={showDetails}
                 onToggleDetails={() => setShowDetails(!showDetails)}
                 onOpenTrash={() => setShowTrashModal(true)}
